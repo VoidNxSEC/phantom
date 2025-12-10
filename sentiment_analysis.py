@@ -127,6 +127,7 @@ def main():
     
     print(f"{'Text':<50} | {'Sentiment':<10} | {'Score':<5}")
     print("-" * 75)
+    print(f"Using SpaCy: {engine.use_spacy}")
     
     for text in test_texts:
         res = engine.analyze(text)

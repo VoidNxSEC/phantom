@@ -1,0 +1,4 @@
+timestamp,metric,value,host
+2024-01-15T10:00:00Z,cpu_usage,45.2,server-01.internal.net
+2024-01-15T10:00:00Z,memory_usage,78.5,server-01.internal.net
+2024-01-15T10:01:00Z,cpu_usage,52.1,server-02.internal.net

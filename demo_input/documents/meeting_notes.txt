@@ -1,0 +1,5 @@
+Meeting notes from 2024-01-15
+Attendees: alice@company.com, bob@company.com
+Password for shared drive: S3cr3tP@ss123
+API Key: sk_live_4eC39HqLyjWDarjtT1zdp7dc
+

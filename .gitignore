@@ -42,10 +42,97 @@ htmlcov/
 result
 result-*
 
-# Project Specific
+# Project Specific - Data & Artifacts
 .phantom/
 demo_output/
+demo_input/
+sanitized/
+classified/
+output/
+outputs/
+mnt/
 *.log
+
+# Phantom Pipeline Outputs
+*_output/
+*_classified/
+*_sanitized/
+quarantine/
+staging/
+processed/
+
+# Reports & Analytics
+reports/
+*.report.json
+*.stats.json
+*_report.md
+
+# Pseudonym Maps & Metadata (SENSITIVE)
+.phantom_map.json
+*_map.json
+*_metadata.json
+fingerprints/
+
+# Data Files
+*.csv
+*.tsv
+*.parquet
+*.avro
+*.db
+*.sqlite
+*.sqlite3
+data/
+datasets/
+corpus/
+
+# Documents (potentially sensitive)
+docs_input/
+documents_raw/
+*.pdf
+*.docx
+*.doc
+*.odt
+
+# Media Files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.mp4
+*.mkv
+*.avi
+*.mp3
+*.wav
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.bz2
+*.xz
+
+# Crypto & Keys (CRITICAL)
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
+private.key
+*.gpg
+*.asc
+
+# Config Files (may contain secrets)
+*.env
+*.env.*
+.env.local
+.env.production
+secrets/
+credentials/
 
 # Editors & IDEs
 .vscode/

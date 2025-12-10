@@ -9,6 +9,8 @@
   outputs = { self, nixpkgs, flake-utils, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
+        VERSION = "2.0.0";
+        
         pkgs = import nixpkgs {
           inherit system;
           config.allowUnfree = true;
@@ -31,13 +33,12 @@
           
           # ── Hashing & Cryptography ──
           cryptography        # Industrial-grade crypto
-          hashlib             # (stdlib) SHA256, BLAKE2
           pynacl              # libsodium bindings
           
           # ── NLP & Classification ──
           nltk                # Natural language toolkit
           scikit-learn        # ML classification
-          vaderSentiment      # Sentiment analysis
+          #vadersentiment      # Sentiment analysis
           
           # ── Metadata & Forensics ──
           exifread            # EXIF metadata extraction
@@ -537,7 +538,7 @@
                   
                   # Compute SHA256 and fallback BLAKE2b
                   with open(filepath, 'rb') as f:
-                      for chunk in iter(lambda: f.read(65536), b''):
+                      for chunk in iter(lambda: f.read(65536), b'''):
                           sha256_hash.update(chunk)
                           if not blake3_hex:
                               blake3_hash.update(chunk)

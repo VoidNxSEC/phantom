@@ -1,0 +1,16 @@
+EmployeeID,Name,Email,Phone,SSN,Department,Role,Salary
+EMP-10000,Susan Martin,susan.martin@testcorp.org,443-637-7026,444-80-6431,Engineering,VP,65339
+EMP-10001,Thomas Thomas,thomas.thomas@fakedata.net,310-715-6848,468-47-9011,Marketing,Associate,125588
+EMP-10002,James Thomas,james.thomas@fakedata.net,604-774-3216,172-81-6243,Engineering,Manager,140258
+EMP-10003,Joseph Thomas,joseph.thomas@placeholder.io,373-159-5027,659-43-7084,Marketing,Intern,118226
+EMP-10004,Jessica Miller,jessica.miller@fakedata.net,723-202-3643,972-71-6534,Engineering,Manager,74916
+EMP-10005,Michael Martinez,michael.martinez@testcorp.org,726-694-4434,305-73-2959,Engineering,Manager,104227
+EMP-10006,Elizabeth Johnson,elizabeth.johnson@placeholder.io,521-355-4565,560-94-1094,Engineering,Associate,134098
+EMP-10007,Robert Davis,robert.davis@example.com,433-946-2390,292-70-3096,Engineering,Director,60415
+EMP-10008,James Taylor,james.taylor@example.com,581-164-3336,163-51-2097,Marketing,Associate,76299
+EMP-10009,Sarah Smith,sarah.smith@fakedata.net,643-929-8747,994-62-5308,Finance,Manager,92047
+EMP-10010,Elizabeth Martin,elizabeth.martin@example.com,330-713-8959,420-12-7119,Engineering,Associate,59008
+EMP-10011,Susan White,susan.white@testcorp.org,373-284-5303,332-34-2983,Sales,Manager,92260
+EMP-10012,Mary White,mary.white@example.com,244-440-1787,573-39-9278,Sales,Director,41596
+EMP-10013,Jessica Brown,jessica.brown@placeholder.io,792-665-3457,897-43-7826,Marketing,Intern,99074
+EMP-10014,John Robinson,john.robinson@example.com,369-107-6782,228-81-6235,Sales,Manager,118189

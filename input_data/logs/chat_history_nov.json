@@ -1,0 +1,192 @@
+[
+  {
+    "session_id": "21affcf1-2a6e-427d-bb6a-01a88caceba3",
+    "messages": [
+      {
+        "role": "user",
+        "timestamp": "2025-11-14T11:04:58.870262",
+        "message": "Who is the CEO?"
+      },
+      {
+        "role": "bot",
+        "timestamp": "2025-11-14T11:05:00.870262",
+        "message": "Our CEO is John Doe."
+      }
+    ]
+  },
+  {
+    "session_id": "e3c20f67-e528-42b5-9e79-f85bf74a4641",
+    "messages": [
+      {
+        "role": "user",
+        "timestamp": "2025-11-23T11:04:58.870274",
+        "message": "What is my account balance?"
+      },
+      {
+        "role": "bot",
+        "timestamp": "2025-11-23T11:05:00.870274",
+        "message": "Please provide your account ID."
+      }
+    ]
+  },
+  {
+    "session_id": "2134ec0d-8b62-45c7-afd3-e8b17d03d6bd",
+    "messages": [
+      {
+        "role": "user",
+        "timestamp": "2025-11-17T11:04:58.870281",
+        "message": "I need to reset my password"
+      },
+      {
+        "role": "bot",
+        "timestamp": "2025-11-17T11:05:00.870281",
+        "message": "Sure, I can help with that. What is your email?"
+      },
+      {
+        "role": "user",
+        "timestamp": "2025-11-17T11:05:08.870281",
+        "message": "Here is my API key: AKIAIOSFODNN7EXAMPLE"
+      },
+      {
+        "role": "bot",
+        "timestamp": "2025-11-17T11:05:10.870281",
+        "message": "Thank you, I have logged it."
+      }
+    ]
+  },
+  {
+    "session_id": "1e1a70b0-9957-4afd-837a-2d7844a3caed",
+    "messages": [
+      {
+        "role": "user",
+        "timestamp": "2025-12-06T11:04:58.870291",
+        "message": "Who is the CEO?"
+      },
+      {
+        "role": "bot",
+        "timestamp": "2025-12-06T11:05:00.870291",
+        "message": "Our CEO is John Doe."
+      }
+    ]
+  },
+  {
+    "session_id": "13c68b1a-b652-4b65-a6d1-e5695958a4e9",
+    "messages": [
+      {
+        "role": "user",
+        "timestamp": "2025-12-01T11:04:58.870297",
+        "message": "What is my account balance?"
+      },
+      {
+        "role": "bot",
+        "timestamp": "2025-12-01T11:05:00.870297",
+        "message": "Please provide your account ID."
+      }
+    ]
+  },
+  {
+    "session_id": "91db417a-c197-4519-97f1-1360572fbee8",
+    "messages": [
+      {
+        "role": "user",
+        "timestamp": "2025-12-02T11:04:58.870303",
+        "message": "I want to report a transaction"
+      },
+      {
+        "role": "bot",
+        "timestamp": "2025-12-02T11:05:00.870303",
+        "message": "Which transaction ID is it?"
+      },
+      {
+        "role": "user",
+        "timestamp": "2025-12-02T11:05:08.870303",
+        "message": "My password is secret123!"
+      },
+      {
+        "role": "bot",
+        "timestamp": "2025-12-02T11:05:10.870303",
+        "message": "Please do not share passwords here."
+      }
+    ]
+  },
+  {
+    "session_id": "af979f0b-7731-4b58-8774-3fbfc9ad394d",
+    "messages": [
+      {
+        "role": "user",
+        "timestamp": "2025-11-21T11:04:58.870312",
+        "message": "I need to reset my password"
+      },
+      {
+        "role": "bot",
+        "timestamp": "2025-11-21T11:05:00.870312",
+        "message": "Sure, I can help with that. What is your email?"
+      },
+      {
+        "role": "user",
+        "timestamp": "2025-11-21T11:05:08.870312",
+        "message": "Here is my API key: AKIAIOSFODNN7EXAMPLE"
+      },
+      {
+        "role": "bot",
+        "timestamp": "2025-11-21T11:05:10.870312",
+        "message": "Thank you, I have logged it."
+      }
+    ]
+  },
+  {
+    "session_id": "fefb7fba-e5d4-4b06-8808-13a3b7685897",
+    "messages": [
+      {
+        "role": "user",
+        "timestamp": "2025-11-27T11:04:58.870320",
+        "message": "What is my account balance?"
+      },
+      {
+        "role": "bot",
+        "timestamp": "2025-11-27T11:05:00.870320",
+        "message": "Please provide your account ID."
+      }
+    ]
+  },
+  {
+    "session_id": "3ad199a9-b3c6-4e6c-aa0b-8e1ff5d86308",
+    "messages": [
+      {
+        "role": "user",
+        "timestamp": "2025-12-03T11:04:58.870326",
+        "message": "What is my account balance?"
+      },
+      {
+        "role": "bot",
+        "timestamp": "2025-12-03T11:05:00.870326",
+        "message": "Please provide your account ID."
+      },
+      {
+        "role": "user",
+        "timestamp": "2025-12-03T11:05:08.870326",
+        "message": "I lost my card 4242-4242-4242-4242"
+      },
+      {
+        "role": "bot",
+        "timestamp": "2025-12-03T11:05:10.870326",
+        "message": "I will block it immediately."
+      }
+    ]
+  },
+  {
+    "session_id": "e8ff200f-dab1-47d1-906e-9f4be0b503a2",
+    "messages": [
+      {
+        "role": "user",
+        "timestamp": "2025-11-30T11:04:58.870335",
+        "message": "Who is the CEO?"
+      },
+      {
+        "role": "bot",
+        "timestamp": "2025-11-30T11:05:00.870335",
+        "message": "Our CEO is John Doe."
+      }
+    ]
+  }
+]

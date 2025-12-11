@@ -14,7 +14,7 @@ Run: uvicorn cortex_api:app --reload --host 0.0.0.0 --port 8000
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from pathlib import Path
@@ -22,11 +22,30 @@ import tempfile
 import logging
 import asyncio
 from datetime import datetime
+from functools import lru_cache
+import hashlib
+import json
 
 # CORTEX modules
 from cortex_v2 import CortexV2Pipeline, DocumentInsights
 from cortex_embeddings import SearchResult
 from prompt_pipeline import PromptPipeline, Source, Message
+from latency_optimizer import QueryCache, LatencyMetrics
+from prompt_workbench import PromptWorkbench
+from cloud_providers import get_available_models
+
+# Cloud providers (optional imports)
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+
+try:
+    import anthropic
+    ANTHROPIC_AVAILABLE = True
+except ImportError:
+    ANTHROPIC_AVAILABLE = False
 
 # ═══════════════════════════════════════════════════════════════
 # CONFIGURATION
@@ -54,6 +73,24 @@ _prompt_pipeline: Optional[PromptPipeline] = None
 
 # Simple conversation store (in production, use database)
 _conversations: Dict[str, List[ChatMessage]] = {}
+
+# Cloud provider clients (lazy-loaded)
+_openai_client = None
+_anthropic_client = None
+
+# Provider API keys (set via environment or /api/config)
+_provider_keys = {
+    'openai': None,
+    'anthropic': None
+}
+
+# Optimization tools
+_query_cache = QueryCache(maxsize=1000, ttl_seconds=3600)
+_metrics = LatencyMetrics()
+_workbench = PromptWorkbench()
+
+# File processing queue
+_processing_queue: Dict[str, Dict] = {}
 
 
 # ═══════════════════════════════════════════════════════════════

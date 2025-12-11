@@ -1,156 +1,822 @@
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api/core";
+  import { onMount } from "svelte";
 
-  let name = $state("");
-  let greetMsg = $state("");
+  // Types
+  interface Message {
+    role: "user" | "assistant";
+    content: string;
+    sources?: Source[];
+    timestamp: number;
+  }
 
-  async function greet(event: Event) {
-    event.preventDefault();
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    greetMsg = await invoke("greet", { name });
+  interface Source {
+    id: number;
+    text: string;
+    score: number;
+  }
+
+  interface PromptTemplate {
+    id: string;
+    name: string;
+    template: string;
+    variables: string[];
+    created: string;
+  }
+
+  // State
+  let currentTab = $state<"chat" | "workbench" | "library" | "settings">(
+    "chat",
+  );
+  let apiUrl = $state("http://localhost:8000");
+  let provider = $state("local");
+  let model = $state("qwen-30b");
+  let temperature = $state(0.7);
+  let maxTokens = $state(2048);
+
+  // Chat
+  let messages = $state<Message[]>([]);
+  let chatInput = $state("");
+  let isLoading = $state(false);
+  let conversationId = $state("");
+
+  // Workbench
+  let workbenchTemplate = $state("");
+  let workbenchVars = $state<Record<string, string>>({});
+  let workbenchResult = $state<any>(null);
+  let llmResponse = $state("");
+
+  // Library
+  let savedPrompts = $state<PromptTemplate[]>([]);
+  let newPromptName = $state("");
+
+  // Status
+  let apiStatus = $state<"online" | "offline" | "checking">("checking");
+  let availableModels = $state<Record<string, any[]>>({});
+
+  // File upload
+  let uploadedFiles = $state<{ name: string; status: string }[]>([]);
+  let isDragging = $state(false);
+
+  // Init
+  onMount(() => {
+    conversationId = `conv_${Date.now()}`;
+    loadFromStorage();
+    checkApi();
+    loadModels();
+  });
+
+  function loadFromStorage() {
+    try {
+      const s = localStorage.getItem("cortex_settings");
+      if (s) {
+        const data = JSON.parse(s);
+        apiUrl = data.apiUrl || apiUrl;
+        provider = data.provider || provider;
+        model = data.model || model;
+        temperature = data.temperature ?? temperature;
+        maxTokens = data.maxTokens || maxTokens;
+      }
+      const p = localStorage.getItem("cortex_prompts");
+      if (p) savedPrompts = JSON.parse(p);
+    } catch {}
+  }
+
+  function saveSettings() {
+    localStorage.setItem(
+      "cortex_settings",
+      JSON.stringify({ apiUrl, provider, model, temperature, maxTokens }),
+    );
+  }
+
+  function savePrompts() {
+    localStorage.setItem("cortex_prompts", JSON.stringify(savedPrompts));
+  }
+
+  async function checkApi() {
+    apiStatus = "checking";
+    try {
+      const res = await fetch(`${apiUrl}/health`);
+      apiStatus = res.ok ? "online" : "offline";
+    } catch {
+      apiStatus = "offline";
+    }
+  }
+
+  async function loadModels() {
+    try {
+      const res = await fetch(`${apiUrl}/api/models`);
+      if (res.ok) availableModels = await res.json();
+    } catch {}
+  }
+
+  // Chat
+  async function sendMessage() {
+    if (!chatInput.trim() || isLoading) return;
+
+    messages = [
+      ...messages,
+      { role: "user", content: chatInput.trim(), timestamp: Date.now() },
+    ];
+    const question = chatInput;
+    chatInput = "";
+    isLoading = true;
+
+    try {
+      const res = await fetch(`${apiUrl}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: question,
+          conversation_id: conversationId,
+          history: messages
+            .slice(-10)
+            .map((m) => ({ role: m.role, content: m.content })),
+          context_size: 5,
+          llm_provider: provider,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        messages = [
+          ...messages,
+          {
+            role: "assistant",
+            content: data.message.content,
+            sources: data.message.sources,
+            timestamp: Date.now(),
+          },
+        ];
+      } else {
+        messages = [
+          ...messages,
+          { role: "assistant", content: "❌ API Error", timestamp: Date.now() },
+        ];
+      }
+    } catch {
+      messages = [
+        ...messages,
+        {
+          role: "assistant",
+          content: "❌ Connection failed",
+          timestamp: Date.now(),
+        },
+      ];
+    }
+    isLoading = false;
+  }
+
+  function clearChat() {
+    messages = [];
+    conversationId = `conv_${Date.now()}`;
+  }
+
+  // Workbench
+  function extractVars(t: string): string[] {
+    const m = t.match(/\{(\w+)\}/g) || [];
+    return [...new Set(m.map((x) => x.slice(1, -1)))];
+  }
+
+  $effect(() => {
+    const vars = extractVars(workbenchTemplate);
+    const newVars: Record<string, string> = {};
+    vars.forEach((v) => (newVars[v] = workbenchVars[v] || ""));
+    workbenchVars = newVars;
+  });
+
+  async function testPrompt() {
+    try {
+      const res = await fetch(`${apiUrl}/api/prompt/test`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          template: workbenchTemplate,
+          variables: workbenchVars,
+        }),
+      });
+      if (res.ok) workbenchResult = await res.json();
+    } catch {}
+  }
+
+  async function runWithLLM() {
+    if (!workbenchResult?.rendered) return;
+    isLoading = true;
+    try {
+      const res = await fetch(`${apiUrl}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: workbenchResult.rendered,
+          conversation_id: "workbench",
+          history: [],
+          context_size: 0,
+          llm_provider: provider,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        llmResponse = data.message.content;
+      }
+    } catch {}
+    isLoading = false;
+  }
+
+  // Library
+  function saveCurrentPrompt() {
+    if (!newPromptName.trim() || !workbenchTemplate.trim()) return;
+    savedPrompts = [
+      {
+        id: `p_${Date.now()}`,
+        name: newPromptName,
+        template: workbenchTemplate,
+        variables: extractVars(workbenchTemplate),
+        created: new Date().toISOString(),
+      },
+      ...savedPrompts,
+    ];
+    savePrompts();
+    newPromptName = "";
+  }
+
+  function loadPrompt(p: PromptTemplate) {
+    workbenchTemplate = p.template;
+    currentTab = "workbench";
+  }
+
+  function deletePrompt(id: string) {
+    savedPrompts = savedPrompts.filter((p) => p.id !== id);
+    savePrompts();
+  }
+
+  // File upload
+  async function handleDrop(e: DragEvent) {
+    e.preventDefault();
+    isDragging = false;
+    const files = Array.from(e.dataTransfer?.files || []);
+    if (!files.length) return;
+
+    const formData = new FormData();
+    files.forEach((f) => formData.append("files", f));
+
+    uploadedFiles = [
+      ...uploadedFiles,
+      ...files.map((f) => ({ name: f.name, status: "uploading" })),
+    ];
+
+    try {
+      const res = await fetch(`${apiUrl}/api/upload`, {
+        method: "POST",
+        body: formData,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        uploadedFiles = uploadedFiles.map((f) => {
+          const r = data.files?.find((x: any) => x.filename === f.name);
+          return r ? { ...f, status: r.status } : f;
+        });
+      }
+    } catch {
+      uploadedFiles = uploadedFiles.map((f) =>
+        f.status === "uploading" ? { ...f, status: "error" } : f,
+      );
+    }
+  }
+
+  // Helper for nav button classes
+  function navClass(tab: string): string {
+    const base =
+      "w-12 h-12 rounded-xl flex items-center justify-center transition-all";
+    return currentTab === tab
+      ? `${base} bg-cyan-500/20 text-cyan-400`
+      : `${base} text-gray-500 hover:bg-gray-800`;
   }
 </script>
 
-<main class="container">
-  <h1>Welcome to Tauri + Svelte</h1>
+<div
+  class="h-screen flex bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-white overflow-hidden"
+>
+  <!-- Sidebar -->
+  <nav
+    class="w-20 bg-black/30 backdrop-blur-xl border-r border-gray-800 flex flex-col items-center py-6 gap-2"
+  >
+    <div
+      class="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center mb-6 shadow-lg shadow-cyan-500/30"
+    >
+      <span class="text-xl font-bold">C</span>
+    </div>
 
-  <div class="row">
-    <a href="https://vite.dev" target="_blank">
-      <img src="/vite.svg" class="logo vite" alt="Vite Logo" />
-    </a>
-    <a href="https://tauri.app" target="_blank">
-      <img src="/tauri.svg" class="logo tauri" alt="Tauri Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank">
-      <img src="/svelte.svg" class="logo svelte-kit" alt="SvelteKit Logo" />
-    </a>
-  </div>
-  <p>Click on the Tauri, Vite, and SvelteKit logos to learn more.</p>
+    <button
+      onclick={() => (currentTab = "chat")}
+      class={navClass("chat")}
+      title="Chat"
+    >
+      <svg
+        class="w-6 h-6"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+        ></path>
+      </svg>
+    </button>
 
-  <form class="row" onsubmit={greet}>
-    <input id="greet-input" placeholder="Enter a name..." bind:value={name} />
-    <button type="submit">Greet</button>
-  </form>
-  <p>{greetMsg}</p>
-</main>
+    <button
+      onclick={() => (currentTab = "workbench")}
+      class={navClass("workbench")}
+      title="Prompt Workbench"
+    >
+      <svg
+        class="w-6 h-6"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+        ></path>
+      </svg>
+    </button>
+
+    <button
+      onclick={() => (currentTab = "library")}
+      class={navClass("library")}
+      title="Library"
+    >
+      <svg
+        class="w-6 h-6"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+        ></path>
+      </svg>
+    </button>
+
+    <button
+      onclick={() => (currentTab = "settings")}
+      class={navClass("settings")}
+      title="Settings"
+    >
+      <svg
+        class="w-6 h-6"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+        ></path>
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+        ></path>
+      </svg>
+    </button>
+
+    <div class="flex-1"></div>
+    <div
+      class="w-3 h-3 rounded-full {apiStatus === 'online'
+        ? 'bg-green-500'
+        : apiStatus === 'offline'
+          ? 'bg-red-500'
+          : 'bg-yellow-500 animate-pulse'}"
+      title="API: {apiStatus}"
+    ></div>
+  </nav>
+
+  <!-- Main -->
+  <main class="flex-1 flex flex-col overflow-hidden">
+    <!-- CHAT TAB -->
+    {#if currentTab === "chat"}
+      <div class="flex-1 flex flex-col p-6 overflow-hidden">
+        <header class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold">Chat</h1>
+            <p class="text-gray-500 text-sm">RAG-powered conversation</p>
+          </div>
+          <button
+            onclick={clearChat}
+            class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm"
+            >Clear</button
+          >
+        </header>
+
+        <div class="flex-1 overflow-y-auto space-y-4 pr-4">
+          {#if messages.length === 0}
+            <div class="h-full flex items-center justify-center text-gray-600">
+              <div class="text-center">
+                <p class="text-lg">Start a conversation</p>
+                <p class="text-sm mt-1">Ask anything from the knowledge base</p>
+              </div>
+            </div>
+          {/if}
+
+          {#each messages as msg (msg.timestamp)}
+            <div
+              class="flex {msg.role === 'user'
+                ? 'justify-end'
+                : 'justify-start'}"
+            >
+              <div
+                class="max-w-2xl rounded-2xl px-5 py-3 shadow-lg {msg.role ===
+                'user'
+                  ? 'bg-gradient-to-r from-cyan-600 to-blue-600'
+                  : 'bg-gray-800'}"
+              >
+                <p class="whitespace-pre-wrap">{msg.content}</p>
+                {#if msg.sources?.length}
+                  <details class="mt-3 text-xs text-gray-400">
+                    <summary class="cursor-pointer"
+                      >📚 {msg.sources.length} sources</summary
+                    >
+                    <ul class="mt-2 space-y-1">
+                      {#each msg.sources as src}
+                        <li class="pl-2 border-l-2 border-cyan-500">
+                          {src.text}
+                        </li>
+                      {/each}
+                    </ul>
+                  </details>
+                {/if}
+              </div>
+            </div>
+          {/each}
+
+          {#if isLoading}
+            <div class="flex">
+              <div class="bg-gray-800 rounded-2xl px-5 py-3 flex gap-1">
+                <span class="w-2 h-2 bg-cyan-500 rounded-full animate-bounce"
+                ></span>
+                <span
+                  class="w-2 h-2 bg-cyan-500 rounded-full animate-bounce"
+                  style="animation-delay: 0.1s"
+                ></span>
+                <span
+                  class="w-2 h-2 bg-cyan-500 rounded-full animate-bounce"
+                  style="animation-delay: 0.2s"
+                ></span>
+              </div>
+            </div>
+          {/if}
+        </div>
+
+        <div class="mt-4 flex gap-3">
+          <input
+            type="text"
+            bind:value={chatInput}
+            onkeydown={(e) => e.key === "Enter" && sendMessage()}
+            placeholder="Ask anything..."
+            class="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-5 py-3 focus:outline-none focus:border-cyan-500"
+          />
+          <button
+            onclick={sendMessage}
+            disabled={isLoading || !chatInput.trim()}
+            class="px-6 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl font-medium disabled:opacity-50"
+            >Send</button
+          >
+        </div>
+      </div>
+    {/if}
+
+    <!-- WORKBENCH TAB -->
+    {#if currentTab === "workbench"}
+      <div class="flex-1 flex overflow-hidden">
+        <div class="flex-1 flex flex-col p-6 border-r border-gray-800">
+          <header class="flex items-center justify-between mb-4">
+            <div>
+              <h1 class="text-2xl font-bold">Prompt Workbench</h1>
+              <p class="text-gray-500 text-sm">Create and test prompts</p>
+            </div>
+            <div class="flex gap-2">
+              <button
+                onclick={testPrompt}
+                class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm"
+                >Test</button
+              >
+              <button
+                onclick={runWithLLM}
+                disabled={!workbenchResult?.rendered || isLoading}
+                class="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-lg text-sm disabled:opacity-50"
+                >Run LLM</button
+              >
+            </div>
+          </header>
+
+          <div class="flex-1 flex flex-col gap-4 overflow-hidden">
+            <div class="flex-1">
+              <label class="block text-sm text-gray-400 mb-2"
+                >Template (use {"{variable}"} syntax)</label
+              >
+              <textarea
+                bind:value={workbenchTemplate}
+                placeholder="Context: {'{context}'}&#10;&#10;Question: {'{question}'}&#10;&#10;Answer:"
+                class="w-full h-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 font-mono text-sm resize-none focus:outline-none focus:border-cyan-500"
+              ></textarea>
+            </div>
+
+            {#if Object.keys(workbenchVars).length > 0}
+              <div class="space-y-2">
+                <label class="block text-sm text-gray-400">Variables</label>
+                {#each Object.entries(workbenchVars) as [key, _]}
+                  <div class="flex gap-2 items-center">
+                    <span class="w-28 text-sm text-cyan-400 font-mono"
+                      >{"{" + key + "}"}</span
+                    >
+                    <input
+                      type="text"
+                      bind:value={workbenchVars[key]}
+                      class="flex-1 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500"
+                      placeholder="Value for {key}"
+                    />
+                  </div>
+                {/each}
+              </div>
+            {/if}
+
+            <div class="flex gap-2">
+              <input
+                type="text"
+                bind:value={newPromptName}
+                placeholder="Prompt name..."
+                class="flex-1 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500"
+              />
+              <button
+                onclick={saveCurrentPrompt}
+                disabled={!newPromptName.trim() || !workbenchTemplate.trim()}
+                class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm disabled:opacity-50"
+                >Save</button
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="w-96 flex flex-col p-6 overflow-hidden">
+          <h2 class="text-lg font-semibold mb-4">Output</h2>
+
+          {#if workbenchResult}
+            <div class="mb-4 p-3 bg-gray-800 rounded-lg">
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-400">Tokens:</span>
+                <span class="text-cyan-400 font-mono"
+                  >{workbenchResult.tokens}</span
+                >
+              </div>
+              <div class="flex justify-between text-sm mt-1">
+                <span class="text-gray-400">Status:</span>
+                <span
+                  class={workbenchResult.success
+                    ? "text-green-400"
+                    : "text-red-400"}
+                  >{workbenchResult.success ? "✓ Valid" : "✗ Error"}</span
+                >
+              </div>
+            </div>
+
+            <div class="flex-1 overflow-auto space-y-4">
+              <div>
+                <label class="block text-sm text-gray-400 mb-2">Rendered</label>
+                <pre
+                  class="bg-gray-900 rounded-xl p-4 text-sm font-mono whitespace-pre-wrap overflow-auto max-h-40">{workbenchResult.rendered}</pre>
+              </div>
+
+              {#if llmResponse}
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2"
+                    >LLM Response</label
+                  >
+                  <div
+                    class="bg-gray-900 rounded-xl p-4 text-sm whitespace-pre-wrap"
+                  >
+                    {llmResponse}
+                  </div>
+                </div>
+              {/if}
+            </div>
+          {:else}
+            <div class="flex-1 flex items-center justify-center text-gray-600">
+              <p>Click "Test" to preview</p>
+            </div>
+          {/if}
+        </div>
+      </div>
+    {/if}
+
+    <!-- LIBRARY TAB -->
+    {#if currentTab === "library"}
+      <div class="flex-1 p-6 overflow-auto">
+        <header class="mb-6">
+          <h1 class="text-2xl font-bold">Prompt Library</h1>
+          <p class="text-gray-500 text-sm">
+            {savedPrompts.length} saved prompts
+          </p>
+        </header>
+
+        {#if savedPrompts.length === 0}
+          <div class="text-center text-gray-600 py-20">
+            <p class="text-lg">No saved prompts</p>
+            <p class="text-sm mt-1">Create and save prompts in the Workbench</p>
+          </div>
+        {:else}
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {#each savedPrompts as prompt (prompt.id)}
+              <div
+                class="bg-gray-800/50 backdrop-blur border border-gray-700 rounded-xl p-5 hover:border-cyan-500/50 transition-colors"
+              >
+                <div class="flex justify-between items-start mb-3">
+                  <h3 class="font-semibold">{prompt.name}</h3>
+                  <button
+                    onclick={() => deletePrompt(prompt.id)}
+                    class="text-gray-500 hover:text-red-400">✕</button
+                  >
+                </div>
+
+                <pre
+                  class="text-xs text-gray-400 bg-gray-900/50 rounded-lg p-3 mb-3 max-h-24 overflow-hidden font-mono">{prompt.template.slice(
+                    0,
+                    100,
+                  )}{prompt.template.length > 100 ? "..." : ""}</pre>
+
+                <div class="flex justify-between items-center">
+                  <div class="flex gap-1">
+                    {#each prompt.variables.slice(0, 2) as v}
+                      <span
+                        class="px-2 py-0.5 bg-cyan-500/20 text-cyan-400 rounded text-xs font-mono"
+                        >{v}</span
+                      >
+                    {/each}
+                    {#if prompt.variables.length > 2}
+                      <span class="text-xs text-gray-500"
+                        >+{prompt.variables.length - 2}</span
+                      >
+                    {/if}
+                  </div>
+                  <button
+                    onclick={() => loadPrompt(prompt)}
+                    class="text-sm text-cyan-400 hover:text-cyan-300"
+                    >Load →</button
+                  >
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    {/if}
+
+    <!-- SETTINGS TAB -->
+    {#if currentTab === "settings"}
+      <div class="flex-1 p-6 overflow-auto">
+        <header class="mb-6">
+          <h1 class="text-2xl font-bold">Settings</h1>
+          <p class="text-gray-500 text-sm">Configure CORTEX</p>
+        </header>
+
+        <div class="max-w-xl space-y-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-2"
+              >API URL</label
+            >
+            <input
+              type="text"
+              bind:value={apiUrl}
+              onchange={saveSettings}
+              class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-2"
+              >Provider</label
+            >
+            <select
+              bind:value={provider}
+              onchange={saveSettings}
+              class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500"
+            >
+              <option value="local">Local (LLaMa)</option>
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-2"
+              >Model</label
+            >
+            <select
+              bind:value={model}
+              onchange={saveSettings}
+              class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500"
+            >
+              {#if availableModels[provider]}
+                {#each availableModels[provider] as m}
+                  <option value={m.id}>{m.name}</option>
+                {/each}
+              {:else}
+                <option value="default">Default</option>
+              {/if}
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-2"
+              >Temperature: <span class="text-cyan-400"
+                >{temperature.toFixed(1)}</span
+              ></label
+            >
+            <input
+              type="range"
+              min="0"
+              max="2"
+              step="0.1"
+              bind:value={temperature}
+              onchange={saveSettings}
+              class="w-full accent-cyan-500"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-2"
+              >Max Tokens</label
+            >
+            <input
+              type="number"
+              bind:value={maxTokens}
+              onchange={saveSettings}
+              class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-2"
+              >Upload Documents</label
+            >
+            <div
+              ondrop={handleDrop}
+              ondragover={(e) => {
+                e.preventDefault();
+                isDragging = true;
+              }}
+              ondragleave={() => (isDragging = false)}
+              class="border-2 border-dashed rounded-xl p-8 text-center transition-colors {isDragging
+                ? 'border-cyan-500 bg-cyan-500/10'
+                : 'border-gray-700'}"
+            >
+              <p class="text-gray-500">Drop files (PDF, MD, TXT)</p>
+            </div>
+            {#if uploadedFiles.length > 0}
+              <ul class="mt-3 space-y-1 text-sm">
+                {#each uploadedFiles as f}
+                  <li class="flex justify-between">
+                    <span>{f.name}</span>
+                    <span
+                      class={f.status === "queued"
+                        ? "text-green-400"
+                        : f.status === "uploading"
+                          ? "text-yellow-400"
+                          : "text-red-400"}>{f.status}</span
+                    >
+                  </li>
+                {/each}
+              </ul>
+            {/if}
+          </div>
+
+          <button
+            onclick={() => {
+              saveSettings();
+              checkApi();
+            }}
+            class="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl font-medium hover:from-cyan-500 hover:to-blue-500"
+            >Save & Reconnect</button
+          >
+        </div>
+      </div>
+    {/if}
+  </main>
+</div>
 
 <style>
-.logo.vite:hover {
-  filter: drop-shadow(0 0 2em #747bff);
-}
-
-.logo.svelte-kit:hover {
-  filter: drop-shadow(0 0 2em #ff3e00);
-}
-
-:root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
-
-  color: #0f0f0f;
-  background-color: #f6f6f6;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
-}
-
-.container {
-  margin: 0;
-  padding-top: 10vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: 0.75s;
-}
-
-.logo.tauri:hover {
-  filter: drop-shadow(0 0 2em #24c8db);
-}
-
-.row {
-  display: flex;
-  justify-content: center;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-
-a:hover {
-  color: #535bf2;
-}
-
-h1 {
-  text-align: center;
-}
-
-input,
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  color: #0f0f0f;
-  background-color: #ffffff;
-  transition: border-color 0.25s;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
-}
-
-button {
-  cursor: pointer;
-}
-
-button:hover {
-  border-color: #396cd8;
-}
-button:active {
-  border-color: #396cd8;
-  background-color: #e8e8e8;
-}
-
-input,
-button {
-  outline: none;
-}
-
-#greet-input {
-  margin-right: 5px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color: #f6f6f6;
-    background-color: #2f2f2f;
+  :global(body) {
+    margin: 0;
+    font-family: "Inter", system-ui, sans-serif;
   }
-
-  a:hover {
-    color: #24c8db;
-  }
-
-  input,
-  button {
-    color: #ffffff;
-    background-color: #0f0f0f98;
-  }
-  button:active {
-    background-color: #0f0f0f69;
-  }
-}
-
 </style>

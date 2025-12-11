@@ -26,6 +26,7 @@ from datetime import datetime
 # CORTEX modules
 from cortex_v2 import CortexV2Pipeline, DocumentInsights
 from cortex_embeddings import SearchResult
+from prompt_pipeline import PromptPipeline, Source, Message
 
 # ═══════════════════════════════════════════════════════════════
 # CONFIGURATION
@@ -47,6 +48,12 @@ Features:
 # Global pipeline instance (lazy-loaded)
 _pipeline: Optional[CortexV2Pipeline] = None
 _pipeline_config = {}
+
+# Global prompt pipeline
+_prompt_pipeline: Optional[PromptPipeline] = None
+
+# Simple conversation store (in production, use database)
+_conversations: Dict[str, List[ChatMessage]] = {}
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -89,6 +96,23 @@ class RAGQueryRequest(BaseModel):
     context_size: int = Field(5, description="Number of context chunks")
     llm_provider: str = Field("local", description="LLM provider: local|openai|anthropic")
     model: Optional[str] = Field(None, description="Specific model name")
+
+
+class ChatMessage(BaseModel):
+    """Chat message"""
+    role: str = Field(..., description="Message role: user|assistant")
+    content: str = Field(..., description="Message content")
+    sources: Optional[List[Dict[str, Any]]] = Field(None, description="Source citations")
+
+
+class ChatRequest(BaseModel):
+    """Chat request with conversation history"""
+    message: str = Field(..., description="User message")
+    conversation_id: Optional[str] = Field(None, description="Conversation ID")
+    history: List[ChatMessage] = Field(default_factory=list, description="Conversation history")
+    context_size: int = Field(5, description="Number of context chunks for RAG")
+    max_history_turns: int = Field(5, description="Max conversation turns to keep")
+    llm_provider: str = Field("local", description="LLM provider")
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -153,7 +177,9 @@ async def root():
             "embed": "/api/embed",
             "search": "/api/search",
             "process": "/api/process",
-            "rag": "/api/rag"
+            "rag": "/api/rag",
+            "chat": "/api/chat",
+            "stats": "/api/stats"
         }
     }
 
@@ -412,6 +438,119 @@ async def get_stats():
             }
         else:
             return {"message": "Vector database not initialized"}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/chat")
+async def chat(request: ChatRequest):
+    """
+    Chat endpoint with RAG and conversation memory
+    
+    Features:
+    - Semantic search for context
+    - Prompt pipeline with few-shot examples
+    - Conversation history management
+    - Source citations
+    
+    Example:
+    ```json
+    {
+        "message": "How do I handle errors?",
+        "conversation_id": "conv_123",
+        "history": [],
+        "context_size": 5
+    }
+    ```
+    """
+    try:
+        global _prompt_pipeline, _conversations
+        
+        # Initialize prompt pipeline
+        if _prompt_pipeline is None:
+            _prompt_pipeline = PromptPipeline()
+        
+        # Get or create conversation
+        conv_id = request.conversation_id or f"conv_{datetime.now().timestamp()}"
+        if conv_id not in _conversations:
+            _conversations[conv_id] = []
+        
+        # Add user message to history
+        user_msg = ChatMessage(role="user", content=request.message)
+        _conversations[conv_id].append(user_msg)
+        
+        # Get pipeline
+        pipeline = get_pipeline()
+        
+        # Step 1: Semantic search for relevant chunks
+        search_results = pipeline.semantic_search(request.message, top_k=request.context_size)
+        
+        if not search_results:
+            answer = "I don't have relevant information in my knowledge base to answer this question."
+            sources = []
+        else:
+            # Step 2: Convert search results to Source objects
+            sources = [
+                Source(
+                    id=i+1,
+                    text=r.text,
+                    score=r.score,
+                    metadata=r.metadata
+                )
+                for i, r in enumerate(search_results)
+            ]
+            
+            # Step 3: Convert chat history to Message objects
+            history_messages = [
+                Message(role=msg.role, content=msg.content)
+                for msg in _conversations[conv_id][-request.max_history_turns*2:]
+            ]
+            
+            # Step 4: Build prompt with pipeline
+            prompt = _prompt_pipeline.build_rag_prompt(
+                question=request.message,
+                sources=sources,
+                history=history_messages[:-1]  # Exclude current user message
+            )
+            
+            # Step 5: Generate answer with LLM
+            if request.llm_provider == "local" and pipeline.llm_client:
+                answer = pipeline.llm_client.generate(prompt, max_retries=2)
+                
+                if not answer:
+                    answer = "Failed to generate answer. Please try again."
+            else:
+                answer = "Cloud providers not yet implemented. Use llm_provider='local'"
+        
+        # Step 6: Create assistant message
+        assistant_msg = ChatMessage(
+            role="assistant",
+            content=answer,
+            sources=[
+                {
+                    "id": s.id,
+                    "text": s.text[:200] + "..." if len(s.text) > 200 else s.text,
+                    "score": s.score
+                }
+                for s in sources
+            ] if sources else None
+        )
+        
+        # Add to conversation
+        _conversations[conv_id].append(assistant_msg)
+        
+        # Keep conversation size manageable
+        if len(_conversations[conv_id]) > request.max_history_turns * 4:
+            _conversations[conv_id] = _conversations[conv_id][-request.max_history_turns * 4:]
+        
+        return {
+            "conversation_id": conv_id,
+            "message": assistant_msg.dict(),
+            "context_used": len(sources),
+            "prompt_tokens": _prompt_pipeline.estimate_tokens(prompt) if sources else 0,
+            "history_length": len(_conversations[conv_id])
+        }
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -1,0 +1,185 @@
+╔══════════════════════════════════════════════════════════════════╗
+║  CORTEX v1.0 - Quick Reference Card                             ║
+╚══════════════════════════════════════════════════════════════════╝
+
+📦 ARQUIVOS CRIADOS
+  ├─ cortex.py           - Pipeline ETL principal (830 linhas)
+  ├─ test_cortex.py      - Suite de testes (5/5 ✅)
+  ├─ cortex_demo.sh      - Script de demonstração
+  ├─ CORTEX_README.md    - Documentação completa
+  └─ CORTEX_SUMMARY.md   - Resumo técnico
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚀 COMANDOS RÁPIDOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# 1. VALIDAR INSTALAÇÃO
+nix develop --command python test_cortex.py
+
+# 2. VER AJUDA
+nix develop --command ./cortex.py --help
+
+# 3. DEMO COMPLETO (cria exemplos e processa)
+./cortex_demo.sh
+
+# 4. PROCESSAR SEUS ARQUIVOS
+nix develop --command ./cortex.py \
+  -i /path/to/markdown/files \
+  -o output/insights.jsonl \
+  -v
+
+# 5. PROCESSAR COM CONFIGURAÇÕES AVANÇADAS
+nix develop --command ./cortex.py \
+  -i notes/ \
+  -o insights.jsonl \
+  --url http://192.168.1.100:8080 \
+  --batch-size 5 \
+  --workers 8 \
+  --context-size 8192 \
+  -v
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧 SETUP DO SERVIDOR LLAMACPP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Opção 1: llama-cpp-python
+python -m llama_cpp.server \
+  --model /path/to/unsloth_Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf \
+  --n_ctx 4096 \
+  --host 0.0.0.0 \
+  --port 8080
+
+# Opção 2: llama.cpp server
+./server \
+  -m /path/to/model.gguf \
+  -c 4096 \
+  --host 0.0.0.0 \
+  --port 8080
+
+# Verificar saúde
+curl http://localhost:8080/health
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 ANÁLISE DOS RESULTADOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Ver primeira linha formatada
+head -n 1 insights.jsonl | python -m json.tool
+
+# Contar documentos processados
+wc -l insights.jsonl
+
+# Extrair todos os temas
+cat insights.jsonl | jq '.themes[] | .title'
+
+# Extrair recomendações high-priority
+cat insights.jsonl | jq '.recommendations[] | select(.priority == "high")'
+
+# Count keywords
+cat insights.jsonl | jq '.themes[].keywords[]' | sort | uniq -c | sort -rn
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🐍 ANÁLISE EM PYTHON
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+import json
+from collections import Counter
+
+# Carregar insights
+insights = []
+with open('insights.jsonl') as f:
+    for line in f:
+        insights.append(json.loads(line))
+
+# Top keywords
+keywords = []
+for doc in insights:
+    for theme in doc['themes']:
+        keywords.extend(theme['keywords'])
+
+print("Top 10 keywords:")
+for kw, count in Counter(keywords).most_common(10):
+    print(f"  {kw}: {count}")
+
+# High confidence extractions
+high_conf = [d for d in insights if d['extraction_confidence'] == 'high']
+print(f"\\nHigh confidence: {len(high_conf)}/{len(insights)}")
+
+# Categories de learnings
+categories = Counter()
+for doc in insights:
+    for learning in doc['learnings']:
+        categories[learning['category']] += 1
+
+print("\\nLearning categories:", dict(categories))
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚙️  PARÂMETROS DEFAULTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+URL do servidor..: http://localhost:8080
+Context size.....: 4096 tokens
+Max tokens.......: 2048
+Temperature......: 0.3 (baixa para consistência)
+Batch size.......: 10 arquivos
+Workers..........: 4 threads
+Retry attempts...: 3
+Retry delay......: 2s (exponential backoff)
+VRAM warning.....: < 512MB
+VRAM critical....: < 256MB
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 OUTPUTS EXTRAÍDOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Para cada arquivo .md:
+  ✓ Themes............: Tópicos principais (title, description, keywords)
+  ✓ Patterns..........: Padrões recorrentes (type, examples, frequency)
+  ✓ Learnings.........: Insights e conhecimento (title, category, actionable)
+  ✓ Concepts..........: Ideias centrais (name, definition, related)
+  ✓ Recommendations...: Ações sugeridas (title, priority, effort)
+
+Metadata:
+  • file_path, file_name, processed_at
+  • word_count, processing_time_seconds
+  • extraction_confidence, model_used
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📚 DOCUMENTAÇÃO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+README completo.....: cat CORTEX_README.md
+Resumo técnico......: cat CORTEX_SUMMARY.md
+Este quick ref......: cat CORTEX_QUICKREF.txt
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❌ "ModuleNotFoundError: No module named 'pydantic'"
+   → Você está fora do ambiente Nix
+   → Execute: nix develop
+
+❌ "llamacpp server health check failed"
+   → Servidor não está rodando
+   → Inicie com: python -m llama_cpp.server ...
+
+❌ "JSON parse error"
+   → Modelo retornando texto não-JSON
+   → Use -v para ver resposta completa
+   → Considere modelo melhor treinado
+
+❌ "VRAM low"
+   → Use modelo menor (Q3, Q2)
+   → Reduza --context-size
+   → Configure CPU offloading
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ STATUS: PRONTO PARA PRODUÇÃO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  All tests passing: 5/5 ✅
+  Dependencies: OK ✅
+  Documentation: Complete ✅
+  
+  🚀 Ready to process your markdown files!

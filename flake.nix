@@ -53,6 +53,12 @@
           rich                # Beautiful terminal output
           tqdm                # Progress bars
           
+          # ── HTTP & Networking ──
+          requests            # HTTP client
+          
+          # ── System Monitoring ──
+          psutil              # Process and system utilities
+          
           # ── Async & Parallelism ──
           aiofiles            # Async file I/O
           multiprocess        # Better multiprocessing
@@ -60,6 +66,21 @@
           # ── Validation ──
           jsonschema          # JSON schema validation
           pydantic            # Data validation
+          
+          # ── CORTEX v2.0: Embeddings & Chunking ──
+          sentence-transformers  # Embedding models (semantic similarity)
+          transformers        # HuggingFace transformers
+          torch               # PyTorch backend for transformers
+          tiktoken            # Token counting (OpenAI tokenizer)
+          langchain           # Text splitters and chunking utilities
+          chromadb            # Vector database for embeddings
+          numpy               # Already in list, needed for embeddings
+          scikit-learn        # Already in list, clustering for embeddings
+          
+          # ── API & Web Server (for Svelte/RAG integration) ──
+          fastapi             # REST API framework
+          uvicorn             # ASGI server
+          python-multipart    # File upload support
         ]);
 
         # ═══════════════════════════════════════════════════════════════
@@ -1106,6 +1127,18 @@
           name = "phantom-classifier";
           
           buildInputs = [
+            # ── Tauri Desktop App Dependencies ──
+            pkgs.gtk3                  # GTK3 for native UI
+            pkgs.webkitgtk_4_1         # WebView engine (includes HTTP)
+            pkgs.openssl               # SSL/TLS
+            pkgs.pkg-config            # Build tool
+            
+            # ── Rust Toolchain (use Nix, not rustup) ──
+            pkgs.cargo                 # Cargo build tool
+            pkgs.rustc                 # Rust compiler
+            pkgs.rust-analyzer         # LSP for Rust
+            
+            # ── Existing tools ──
             pythonEnv
             phantomCore
             phantomVerify

@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 """
 ╔══════════════════════════════════════════════════════════════════╗
-║  CORTEX v1.0 - Intelligent Markdown ETL Pipeline                ║
+║  CORTEX v1.1 - Intelligent Markdown ETL Pipeline                ║
 ║  ─────────────────────────────────────────────────────────────── ║
 ║  • Local LLM processing via llamacpp server                     ║
-║  • Extract: Themes, Patterns, Learnings, Concepts, Recommendations ║
+║  • Semantic Chunking Integration (New!)                         ║
+║  • Extract: Themes, Patterns, Learnings, Concepts, Recommendations 
 ║  • Batch processing with configurable concurrency               ║
 ║  • JSON schema validation with Pydantic                         ║
 ║  • VRAM monitoring and retry logic                              ║
@@ -42,11 +43,18 @@ except ImportError as e:
     print("   nix develop")
     sys.exit(1)
 
+# Optional Chunker Import
+try:
+    from cortex_chunker import MarkdownChunker, ChunkStrategy
+    CHUNKER_AVAILABLE = True
+except ImportError:
+    CHUNKER_AVAILABLE = False
+
 # ═══════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 CODENAME = "CORTEX"
 
 # LlamaCPP Server Configuration
@@ -152,6 +160,7 @@ class MarkdownInsights(BaseModel):
     extraction_confidence: ExtractionLevel = Field(default=ExtractionLevel.MEDIUM)
     processing_time_seconds: float = Field(..., ge=0)
     model_used: str = Field(...)
+    chunk_count: int = Field(default=1, description="Number of chunks processed")
     
     @field_validator('themes', 'patterns', 'learnings', 'concepts', 'recommendations')
     @classmethod
@@ -358,17 +367,23 @@ JSON Schema:
 }"""
     
     @staticmethod
-    def build_extraction_prompt(content: str, file_name: str) -> str:
+    def build_extraction_prompt(content: str, file_name: str, chunk_info: str = "") -> str:
         """Build extraction prompt for markdown content"""
         
         # Truncate content if too long (leave room for response)
+        # Note: With chunking, this is less likely to happen
         max_content_chars = DEFAULT_CONTEXT_SIZE * 3  # Rough estimate: 1 token ≈ 3 chars
         if len(content) > max_content_chars:
             content = content[:max_content_chars] + "\n\n[... content truncated ...]"
         
-        prompt = f"""{PromptBuilder.SYSTEM_PROMPT}
+        context_str = f"SOURCE FILE: {file_name}"
+        if chunk_info:
+            context_str += f" | {chunk_info}"
+            
+        prompt = f"""
+{PromptBuilder.SYSTEM_PROMPT}
 
-SOURCE FILE: {file_name}
+{context_str}
 
 CONTENT:
 {content}
@@ -443,7 +458,7 @@ class ProcessingStats:
 class MarkdownProcessor:
     """Main ETL processor for markdown files"""
     
-    def __init__(self,
+    def __init__(self, 
                  input_dir: str,
                  output_file: str,
                  llamacpp_url: str = DEFAULT_LLAMACPP_URL,
@@ -451,6 +466,8 @@ class MarkdownProcessor:
                  batch_size: int = DEFAULT_BATCH_SIZE,
                  workers: int = DEFAULT_WORKERS,
                  context_size: int = DEFAULT_CONTEXT_SIZE,
+                 chunking_strategy: Optional[str] = None,
+                 chunk_size: int = 1024,
                  verbose: bool = False):
         
         self.input_dir = Path(input_dir).resolve()
@@ -458,6 +475,23 @@ class MarkdownProcessor:
         self.batch_size = batch_size
         self.workers = workers
         self.verbose = verbose
+        
+        # Chunking configuration
+        self.chunking_strategy = chunking_strategy
+        self.chunk_size = chunk_size
+        self.chunker = None
+        
+        if self.chunking_strategy and CHUNKER_AVAILABLE:
+            try:
+                self.chunker = MarkdownChunker(
+                    strategy=ChunkStrategy(self.chunking_strategy),
+                    max_tokens=self.chunk_size
+                )
+                logging.info(f"Chunking enabled: {self.chunking_strategy} ({self.chunk_size} tokens)")
+            except Exception as e:
+                logging.error(f"Failed to initialize chunker: {e}")
+        elif self.chunking_strategy and not CHUNKER_AVAILABLE:
+            logging.warning("Chunking requested but cortex_chunker module not found. Proceeding without chunking.")
         
         # Ensure input exists
         if not self.input_dir.exists():
@@ -484,13 +518,16 @@ class MarkdownProcessor:
             datefmt='%H:%M:%S'
         )
         
+        chunk_msg = f"\n📦 Chunking: {self.chunking_strategy}" if self.chunker else "\n📦 Chunking: Disabled"
+        
         self.console.print(Panel.fit(
             f"[bold cyan]CORTEX v{VERSION}[/bold cyan]\n"
             f"Intelligent Markdown ETL Pipeline\n\n"
             f"📁 Input:  {self.input_dir}\n"
             f"📄 Output: {self.output_file}\n"
             f"🤖 Model:  {model}\n"
-            f"⚙️  Workers: {workers} | Batch: {batch_size}",
+            f"⚙️  Workers: {workers} | Batch: {batch_size}"
+            f"{chunk_msg}",
             title="Configuration",
             border_style="cyan"
         ))
@@ -521,6 +558,66 @@ class MarkdownProcessor:
         """Count words in content"""
         return len(content.split())
     
+    def process_chunk(self, text: str, filename: str, chunk_info: str) -> Optional[Dict]:
+        """Process a single text chunk"""
+        prompt = PromptBuilder.build_extraction_prompt(text, filename, chunk_info)
+        response = self.llm_client.generate(prompt)
+        
+        if not response:
+            return None
+            
+        return PromptBuilder.parse_json_response(response)
+
+    def aggregate_insights(self, chunk_results: List[Dict], filepath: Path, word_count: int, processing_time: float) -> MarkdownInsights:
+        """Aggregate insights from multiple chunks into a single result"""
+        aggregated = {
+            'themes': [],
+            'patterns': [],
+            'learnings': [],
+            'concepts': [],
+            'recommendations': []
+        }
+        
+        for res in chunk_results:
+            if not res: continue
+            for key in aggregated:
+                if key in res and isinstance(res[key], list):
+                    # Extend and deduplicate if needed (simple dedupe for now)
+                    for item in res[key]:
+                        if item not in aggregated[key]: # Basic check
+                            aggregated[key].append(item)
+        
+        # Calculate average confidence
+        confidences = []
+        for res in chunk_results:
+            if res and 'extraction_confidence' in res:
+                # Convert 'high', 'medium', 'low' to numeric for averaging
+                if res['extraction_confidence'] == 'high': confidences.append(1.0)
+                elif res['extraction_confidence'] == 'medium': confidences.append(0.5)
+                elif res['extraction_confidence'] == 'low': confidences.append(0.0)
+        
+        avg_confidence_val = sum(confidences) / len(confidences) if confidences else 0.5 # Default to medium
+        # Convert back to ExtractionLevel
+        if avg_confidence_val > 0.75: final_confidence = ExtractionLevel.HIGH
+        elif avg_confidence_val > 0.25: final_confidence = ExtractionLevel.MEDIUM
+        else: final_confidence = ExtractionLevel.LOW
+
+        return MarkdownInsights(
+            file_path=str(filepath),
+            file_name=filepath.name,
+            processed_at=datetime.now(timezone.utc).isoformat(),
+            word_count=word_count,
+            themes=[Theme(**t) for t in aggregated['themes']],
+            patterns=[Pattern(**p) for p in aggregated['patterns']],
+            learnings=[Learning(**l) for l in aggregated['learnings']],
+            concepts=[Concept(**c) for c in aggregated['concepts']],
+            recommendations=[Recommendation(**r) for r in aggregated['recommendations']],
+            processing_time_seconds=processing_time,
+            model_used=self.llm_client.model,
+            chunk_count=len(chunk_results),
+            extraction_confidence=final_confidence
+        )
+
     def process_single_file(self, filepath: Path) -> Optional[MarkdownInsights]:
         """Process a single markdown file through the ETL pipeline"""
         start_time = time.time()
@@ -540,45 +637,40 @@ class MarkdownProcessor:
             word_count = self.count_words(content)
             self.stats.total_words += word_count
             
-            # Build prompt
-            prompt = PromptBuilder.build_extraction_prompt(content, filepath.name)
+            chunk_results = []
             
-            # Generate with LLM
-            logging.info(f"Processing {filepath.name} ({word_count} words)...")
-            response = self.llm_client.generate(prompt)
+            # Chunking Logic
+            if self.chunker:
+                logging.info(f"Chunking {filepath.name}...")
+                chunks = self.chunker.chunk_text(content, str(filepath))
+                logging.info(f"Generated {len(chunks)} chunks for {filepath.name}")
+                
+                for i, chunk in enumerate(chunks):
+                    chunk_info = f"Chunk {i+1}/{len(chunks)}"
+                    res = self.process_chunk(chunk.text, filepath.name, chunk_info)
+                    if res:
+                        chunk_results.append(res)
+            else:
+                # No chunking - process as single unit
+                res = self.process_chunk(content, filepath.name, "")
+                if res:
+                    chunk_results.append(res)
             
-            if not response:
-                raise ValueError("Empty response from LLM")
+            if not chunk_results:
+                raise ValueError("No valid insights extracted from any chunk")
             
-            # Parse JSON
-            data = PromptBuilder.parse_json_response(response)
-            if not data:
-                raise ValueError("Failed to parse JSON from response")
-            
-            # Validate with Pydantic
+            # Aggregate and Validate
             processing_time = time.time() - start_time
-            
-            insights = MarkdownInsights(
-                file_path=str(filepath),
-                file_name=filepath.name,
-                processed_at=datetime.now(timezone.utc).isoformat(),
-                word_count=word_count,
-                themes=[Theme(**t) for t in data.get('themes', [])],
-                patterns=[Pattern(**p) for p in data.get('patterns', [])],
-                learnings=[Learning(**l) for l in data.get('learnings', [])],
-                concepts=[Concept(**c) for c in data.get('concepts', [])],
-                recommendations=[Recommendation(**r) for r in data.get('recommendations', [])],
-                processing_time_seconds=processing_time,
-                model_used=self.llm_client.model
-            )
+            insights = self.aggregate_insights(chunk_results, filepath, word_count, processing_time)
             
             self.stats.processed += 1
             self.stats.total_processing_time += processing_time
             
+            chunk_str = f"{insights.chunk_count} chunks" if insights.chunk_count > 1 else "1 doc"
+            
             self.console.print(
-                f"[green]✓[/green] {filepath.name} | "
-                f"{len(insights.themes)}T {len(insights.patterns)}P {len(insights.learnings)}L "
-                f"{len(insights.concepts)}C {len(insights.recommendations)}R | "
+                f"[green]✓[/green] {filepath.name} ({chunk_str}) | "
+                f"{len(insights.themes)}T {len(insights.patterns)}P {len(insights.learnings)}L | "
                 f"{processing_time:.1f}s"
             )
             
@@ -729,17 +821,16 @@ def main():
     parser = argparse.ArgumentParser(
         description=f"CORTEX v{VERSION} - Intelligent Markdown ETL Pipeline",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
+        epilog="""\
 Examples:
   # Process all markdown files in input_data/
-  cortex.py -i input_data -o output/insights.jsonl
+  cortex.py -i input_data -o insights.jsonl
 
   # Custom llamacpp server and batch size
   cortex.py -i notes/ -o insights.jsonl --url http://localhost:8080 --batch-size 5
 
-  # Verbose mode with custom workers
-  cortex.py -i docs/ -o results.jsonl -v --workers 8
-        """
+  # Enable semantic chunking (requires cortex_chunker)
+  cortex.py -i docs/ -o results.jsonl --chunk-strategy recursive --chunk-size 1024"""
     )
     
     # Required arguments
@@ -786,6 +877,19 @@ Examples:
         help=f'Number of worker threads (default: {DEFAULT_WORKERS})'
     )
     
+    # Chunking options
+    parser.add_argument(
+        '--chunk-strategy',
+        choices=['recursive', 'sliding', 'simple'],
+        help='Enable chunking with specific strategy'
+    )
+    parser.add_argument(
+        '--chunk-size',
+        type=int,
+        default=1024,
+        help='Max tokens per chunk (default: 1024)'
+    )
+    
     # Flags
     parser.add_argument(
         '-v', '--verbose',
@@ -809,6 +913,8 @@ Examples:
             batch_size=args.batch_size,
             workers=args.workers,
             context_size=args.context_size,
+            chunking_strategy=args.chunk_strategy,
+            chunk_size=args.chunk_size,
             verbose=args.verbose
         )
         
@@ -827,4 +933,3 @@ Examples:
 
 if __name__ == "__main__":
     main()
-

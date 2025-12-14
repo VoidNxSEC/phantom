@@ -17,7 +17,7 @@
         # ═══════════════════════════════════════════════════════════════
         # PYTHON ENVIRONMENT - NLP & Data Science Stack
         # ═══════════════════════════════════════════════════════════════
-        pythonEnv = pkgs.python3.withPackages (ps: with ps; [
+        pythonEnv = pkgs.python313.withPackages (ps: with ps; [
           # ── Core Data Science ──
           pandas
           numpy

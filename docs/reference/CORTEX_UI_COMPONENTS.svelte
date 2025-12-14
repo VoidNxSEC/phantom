@@ -47,7 +47,9 @@
   export let title: string | undefined = undefined;
   export let description: string | undefined = undefined;
 </script>
-
+d cortex-desktop
+export PATH=$(echo $PATH | tr ':' '\n' | grep -v rustup | tr '\n' ':')
+bun run tauri dev
 <div class="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6 hover:border-gray-700 transition-colors">
   {#if title}
     <h3 class="text-lg font-semibold mb-2">{title}</h3>

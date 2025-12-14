@@ -81,6 +81,7 @@
           fastapi             # REST API framework
           uvicorn             # ASGI server
           python-multipart    # File upload support
+          pytest              # For running tests
         ]);
 
         # ═══════════════════════════════════════════════════════════════

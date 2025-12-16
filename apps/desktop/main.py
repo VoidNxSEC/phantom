@@ -26,7 +26,7 @@ from typing import Optional
 try:
     from phantom.core import CortexProcessor, DocumentInsights
     from phantom.rag import FAISSVectorStore, SearchResult
-    from phantom.providers import LlamaCppProvider, OllamaProvider
+    from phantom.providers import LlamaCppProvider
     PHANTOM_AVAILABLE = True
 except ImportError:
     PHANTOM_AVAILABLE = False
@@ -311,15 +311,9 @@ class PhantomWindow(Adw.ApplicationWindow):
         
         # LlamaCPP URL
         llama_row = Adw.EntryRow()
-        llama_row.set_title("LlamaCPP URL")
+        llama_row.set_title("llama.cpp TURBO URL")
         llama_row.set_text("http://localhost:8080")
         provider_group.add(llama_row)
-        
-        # Ollama URL
-        ollama_row = Adw.EntryRow()
-        ollama_row.set_title("Ollama URL")
-        ollama_row.set_text("http://localhost:11434")
-        provider_group.add(ollama_row)
         
         page.add(provider_group)
         

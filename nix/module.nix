@@ -33,20 +33,7 @@ in {
         url = lib.mkOption {
           type = lib.types.str;
           default = "http://localhost:8080";
-          description = "LlamaCPP server URL";
-        };
-      };
-
-      ollama = {
-        url = lib.mkOption {
-          type = lib.types.str;
-          default = "http://localhost:11434";
-          description = "Ollama server URL";
-        };
-        model = lib.mkOption {
-          type = lib.types.str;
-          default = "llama3.2";
-          description = "Default Ollama model";
+          description = "llama.cpp TURBO server URL";
         };
       };
     };
@@ -79,8 +66,6 @@ in {
     # Environment variables for providers
     environment.sessionVariables = {
       LLAMACPP_URL = cfg.providers.llamacpp.url;
-      OLLAMA_URL = cfg.providers.ollama.url;
-      OLLAMA_MODEL = cfg.providers.ollama.model;
       PHANTOM_VECTOR_PATH = cfg.vectorDb.path;
     };
 
@@ -92,7 +77,6 @@ in {
 
       environment = {
         LLAMACPP_URL = cfg.providers.llamacpp.url;
-        OLLAMA_URL = cfg.providers.ollama.url;
         PHANTOM_VECTOR_PATH = cfg.vectorDb.path;
       };
 

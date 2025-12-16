@@ -11,7 +11,7 @@
 ║  • Parallel LLM classification with retry logic                   ║
 ║  • VRAM/RAM monitoring with auto-throttling                       ║
 ║  • Pydantic validation for all extracted insights                 ║
-║  • Multi-provider support (LlamaCPP, Ollama, etc)                 ║
+║  • llama.cpp TURBO inference (OpenAI-compatible)                  ║
 ╚══════════════════════════════════════════════════════════════════╝
 """
 
@@ -43,7 +43,6 @@ try:
     from phantom.rag.vectors import FAISSVectorStore, create_vector_store, SearchResult
     from phantom.providers.base import AIProvider
     from phantom.providers.llamacpp import LlamaCppProvider
-    from phantom.providers.ollama import OllamaProvider
     PHANTOM_AVAILABLE = True
 except ImportError:
     PHANTOM_AVAILABLE = False
@@ -455,7 +454,6 @@ class CortexProcessor:
         self,
         provider: Optional[AIProvider] = None,
         llamacpp_url: str = "http://localhost:8080",
-        ollama_url: str = "http://localhost:11434",
         chunk_size: int = DEFAULT_CHUNK_SIZE,
         chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
         workers: int = DEFAULT_WORKERS,
@@ -480,16 +478,11 @@ class CortexProcessor:
             overlap=chunk_overlap,
         )
         
-        # Initialize provider
+        # Initialize provider - LlamaCpp only
         if provider:
             self.provider = provider
         else:
-            # Try LlamaCPP first, then Ollama
-            llama = LlamaCppProvider(base_url=llamacpp_url)
-            if llama.is_available():
-                self.provider = llama
-            else:
-                self.provider = OllamaProvider(base_url=ollama_url)
+            self.provider = LlamaCppProvider(base_url=llamacpp_url)
         
         # Initialize embeddings and vector store
         self.embeddings: Optional[EmbeddingGenerator] = None

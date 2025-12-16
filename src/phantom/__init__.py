@@ -14,7 +14,7 @@ Modules:
     core     - Insight extraction, chunking, embeddings
     analysis - Sentiment, entities, topics, viability
     pipeline - DAG execution, classification, sanitization
-    providers - LLM providers (LlamaCPP, Ollama, OpenAI, etc)
+    providers - LLM providers (llama.cpp TURBO, OpenAI, DeepSeek, etc)
     rag      - RAG pipeline with semantic caching
     tools    - VRAM calculator, prompt workbench, auditor
     api      - FastAPI REST endpoints

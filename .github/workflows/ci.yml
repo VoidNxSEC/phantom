@@ -1,0 +1,229 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Nix flake checks (Rust + validation)
+  nix-checks:
+    name: Nix Flake Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v13
+        with:
+          name: phantom
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          skipPush: ${{ github.event_name == 'pull_request' }}
+
+      - name: Check flake
+        run: |
+          nix flake check --print-build-logs --show-trace
+
+      - name: Build intelagent package
+        run: |
+          nix build .#intelagent --print-build-logs
+
+  # Python-specific tests
+  python-tests:
+    name: Python Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12', '3.13']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v13
+        with:
+          name: phantom
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          skipPush: ${{ github.event_name == 'pull_request' }}
+
+      - name: Run Python tests
+        run: |
+          nix develop --command bash -c "
+            cd /home/kernelcore/dev/projects/phantom
+            pytest tests/ \
+              --cov=phantom \
+              --cov-report=xml \
+              --cov-report=html \
+              --cov-report=term \
+              -v
+          "
+
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.13'
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: python
+          name: python-${{ matrix.python-version }}
+
+  # Rust-specific tests
+  rust-tests:
+    name: Rust Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v13
+        with:
+          name: phantom
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          skipPush: ${{ github.event_name == 'pull_request' }}
+
+      - name: Run Rust tests
+        run: |
+          nix develop --command bash -c "
+            cd intelagent
+            cargo test --workspace --all-features --verbose
+          "
+
+      - name: Run Rust benchmarks (no-run)
+        run: |
+          nix develop --command bash -c "
+            cd intelagent
+            cargo bench --workspace --all-features --no-run
+          "
+
+  # Code quality checks
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v13
+        with:
+          name: phantom
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          skipPush: ${{ github.event_name == 'pull_request' }}
+
+      - name: Python linting (ruff check)
+        run: |
+          nix develop --command ruff check src/
+
+      - name: Python formatting (ruff format)
+        run: |
+          nix develop --command ruff format --check src/
+
+      - name: Python type checking (mypy)
+        run: |
+          nix develop --command mypy src/ || true
+
+      - name: Rust linting (clippy)
+        run: |
+          nix develop --command bash -c "
+            cd intelagent
+            cargo clippy --workspace --all-features -- -D warnings
+          "
+
+      - name: Rust formatting check
+        run: |
+          nix develop --command bash -c "
+            cd intelagent
+            cargo fmt --check
+          "
+
+  # Desktop app build test
+  desktop-build:
+    name: Desktop App Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v13
+        with:
+          name: phantom
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          skipPush: ${{ github.event_name == 'pull_request' }}
+
+      - name: Install dependencies
+        working-directory: cortex-desktop
+        run: |
+          nix develop --command npm install
+
+      - name: Build frontend
+        working-directory: cortex-desktop
+        run: |
+          nix develop --command npm run build
+
+      - name: Check Tauri build (no actual build)
+        working-directory: cortex-desktop
+        run: |
+          nix develop --command bash -c "
+            # Just verify the build command works, don't do full build in CI
+            npm run tauri --help || true
+          "
+
+  # Summary job (for branch protection)
+  ci-success:
+    name: CI Success
+    needs: [nix-checks, python-tests, rust-tests, quality, desktop-build]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check all jobs
+        run: |
+          if [ "${{ needs.nix-checks.result }}" != "success" ] || \
+             [ "${{ needs.python-tests.result }}" != "success" ] || \
+             [ "${{ needs.rust-tests.result }}" != "success" ] || \
+             [ "${{ needs.quality.result }}" != "success" ] || \
+             [ "${{ needs.desktop-build.result }}" != "success" ]; then
+            echo "One or more jobs failed"
+            exit 1
+          fi
+          echo "All CI jobs passed!"

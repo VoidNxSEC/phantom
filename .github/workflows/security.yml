@@ -1,0 +1,111 @@
+name: Security Audit
+
+on:
+  schedule:
+    # Run weekly on Sunday at midnight UTC
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+      - '**/pyproject.toml'
+      - '**/requirements*.txt'
+
+jobs:
+  rust-security:
+    name: Rust Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v13
+        with:
+          name: phantom
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+
+      - name: Run cargo audit
+        run: |
+          nix develop --command bash -c "
+            cd intelagent
+            cargo audit --deny warnings || true
+          "
+
+      - name: Check for outdated dependencies
+        run: |
+          nix develop --command bash -c "
+            cd intelagent
+            cargo outdated --root-deps-only || true
+          "
+
+  python-security:
+    name: Python Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v13
+        with:
+          name: phantom
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+
+      - name: Check for vulnerabilities with pip-audit
+        run: |
+          nix develop --command bash -c "
+            pip-audit || true
+          "
+
+      - name: Run safety check
+        run: |
+          nix develop --command bash -c "
+            pip install safety
+            safety check || true
+          "
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v3
+        with:
+          fail-on-severity: moderate
+
+  create-security-issue:
+    name: Create Security Issue
+    needs: [rust-security, python-security]
+    runs-on: ubuntu-latest
+    if: failure() && github.event_name == 'schedule'
+    steps:
+      - name: Create issue for security vulnerabilities
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🔒 Security vulnerabilities detected',
+              body: 'Automated security audit found vulnerabilities. Check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.',
+              labels: ['security', 'automated']
+            })

@@ -59,12 +59,18 @@ impl TaskQueue {
     pub fn enqueue(&self, task: Task) -> Result<()> {
         debug!("QUEUE: Enqueuing task: {:?}", task);
 
-        self.tx.send(task)
+        self.tx
+            .send(task)
             .map_err(|e| anyhow::anyhow!("Failed to enqueue: {}", e))?;
 
-        self.total_enqueued.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        self.total_enqueued
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
-        info!("QUEUE: Total enqueued: {}", self.total_enqueued.load(std::sync::atomic::Ordering::Relaxed));
+        info!(
+            "QUEUE: Total enqueued: {}",
+            self.total_enqueued
+                .load(std::sync::atomic::Ordering::Relaxed)
+        );
 
         Ok(())
     }
@@ -74,9 +80,14 @@ impl TaskQueue {
         match self.rx.recv().await {
             Some(task) => {
                 debug!("QUEUE: Dequeued task: {:?}", task);
-                self.total_dequeued.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                self.total_dequeued
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
-                info!("QUEUE: Total dequeued: {}", self.total_dequeued.load(std::sync::atomic::Ordering::Relaxed));
+                info!(
+                    "QUEUE: Total dequeued: {}",
+                    self.total_dequeued
+                        .load(std::sync::atomic::Ordering::Relaxed)
+                );
 
                 Some(task)
             }
@@ -89,8 +100,12 @@ impl TaskQueue {
 
     /// Get queue depth (observable metric)
     pub fn depth(&self) -> u64 {
-        let enqueued = self.total_enqueued.load(std::sync::atomic::Ordering::Relaxed);
-        let dequeued = self.total_dequeued.load(std::sync::atomic::Ordering::Relaxed);
+        let enqueued = self
+            .total_enqueued
+            .load(std::sync::atomic::Ordering::Relaxed);
+        let dequeued = self
+            .total_dequeued
+            .load(std::sync::atomic::Ordering::Relaxed);
         enqueued.saturating_sub(dequeued)
     }
 

@@ -87,7 +87,10 @@ impl AgentPool {
         let mut agents = self.agents.write().await;
 
         if let Some(meta) = agents.get_mut(agent_id) {
-            debug!("POOL: Agent {} -> IDLE (completed in {}ms)", agent_id, duration_ms);
+            debug!(
+                "POOL: Agent {} -> IDLE (completed in {}ms)",
+                agent_id, duration_ms
+            );
             meta.state = AgentState::Idle;
             meta.tasks_completed += 1;
             meta.total_duration_ms += duration_ms;
@@ -101,7 +104,8 @@ impl AgentPool {
     pub async fn get_idle_agent(&self) -> Option<String> {
         let agents = self.agents.read().await;
 
-        agents.iter()
+        agents
+            .iter()
             .find(|(_, meta)| meta.state == AgentState::Idle)
             .map(|(id, _)| id.clone())
     }
@@ -117,9 +121,18 @@ impl AgentPool {
         let agents = self.agents.read().await;
 
         let total = agents.len();
-        let idle = agents.values().filter(|a| a.state == AgentState::Idle).count();
-        let busy = agents.values().filter(|a| a.state == AgentState::Busy).count();
-        let failed = agents.values().filter(|a| a.state == AgentState::Failed).count();
+        let idle = agents
+            .values()
+            .filter(|a| a.state == AgentState::Idle)
+            .count();
+        let busy = agents
+            .values()
+            .filter(|a| a.state == AgentState::Busy)
+            .count();
+        let failed = agents
+            .values()
+            .filter(|a| a.state == AgentState::Failed)
+            .count();
 
         PoolStats {
             total,

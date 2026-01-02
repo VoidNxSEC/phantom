@@ -12,17 +12,47 @@ use tracing::debug;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Event {
     /// Task lifecycle
-    TaskEnqueued { id: u64, timestamp: DateTime<Utc> },
-    TaskDequeued { id: u64, timestamp: DateTime<Utc> },
-    TaskStarted { id: u64, agent_id: String, timestamp: DateTime<Utc> },
-    TaskCompleted { id: u64, duration_ms: u64, timestamp: DateTime<Utc> },
-    TaskFailed { id: u64, error: String, timestamp: DateTime<Utc> },
+    TaskEnqueued {
+        id: u64,
+        timestamp: DateTime<Utc>,
+    },
+    TaskDequeued {
+        id: u64,
+        timestamp: DateTime<Utc>,
+    },
+    TaskStarted {
+        id: u64,
+        agent_id: String,
+        timestamp: DateTime<Utc>,
+    },
+    TaskCompleted {
+        id: u64,
+        duration_ms: u64,
+        timestamp: DateTime<Utc>,
+    },
+    TaskFailed {
+        id: u64,
+        error: String,
+        timestamp: DateTime<Utc>,
+    },
 
     /// Agent lifecycle
-    AgentSpawned { id: String, timestamp: DateTime<Utc> },
-    AgentIdle { id: String, timestamp: DateTime<Utc> },
-    AgentBusy { id: String, timestamp: DateTime<Utc> },
-    AgentKilled { id: String, timestamp: DateTime<Utc> },
+    AgentSpawned {
+        id: String,
+        timestamp: DateTime<Utc>,
+    },
+    AgentIdle {
+        id: String,
+        timestamp: DateTime<Utc>,
+    },
+    AgentBusy {
+        id: String,
+        timestamp: DateTime<Utc>,
+    },
+    AgentKilled {
+        id: String,
+        timestamp: DateTime<Utc>,
+    },
 
     /// System events
     MetricsSnapshot {

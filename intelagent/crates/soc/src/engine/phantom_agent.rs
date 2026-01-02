@@ -49,7 +49,10 @@ impl PhantomAgent {
 
         // Validate input exists
         if !input_path.exists() {
-            return Err(anyhow::anyhow!("Input file does not exist: {:?}", input_path));
+            return Err(anyhow::anyhow!(
+                "Input file does not exist: {:?}",
+                input_path
+            ));
         }
 
         // Create output directory
@@ -60,18 +63,19 @@ impl PhantomAgent {
 
         // Build Phantom command
         let mut cmd = Command::new(&self.phantom_bin);
-        cmd.arg("-i").arg(&input_path)
-           .arg("-o").arg(&output_dir)
-           .arg("-v")  // Verbose
-           .stdout(Stdio::piped())
-           .stderr(Stdio::piped());
+        cmd.arg("-i")
+            .arg(&input_path)
+            .arg("-o")
+            .arg(&output_dir)
+            .arg("-v") // Verbose
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
 
         debug!("Executing: {:?}", cmd);
 
         // Execute
         let start = std::time::Instant::now();
-        let output = cmd.output().await
-            .context("Failed to execute Phantom")?;
+        let output = cmd.output().await.context("Failed to execute Phantom")?;
         let duration = start.elapsed();
 
         // Parse output
@@ -85,10 +89,7 @@ impl PhantomAgent {
 
         if !output.status.success() {
             error!("Phantom failed with exit code: {:?}", output.status.code());
-            return Err(anyhow::anyhow!(
-                "Phantom execution failed: {}",
-                stderr
-            ));
+            return Err(anyhow::anyhow!("Phantom execution failed: {}", stderr));
         }
 
         info!("Phantom completed in {:?}", duration);

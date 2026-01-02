@@ -31,7 +31,8 @@ impl SOCLayout {
         top_bar.set_margin_end(12);
         top_bar.set_margin_top(8);
 
-        let status_label = gtk4::Label::new(Some("⚡ SOC ONLINE | Agents: 0 | Intel: 0 | Alerts: 0"));
+        let status_label =
+            gtk4::Label::new(Some("⚡ SOC ONLINE | Agents: 0 | Intel: 0 | Alerts: 0"));
         status_label.add_css_class("status-label");
         top_bar.append(&status_label);
 
@@ -201,7 +202,9 @@ impl SOCLayout {
 
         let entry = gtk4::Entry::new();
         entry.set_hexpand(true);
-        entry.set_placeholder_text(Some("Enter command (e.g., agent-3 investigate target X)..."));
+        entry.set_placeholder_text(Some(
+            "Enter command (e.g., agent-3 investigate target X)...",
+        ));
         entry.add_css_class("command-entry");
         command_box.append(&entry);
 

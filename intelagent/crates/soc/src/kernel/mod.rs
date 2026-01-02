@@ -7,14 +7,14 @@
 //!
 //! NO MAGIC. NO ABSTRACTIONS. KERNEL MODE.
 
-pub mod task_queue;
 pub mod agent_pool;
 pub mod event_bus;
 pub mod metrics;
 pub mod scheduler;
+pub mod task_queue;
 
-pub use task_queue::{Task, TaskQueue, TaskResult};
-pub use agent_pool::{AgentPool, AgentMetadata, AgentState, PoolStats};
+pub use agent_pool::{AgentMetadata, AgentPool, AgentState, PoolStats};
 pub use event_bus::{Event, EventBus};
 pub use metrics::{Metrics, MetricsCollector, MetricsSnapshot};
 pub use scheduler::Scheduler;
+pub use task_queue::{Task, TaskQueue, TaskResult};

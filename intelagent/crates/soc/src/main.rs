@@ -1,14 +1,14 @@
 //! IntelAgent SOC - System Operations Center
 //! Phase 0: Foundation - GTK4 app + Command palette + Phantom integration
 
+use adw::prelude::*;
 use gtk4::prelude::*;
 use gtk4::{Application, ApplicationWindow};
 use libadwaita as adw;
-use adw::prelude::*;
 
-mod ui;
 mod engine;
 mod kernel;
+mod ui;
 
 use ui::SOCLayout;
 
@@ -34,9 +34,7 @@ fn main() -> anyhow::Result<()> {
     load_custom_css();
 
     // Create application
-    let app = Application::builder()
-        .application_id(APP_ID)
-        .build();
+    let app = Application::builder().application_id(APP_ID).build();
 
     app.connect_activate(build_ui);
 

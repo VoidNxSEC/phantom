@@ -39,11 +39,7 @@ impl ValidationResult {
         }
     }
 
-    pub fn failed(
-        name: impl Into<String>,
-        severity: Severity,
-        message: impl Into<String>,
-    ) -> Self {
+    pub fn failed(name: impl Into<String>, severity: Severity, message: impl Into<String>) -> Self {
         ValidationResult {
             check_name: name.into(),
             passed: false,
@@ -86,7 +82,10 @@ impl QualityGate for MinQualityScoreGate {
         if result.quality_score >= self.threshold {
             ValidationResult::passed(
                 "min_quality_score",
-                format!("Quality score {} meets threshold {}", result.quality_score, self.threshold)
+                format!(
+                    "Quality score {} meets threshold {}",
+                    result.quality_score, self.threshold
+                ),
             )
         } else {
             ValidationResult::failed(
@@ -122,7 +121,10 @@ impl QualityGate for ValidationEvidenceGate {
         if !result.validation_evidence.is_empty() {
             ValidationResult::passed(
                 "validation_evidence",
-                format!("Provided {} pieces of evidence", result.validation_evidence.len()),
+                format!(
+                    "Provided {} pieces of evidence",
+                    result.validation_evidence.len()
+                ),
             )
             .with_evidence(result.validation_evidence.join("\n"))
         } else {

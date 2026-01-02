@@ -17,7 +17,10 @@ impl Reputation {
         if (0.0..=1.0).contains(&score) {
             Ok(Reputation(score))
         } else {
-            Err(format!("Reputation must be between 0.0 and 1.0, got {}", score))
+            Err(format!(
+                "Reputation must be between 0.0 and 1.0, got {}",
+                score
+            ))
         }
     }
 
@@ -47,7 +50,10 @@ impl Confidence {
         if (0.0..=1.0).contains(&value) {
             Ok(Confidence(value))
         } else {
-            Err(format!("Confidence must be between 0.0 and 1.0, got {}", value))
+            Err(format!(
+                "Confidence must be between 0.0 and 1.0, got {}",
+                value
+            ))
         }
     }
 

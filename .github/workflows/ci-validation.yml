@@ -1,0 +1,61 @@
+name: Stack Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  validate-nix-stack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v13
+        with:
+          name: phantom
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          skipPush: ${{ github.actor == 'dependabot[bot]' }}
+
+      - name: Check Nix Flake (Linting & Inputs)
+        run: nix flake check --show-trace
+
+      - name: Build IntelAgent (Rust)
+        run: nix build .#intelagent --print-build-logs
+
+      - name: Build Phantom (Python)
+        run: nix build .#phantom --print-build-logs
+
+  test-python-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+
+      - name: Run Python Integration Tests
+        run: |
+          nix develop --command pytest tests/ -v
+
+  test-rust-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+
+      - name: Run Rust Integration Tests
+        run: |
+          nix develop --command cargo test --workspace --all-features

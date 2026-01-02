@@ -2,10 +2,10 @@
 //! Phase 0: Simple text entry + command execution
 
 use gtk4::prelude::*;
-use gtk4::{Entry, Box, Orientation};
+use gtk4::{Box, Entry, Orientation};
 use std::cell::RefCell;
-use std::rc::Rc;
 use std::path::PathBuf;
+use std::rc::Rc;
 
 use crate::engine::PhantomAgent;
 
@@ -149,8 +149,6 @@ impl CommandPalette {
     }
 
     fn parse_arg<'a>(args: &'a [&'a str], flag: &str) -> Option<&'a str> {
-        args.windows(2)
-            .find(|w| w[0] == flag)
-            .map(|w| w[1])
+        args.windows(2).find(|w| w[0] == flag).map(|w| w[1])
     }
 }

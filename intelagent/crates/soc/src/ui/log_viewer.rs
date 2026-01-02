@@ -2,7 +2,7 @@
 //! Phase 0: Simple text view showing logs
 
 use gtk4::prelude::*;
-use gtk4::{ScrolledWindow, TextView, TextBuffer};
+use gtk4::{ScrolledWindow, TextBuffer, TextView};
 
 pub struct LogViewer {
     container: ScrolledWindow,
@@ -54,6 +54,7 @@ impl LogViewer {
 
         // Auto-scroll to bottom
         let mut end_iter = self.buffer.end_iter();
-        self.text_view.scroll_to_iter(&mut end_iter, 0.0, false, 0.0, 0.0);
+        self.text_view
+            .scroll_to_iter(&mut end_iter, 0.0, false, 0.0, 0.0);
     }
 }

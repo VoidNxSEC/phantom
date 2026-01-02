@@ -263,12 +263,7 @@ mod tests {
     #[test]
     fn test_task_result_success() {
         let task_id = TaskId::new();
-        let result = TaskResult::success(
-            task_id,
-            TaskOutput::Text("done".to_string()),
-            0.95,
-            1000,
-        );
+        let result = TaskResult::success(task_id, TaskOutput::Text("done".to_string()), 0.95, 1000);
 
         assert_eq!(result.task_id, task_id);
         assert_eq!(result.quality_score, 0.95);

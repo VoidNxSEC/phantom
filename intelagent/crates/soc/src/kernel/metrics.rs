@@ -41,27 +41,40 @@ impl Metrics {
     /// Record task enqueued
     pub fn record_enqueue(&self) {
         self.tasks_enqueued.fetch_add(1, Ordering::Relaxed);
-        debug!("METRICS: Tasks enqueued: {}", self.tasks_enqueued.load(Ordering::Relaxed));
+        debug!(
+            "METRICS: Tasks enqueued: {}",
+            self.tasks_enqueued.load(Ordering::Relaxed)
+        );
     }
 
     /// Record task completed
     pub fn record_completion(&self, duration_ms: u64) {
         self.tasks_completed.fetch_add(1, Ordering::Relaxed);
-        self.total_execution_time_ms.fetch_add(duration_ms, Ordering::Relaxed);
+        self.total_execution_time_ms
+            .fetch_add(duration_ms, Ordering::Relaxed);
 
         // Update min
-        self.min_execution_time_ms.fetch_min(duration_ms, Ordering::Relaxed);
+        self.min_execution_time_ms
+            .fetch_min(duration_ms, Ordering::Relaxed);
 
         // Update max
-        self.max_execution_time_ms.fetch_max(duration_ms, Ordering::Relaxed);
+        self.max_execution_time_ms
+            .fetch_max(duration_ms, Ordering::Relaxed);
 
-        debug!("METRICS: Task completed in {}ms (total: {})", duration_ms, self.tasks_completed.load(Ordering::Relaxed));
+        debug!(
+            "METRICS: Task completed in {}ms (total: {})",
+            duration_ms,
+            self.tasks_completed.load(Ordering::Relaxed)
+        );
     }
 
     /// Record task failure
     pub fn record_failure(&self) {
         self.tasks_failed.fetch_add(1, Ordering::Relaxed);
-        debug!("METRICS: Task failed (total failures: {})", self.tasks_failed.load(Ordering::Relaxed));
+        debug!(
+            "METRICS: Task failed (total failures: {})",
+            self.tasks_failed.load(Ordering::Relaxed)
+        );
     }
 
     /// Get snapshot (observable state)

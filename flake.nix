@@ -1,5 +1,5 @@
 {
-  description = "🔮 PHANTOM v2.0 - Enhanced with Crane & CI/CD Checks";
+  description = "🔮 PHANTOM v0.2 - Enhanced with Crane & CI/CD Checks";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
@@ -18,8 +18,17 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, rust-overlay, crane, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      rust-overlay,
+      crane,
+      ...
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         VERSION = "2.0.0";
 
@@ -33,7 +42,10 @@
         # RUST TOOLCHAIN
         # ═══════════════════════════════════════════════════════════════
         rustToolchain = pkgs.rust-bin.stable.latest.default.override {
-          extensions = [ "rust-analyzer" "rust-src" ];
+          extensions = [
+            "rust-analyzer"
+            "rust-src"
+          ];
           targets = [ "x86_64-unknown-linux-gnu" ];
         };
 
@@ -43,72 +55,126 @@
         # ═══════════════════════════════════════════════════════════════
         # PYTHON ENVIRONMENT
         # ═══════════════════════════════════════════════════════════════
-        pythonEnv = pkgs.python313.withPackages (ps: with ps; [
-          # Core Data Processing
-          pandas numpy pyarrow polars
+        pythonEnv = pkgs.python313.withPackages (
+          ps: with ps; [
+            # Core Data Processing
+            pandas
+            numpy
+            pyarrow
+            polars
 
-          # File Analysis
-          python-magic chardet filetype
+            # File Analysis
+            python-magic
+            chardet
+            filetype
 
-          # Hashing & Cryptography
-          cryptography pynacl
+            # Hashing & Cryptography
+            cryptography
+            pynacl
 
-          # NLP & Classification
-          nltk scikit-learn
+            # NLP & Classification
+            nltk
+            scikit-learn
 
-          # Metadata & Forensics
-          exifread pdfminer-six python-docx openpyxl
+            # Metadata & Forensics
+            exifread
+            pdfminer-six
+            python-docx
+            openpyxl
 
-          # Serialization & Reporting
-          pyyaml toml jinja2 rich tqdm
+            # Serialization & Reporting
+            pyyaml
+            toml
+            jinja2
+            rich
+            tqdm
 
-          # HTTP & Networking
-          requests
+            # HTTP & Networking
+            requests
 
-          # System Monitoring
-          psutil
+            # System Monitoring
+            psutil
 
-          # Async & Parallelism
-          aiofiles multiprocess
+            # Async & Parallelism
+            aiofiles
+            multiprocess
 
-          # Validation
-          jsonschema pydantic
+            # Validation
+            jsonschema
+            pydantic
 
-          # CORTEX v2.0: Embeddings & Chunking
-          sentence-transformers transformers torch tiktoken
-          langchain chromadb
+            # CORTEX v2.0: Embeddings & Chunking
+            sentence-transformers
+            transformers
+            torch
+            tiktoken
+            langchain
+            chromadb
 
-          # API & Web Server
-          fastapi uvicorn python-multipart pytest
+            # API & Web Server
+            fastapi
+            uvicorn
+            python-multipart
+            pytest
 
-          # Dev tools
-          pytest pytest-cov pytest-asyncio ruff mypy
-        ]);
+            # GOOGLE CLOUD PLATFORM (ENTERPRISE RAG)
+            google-cloud-aiplatform    # Vertex AI (embeddings, LLMs)
+            google-cloud-bigquery      # BigQuery (vector storage)
+            google-cloud-storage       # Cloud Storage (document storage)
+            google-auth                # Authentication
+            google-api-python-client   # General GCP API client
+
+            # Dev tools
+            pytest
+            pytest-cov
+            pytest-asyncio
+            ruff
+            mypy
+          ]
+        );
 
         # ═══════════════════════════════════════════════════════════════
         # SYSTEM TOOLS
         # ═══════════════════════════════════════════════════════════════
         systemTools = with pkgs; [
           # Data Manipulation
-          jq yq-go miller gron htmlq
+          jq
+          yq-go
+          miller
+          gron
+          htmlq
 
           # File Analysis
-          file exiftool binwalk hexyl
+          file
+          exiftool
+          binwalk
+          hexyl
 
           # Hashing & Integrity
-          b3sum xxHash rhash
+          b3sum
+          xxHash
+          rhash
 
           # Search & Discovery
-          ripgrep fd fzf tree
+          ripgrep
+          fd
+          fzf
+          tree
 
           # Compression & Archive
-          p7zip unzip gzip xz zstd
+          p7zip
+          unzip
+          gzip
+          xz
+          zstd
 
           # Security & Forensics
-          foremost sleuthkit
+          foremost
+          sleuthkit
 
           # Monitoring
-          pv parallel
+          pv
+          parallel
         ];
 
         # ═══════════════════════════════════════════════════════════════
@@ -118,8 +184,7 @@
         # Source filtering - include Cargo files and Rust source
         src = pkgs.lib.cleanSourceWith {
           src = ./intelagent;
-          filter = path: type:
-            (craneLib.filterCargoSources path type);
+          filter = path: type: (craneLib.filterCargoSources path type);
         };
 
         # Common arguments for all Crane builds
@@ -143,19 +208,25 @@
         };
 
         # Build dependencies only (cached separately)
-        cargoArtifacts = craneLib.buildDepsOnly (commonArgs // {
-          pname = "intelagent-deps";
-        });
+        cargoArtifacts = craneLib.buildDepsOnly (
+          commonArgs
+          // {
+            pname = "intelagent-deps";
+          }
+        );
 
         # Build the actual workspace
-        intelagent = craneLib.buildPackage (commonArgs // {
-          inherit cargoArtifacts;
-          pname = "intelagent";
-          version = VERSION;
+        intelagent = craneLib.buildPackage (
+          commonArgs
+          // {
+            inherit cargoArtifacts;
+            pname = "intelagent";
+            version = VERSION;
 
-          # Don't run tests in build (we do that separately)
-          doCheck = false;
-        });
+            # Don't run tests in build (we do that separately)
+            doCheck = false;
+          }
+        );
 
         # ═══════════════════════════════════════════════════════════════
         # PYTHON SCRIPTS (from original flake)
@@ -273,18 +344,24 @@
         # ═══════════════════════════════════════════════════════════════
         checks = {
           # Rust tests
-          intelagent-tests = craneLib.cargoNextest (commonArgs // {
-            inherit cargoArtifacts;
-            pname = "intelagent-tests";
-            cargoNextestExtraArgs = "--all-features --workspace";
-          });
+          intelagent-tests = craneLib.cargoNextest (
+            commonArgs
+            // {
+              inherit cargoArtifacts;
+              pname = "intelagent-tests";
+              cargoNextestExtraArgs = "--all-features --workspace";
+            }
+          );
 
           # Clippy lints
-          intelagent-clippy = craneLib.cargoClippy (commonArgs // {
-            inherit cargoArtifacts;
-            pname = "intelagent-clippy";
-            cargoClippyExtraArgs = "--all-features --workspace -- --deny warnings";
-          });
+          intelagent-clippy = craneLib.cargoClippy (
+            commonArgs
+            // {
+              inherit cargoArtifacts;
+              pname = "intelagent-clippy";
+              cargoClippyExtraArgs = "--all-features --workspace -- --deny warnings";
+            }
+          );
 
           # Format check
           intelagent-fmt = craneLib.cargoFmt {
@@ -293,41 +370,53 @@
           };
 
           # Security audit
-          intelagent-audit = pkgs.runCommand "intelagent-audit" {
-            buildInputs = [ pkgs.cargo-audit ];
-          } ''
-            cd ${src}
-            ${pkgs.cargo-audit}/bin/cargo-audit audit || true
-            touch $out
-          '';
+          intelagent-audit =
+            pkgs.runCommand "intelagent-audit"
+              {
+                buildInputs = [ pkgs.cargo-audit ];
+              }
+              ''
+                cd ${src}
+                ${pkgs.cargo-audit}/bin/cargo-audit audit || true
+                touch $out
+              '';
 
           # Python tests
-          python-tests = pkgs.runCommand "python-tests" {
-            buildInputs = [ pythonEnv ];
-          } ''
-            cd ${./.}
-            export PYTHONPATH="${./.}/src:$PYTHONPATH"
-            ${pythonEnv}/bin/pytest tests/ -v || true
-            touch $out
-          '';
+          python-tests =
+            pkgs.runCommand "python-tests"
+              {
+                buildInputs = [ pythonEnv ];
+              }
+              ''
+                cd ${./.}
+                export PYTHONPATH="${./.}/src:$PYTHONPATH"
+                ${pythonEnv}/bin/pytest tests/ -v || true
+                touch $out
+              '';
 
           # Python linting
-          python-lint = pkgs.runCommand "python-lint" {
-            buildInputs = [ pythonEnv ];
-          } ''
-            cd ${./.}
-            ${pythonEnv}/bin/ruff check src/ || true
-            touch $out
-          '';
+          python-lint =
+            pkgs.runCommand "python-lint"
+              {
+                buildInputs = [ pythonEnv ];
+              }
+              ''
+                cd ${./.}
+                ${pythonEnv}/bin/ruff check src/ || true
+                touch $out
+              '';
 
           # Python formatting
-          python-fmt = pkgs.runCommand "python-fmt" {
-            buildInputs = [ pythonEnv ];
-          } ''
-            cd ${./.}
-            ${pythonEnv}/bin/ruff format --check src/ || true
-            touch $out
-          '';
+          python-fmt =
+            pkgs.runCommand "python-fmt"
+              {
+                buildInputs = [ pythonEnv ];
+              }
+              ''
+                cd ${./.}
+                ${pythonEnv}/bin/ruff format --check src/ || true
+                touch $out
+              '';
         };
 
         # ═══════════════════════════════════════════════════════════════
@@ -362,7 +451,8 @@
             phantomVerify
             phantomHash
             phantomScan
-          ] ++ systemTools;
+          ]
+          ++ systemTools;
 
           shellHook = ''
             export PHANTOM_VERSION="${VERSION}"
@@ -437,7 +527,8 @@
           };
         };
       }
-    ) // {
+    )
+    // {
       # ═══════════════════════════════════════════════════════════════
       # NIXOS MODULES (system-wide)
       # ═══════════════════════════════════════════════════════════════

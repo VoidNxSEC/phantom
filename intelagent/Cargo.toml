@@ -10,6 +10,7 @@ members = [
     "crates/dao",
     "crates/audit",
     "crates/cli",
+    "crates/soc",
 ]
 
 [workspace.package]

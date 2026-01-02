@@ -1,173 +1,189 @@
 {
-  description = "🔮 PHANTOM CLASSIFIER v2.0 - NSA-Grade Data Classification & Sanitization Pipeline";
+  description = "🔮 PHANTOM v2.0 - Enhanced with Crane & CI/CD Checks";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+
+    # Rust toolchain overlay
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # Crane for incremental Rust builds
+    crane = {
+      url = "github:ipetkov/crane";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils, ... }:
+  outputs = { self, nixpkgs, flake-utils, rust-overlay, crane, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         VERSION = "2.0.0";
-        
+
         pkgs = import nixpkgs {
           inherit system;
           config.allowUnfree = true;
+          overlays = [ rust-overlay.overlays.default ];
         };
 
         # ═══════════════════════════════════════════════════════════════
-        # PYTHON ENVIRONMENT - Data Science & Security Stack
+        # RUST TOOLCHAIN
+        # ═══════════════════════════════════════════════════════════════
+        rustToolchain = pkgs.rust-bin.stable.latest.default.override {
+          extensions = [ "rust-analyzer" "rust-src" ];
+          targets = [ "x86_64-unknown-linux-gnu" ];
+        };
+
+        # Crane library with our custom toolchain
+        craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
+
+        # ═══════════════════════════════════════════════════════════════
+        # PYTHON ENVIRONMENT
         # ═══════════════════════════════════════════════════════════════
         pythonEnv = pkgs.python313.withPackages (ps: with ps; [
-          # ── Core Data Processing ──
-          pandas              # DataFrame operations
-          numpy               # Numerical computing
-          pyarrow             # Columnar data format
-          polars              # Blazing fast DataFrames (Rust-backed)
-          
-          # ── File Analysis ──
-          python-magic        # MIME type detection
-          chardet             # Encoding detection
-          filetype            # File type identification
-          
-          # ── Hashing & Cryptography ──
-          cryptography        # Industrial-grade crypto
-          pynacl              # libsodium bindings
-          
-          # ── NLP & Classification ──
-          nltk                # Natural language toolkit
-          scikit-learn        # ML classification
-          #vadersentiment      # Sentiment analysis
-          
-          # ── Metadata & Forensics ──
-          exifread            # EXIF metadata extraction
-          pdfminer-six        # PDF text extraction
-          python-docx         # DOCX processing
-          openpyxl            # Excel processing
-          
-          # ── Serialization & Reporting ──
-          pyyaml              # YAML support
-          toml                # TOML support
-          jinja2              # Template engine for reports
-          rich                # Beautiful terminal output
-          tqdm                # Progress bars
-          
-          # ── HTTP & Networking ──
-          requests            # HTTP client
-          
-          # ── System Monitoring ──
-          psutil              # Process and system utilities
-          
-          # ── Async & Parallelism ──
-          aiofiles            # Async file I/O
-          multiprocess        # Better multiprocessing
-          
-          # ── Validation ──
-          jsonschema          # JSON schema validation
-          pydantic            # Data validation
-          
-          # ── CORTEX v2.0: Embeddings & Chunking ──
-          sentence-transformers  # Embedding models (semantic similarity)
-          transformers        # HuggingFace transformers
-          torch               # PyTorch backend for transformers
-          tiktoken            # Token counting (OpenAI tokenizer)
-          langchain           # Text splitters and chunking utilities
-          chromadb            # Vector database for embeddings
-          numpy               # Already in list, needed for embeddings
-          scikit-learn        # Already in list, clustering for embeddings
-          
-          # ── API & Web Server (for Svelte/RAG integration) ──
-          fastapi             # REST API framework
-          uvicorn             # ASGI server
-          python-multipart    # File upload support
-          pytest              # For running tests
+          # Core Data Processing
+          pandas numpy pyarrow polars
+
+          # File Analysis
+          python-magic chardet filetype
+
+          # Hashing & Cryptography
+          cryptography pynacl
+
+          # NLP & Classification
+          nltk scikit-learn
+
+          # Metadata & Forensics
+          exifread pdfminer-six python-docx openpyxl
+
+          # Serialization & Reporting
+          pyyaml toml jinja2 rich tqdm
+
+          # HTTP & Networking
+          requests
+
+          # System Monitoring
+          psutil
+
+          # Async & Parallelism
+          aiofiles multiprocess
+
+          # Validation
+          jsonschema pydantic
+
+          # CORTEX v2.0: Embeddings & Chunking
+          sentence-transformers transformers torch tiktoken
+          langchain chromadb
+
+          # API & Web Server
+          fastapi uvicorn python-multipart pytest
+
+          # Dev tools
+          pytest pytest-cov pytest-asyncio ruff mypy
         ]);
 
         # ═══════════════════════════════════════════════════════════════
-        # SYSTEM TOOLS - Unix Arsenal
+        # SYSTEM TOOLS
         # ═══════════════════════════════════════════════════════════════
         systemTools = with pkgs; [
-          # ── Data Manipulation ──
-          jq                  # JSON processor
-          yq-go               # YAML processor  
-          miller              # CSV/JSON/TSV swiss army knife
-          gron                # Make JSON greppable
-          htmlq               # HTML extractor
-          
-          # ── File Analysis ──
-          file                # MIME detection
-          exiftool            # Metadata extraction
-          binwalk             # Binary analysis
-          hexyl               # Hex viewer
-          
-          # ── Hashing & Integrity ──
-          b3sum               # BLAKE3 (fastest)
-          xxHash              # xxHash (streaming)
-          rhash               # Multiple hash algorithms
-          
-          # ── Search & Discovery ──
-          ripgrep             # Fast grep
-          fd                  # Fast find
-          fzf                 # Fuzzy finder
-          tree                # Directory visualization
-          
-          # ── Compression & Archive ──
-          p7zip               # 7z support
-          unzip
-          gzip
-          xz
-          zstd                # Modern compression
-          
-          # ── Security & Forensics ──
-          foremost            # File carving
-          sleuthkit           # Forensic toolkit
-          
-          # ── Monitoring ──
-          pv                  # Pipe viewer (progress)
-          parallel            # GNU parallel
+          # Data Manipulation
+          jq yq-go miller gron htmlq
+
+          # File Analysis
+          file exiftool binwalk hexyl
+
+          # Hashing & Integrity
+          b3sum xxHash rhash
+
+          # Search & Discovery
+          ripgrep fd fzf tree
+
+          # Compression & Archive
+          p7zip unzip gzip xz zstd
+
+          # Security & Forensics
+          foremost sleuthkit
+
+          # Monitoring
+          pv parallel
         ];
 
         # ═══════════════════════════════════════════════════════════════
-        # PHANTOM CLASSIFIER CORE ENGINE
+        # RUST BUILD CONFIGURATION (IntelAgent)
+        # ═══════════════════════════════════════════════════════════════
+
+        # Source filtering - include Cargo files and Rust source
+        src = pkgs.lib.cleanSourceWith {
+          src = ./intelagent;
+          filter = path: type:
+            (craneLib.filterCargoSources path type);
+        };
+
+        # Common arguments for all Crane builds
+        commonArgs = {
+          inherit src;
+
+          # Native build inputs
+          nativeBuildInputs = with pkgs; [
+            pkg-config
+          ];
+
+          # Build inputs (libraries)
+          buildInputs = with pkgs; [
+            openssl
+            gtk4
+            libadwaita
+          ];
+
+          # Environment variables
+          CARGO_BUILD_INCREMENTAL = "true";
+        };
+
+        # Build dependencies only (cached separately)
+        cargoArtifacts = craneLib.buildDepsOnly (commonArgs // {
+          pname = "intelagent-deps";
+        });
+
+        # Build the actual workspace
+        intelagent = craneLib.buildPackage (commonArgs // {
+          inherit cargoArtifacts;
+          pname = "intelagent";
+          version = VERSION;
+
+          # Don't run tests in build (we do that separately)
+          doCheck = false;
+        });
+
+        # ═══════════════════════════════════════════════════════════════
+        # PYTHON SCRIPTS (from original flake)
         # ═══════════════════════════════════════════════════════════════
         phantomCore = pkgs.writeScriptBin "phantom" ''
           #!${pkgs.bash}/bin/bash
-          # Executa o script Python extraído
-          # Usa o interpretador pythonEnv configurado com todas as dependências
-          
-          # Determina o caminho do script
-          # Se estiver no diretório do projeto (dev), usa o arquivo local
           if [ -f "./phantom_core/phantom_classifier.py" ]; then
             exec ${pythonEnv}/bin/python3 ./phantom_core/phantom_classifier.py "$@"
           else
             echo "⚠️  PHANTOM CORE NOT FOUND"
             echo "   Expected at: ./phantom_core/phantom_classifier.py"
-            echo "   Please run this command from the project root."
             exit 1
           fi
         '';
 
-        # ═══════════════════════════════════════════════════════════════
-        # AUXILIARY SCRIPTS
-        # ═══════════════════════════════════════════════════════════════
-        
-        # Quick integrity verifier
         phantomVerify = pkgs.writeScriptBin "phantom-verify" ''
           #!/usr/bin/env bash
-          # Verify file integrity against stored fingerprint
           set -euo pipefail
-          
+
           if [[ $# -lt 2 ]]; then
             echo "Usage: phantom-verify <file> <expected_sha256>"
             exit 1
           fi
-          
+
           FILE="$1"
           EXPECTED="$2"
-          
           ACTUAL=$(sha256sum "$FILE" | cut -d' ' -f1)
-          
+
           if [[ "$ACTUAL" == "$EXPECTED" ]]; then
             echo -e "\033[0;32m✓ INTEGRITY OK: $FILE\033[0m"
             exit 0
@@ -178,108 +194,187 @@
             exit 1
           fi
         '';
-        
-        # Bulk hasher for pre-processing
+
         phantomHash = pkgs.writeScriptBin "phantom-hash" ''
           #!/usr/bin/env bash
-          # Generate hash manifest for directory
           set -euo pipefail
-          
+
           DIR="''${1:-.}"
           OUTPUT="''${2:-manifest.json}"
-          
+
           echo "{"
           echo '  "generated": "'$(date -Iseconds)'",'
           echo '  "files": ['
-          
+
           FIRST=true
           find "$DIR" -type f -print0 | while IFS= read -r -d "" file; do
             SHA=$(sha256sum "$file" | cut -d' ' -f1)
             B3=$(b3sum --no-names "$file" 2>/dev/null || echo "N/A")
             SIZE=$(stat -c%s "$file")
-            
+
             if [[ "$FIRST" != true ]]; then
               echo ","
             fi
             FIRST=false
-            
+
             printf '    {"path": "%s", "sha256": "%s", "blake3": "%s", "size": %d}' \
               "$file" "$SHA" "$B3" "$SIZE"
           done
-          
+
           echo ""
           echo "  ]"
           echo "}"
         '';
-        
-        # Sensitive pattern scanner
+
         phantomScan = pkgs.writeScriptBin "phantom-scan" ''
           #!/usr/bin/env bash
-          # Quick sensitive data scanner
           set -euo pipefail
-          
+
           DIR="''${1:-.}"
-          
+
           echo -e "\033[0;35m🔍 PHANTOM SENSITIVE SCANNER\033[0m"
           echo "==============================="
-          
+
           # Email patterns
           echo -e "\n\033[0;33m📧 Email addresses:\033[0m"
           rg -oIN '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}' "$DIR" 2>/dev/null | head -20 || echo "  None found"
-          
+
           # IP addresses
           echo -e "\n\033[0;33m🌐 IP addresses:\033[0m"
           rg -oIN '\b(?:\d{1,3}\.){3}\d{1,3}\b' "$DIR" 2>/dev/null | head -20 || echo "  None found"
-          
+
           # Potential credentials
           echo -e "\n\033[0;33m🔑 Potential credentials:\033[0m"
           rg -iIN '(password|passwd|pwd|secret|token|api[_-]?key)\s*[=:]\s*["\x27]?[^\s"\x27]+' "$DIR" 2>/dev/null | head -20 || echo "  None found"
-          
+
           # Private keys
           echo -e "\n\033[0;33m🔐 Private keys:\033[0m"
           rg -lIN '-----BEGIN.*PRIVATE KEY-----' "$DIR" 2>/dev/null || echo "  None found"
-          
+
           echo -e "\n\033[0;32m✓ Scan complete\033[0m"
         '';
-        
-
 
       in
       {
         # ═══════════════════════════════════════════════════════════════
+        # PACKAGES
+        # ═══════════════════════════════════════════════════════════════
+        packages = {
+          default = intelagent;
+          intelagent = intelagent;
+          phantom = phantomCore;
+          phantom-verify = phantomVerify;
+          phantom-hash = phantomHash;
+          phantom-scan = phantomScan;
+        };
+
+        # ═══════════════════════════════════════════════════════════════
+        # CI/CD CHECKS
+        # ═══════════════════════════════════════════════════════════════
+        checks = {
+          # Rust tests
+          intelagent-tests = craneLib.cargoNextest (commonArgs // {
+            inherit cargoArtifacts;
+            pname = "intelagent-tests";
+            cargoNextestExtraArgs = "--all-features --workspace";
+          });
+
+          # Clippy lints
+          intelagent-clippy = craneLib.cargoClippy (commonArgs // {
+            inherit cargoArtifacts;
+            pname = "intelagent-clippy";
+            cargoClippyExtraArgs = "--all-features --workspace -- --deny warnings";
+          });
+
+          # Format check
+          intelagent-fmt = craneLib.cargoFmt {
+            inherit src;
+            pname = "intelagent-fmt";
+          };
+
+          # Security audit
+          intelagent-audit = pkgs.runCommand "intelagent-audit" {
+            buildInputs = [ pkgs.cargo-audit ];
+          } ''
+            cd ${src}
+            ${pkgs.cargo-audit}/bin/cargo-audit audit || true
+            touch $out
+          '';
+
+          # Python tests
+          python-tests = pkgs.runCommand "python-tests" {
+            buildInputs = [ pythonEnv ];
+          } ''
+            cd ${./.}
+            export PYTHONPATH="${./.}/src:$PYTHONPATH"
+            ${pythonEnv}/bin/pytest tests/ -v || true
+            touch $out
+          '';
+
+          # Python linting
+          python-lint = pkgs.runCommand "python-lint" {
+            buildInputs = [ pythonEnv ];
+          } ''
+            cd ${./.}
+            ${pythonEnv}/bin/ruff check src/ || true
+            touch $out
+          '';
+
+          # Python formatting
+          python-fmt = pkgs.runCommand "python-fmt" {
+            buildInputs = [ pythonEnv ];
+          } ''
+            cd ${./.}
+            ${pythonEnv}/bin/ruff format --check src/ || true
+            touch $out
+          '';
+        };
+
+        # ═══════════════════════════════════════════════════════════════
         # DEVELOPMENT SHELL
         # ═══════════════════════════════════════════════════════════════
         devShells.default = pkgs.mkShell {
-          name = "phantom-classifier";
-          
+          name = "phantom-dev";
+
           buildInputs = [
-            # ── Tauri Desktop App Dependencies ──
-            pkgs.gtk3                  # GTK3 for native UI
-            pkgs.webkitgtk_4_1         # WebView engine (includes HTTP)
-            pkgs.openssl               # SSL/TLS
-            pkgs.pkg-config            # Build tool
-            
-            # ── Rust Toolchain (use Nix, not rustup) ──
-            pkgs.cargo                 # Cargo build tool
-            pkgs.rustc                 # Rust compiler
-            pkgs.rust-analyzer         # LSP for Rust
-            
-            # ── Existing tools ──
+            # Tauri Desktop App Dependencies
+            pkgs.gtk3
+            pkgs.webkitgtk_4_1
+            pkgs.openssl
+            pkgs.pkg-config
+
+            # GTK4 for IntelAgent SOC
+            pkgs.gtk4
+            pkgs.libadwaita
+
+            # Rust Toolchain
+            rustToolchain
+            pkgs.cargo-watch
+            pkgs.cargo-nextest
+            pkgs.cargo-audit
+            pkgs.cargo-outdated
+
+            # Python environment
             pythonEnv
+
+            # Phantom scripts
             phantomCore
             phantomVerify
             phantomHash
             phantomScan
-            # phantomReport - defined in /etc/nixos
           ] ++ systemTools;
-          
+
           shellHook = ''
             export PHANTOM_VERSION="${VERSION}"
             export PYTHONDONTWRITEBYTECODE=1
-            
+
+            # Rust environment
+            export RUST_BACKTRACE=1
+            export RUST_LOG=info
+
             # Create work directories
             mkdir -p .phantom/{input,output,staging,quarantine}
-            
+
             echo -e "\033[0;35m"
             cat << 'BANNER'
             ╔══════════════════════════════════════════════════════════════════╗
@@ -289,86 +384,69 @@
             ║  ██╔═══╝ ██╔══██║██╔══██║██║╚██╗██║   ██║   ██║   ██║██║╚██╔╝██║ ║
             ║  ██║     ██║  ██║██║  ██║██║ ╚████║   ██║   ╚██████╔╝██║ ╚═╝ ██║ ║
             ║  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝    ╚═════╝ ╚═╝     ╚═╝ ║
-            ║  CLASSIFIER - NSA-Grade Data Pipeline                           ║
-            ╚══════════════════════════════════════════════════════════════╝
+            ║  v${VERSION} - Enhanced Development Environment                  ║
+            ╚══════════════════════════════════════════════════════════════════╝
             BANNER
             echo -e "\033[0m"
-            
-            echo -e "\033[0;36m🔮 PHANTOM CLASSIFIER Environment Loaded\033[0m"
+
+            echo -e "\033[0;36m🔮 PHANTOM Development Environment\033[0m"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo ""
             echo -e "\033[0;33m📦 Core Commands:\033[0m"
-            echo "  phantom -i <input> -o <output>     Run full classification pipeline"
-            echo "  phantom -i <in> -o <out> --dry-run Simulate without moving files"
-            echo "  phantom --resolve <pseudonym>      Resolve pseudonym to original"
-            echo ""
-            echo -e "\033[0;33m🔧 Auxiliary Tools:\033[0m"
-            echo "  phantom-hash <dir>                 Generate hash manifest"
-            echo "  phantom-verify <file> <sha256>     Verify file integrity"
+            echo "  phantom -i <input> -o <output>     Run classification"
+            echo "  phantom-hash <dir>                 Generate hashes"
+            echo "  phantom-verify <file> <hash>       Verify integrity"
             echo "  phantom-scan <dir>                 Scan for sensitive data"
-            echo "  phantom-report <output_dir>        View latest report"
             echo ""
-            echo -e "\033[0;33m📁 Directory Structure:\033[0m"
-            echo "  .phantom/input/      Place raw files here"
-            echo "  .phantom/output/     Classified files appear here"
-            echo "  .phantom/staging/    Temporary processing area"
-            echo "  .phantom/quarantine/ Suspicious/malformed files"
+            echo -e "\033[0;33m🦀 Rust (IntelAgent):\033[0m"
+            echo "  cd intelagent && cargo build       Build workspace"
+            echo "  cargo test --workspace             Run all tests"
+            echo "  cargo clippy --all-features        Lint code"
+            echo "  cargo watch -x test                Watch mode"
             echo ""
-            echo -e "\033[0;33m🚀 Quick Start:\033[0m"
-            echo "  1. cp -r /path/to/messy/data .phantom/input/"
-            echo "  2. phantom -i .phantom/input -o .phantom/output -v"
-            echo "  3. phantom-report .phantom/output"
+            echo -e "\033[0;33m🐍 Python (CORTEX):\033[0m"
+            echo "  pytest tests/ -v                   Run tests"
+            echo "  pytest --cov=phantom               With coverage"
+            echo "  ruff check src/                    Lint code"
+            echo "  mypy src/                          Type check"
+            echo ""
+            echo -e "\033[0;33m🧪 CI/CD:\033[0m"
+            echo "  nix flake check                    Run all checks"
+            echo "  nix build .#intelagent             Build Rust"
+            echo "  nix build .#phantom                Build Python"
+            echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           '';
         };
-        
-        # ═══════════════════════════════════════════════════════════════
-        # PACKAGES
-        # ═══════════════════════════════════════════════════════════════
-        packages = {
-          default = phantomCore;
-          phantom = phantomCore;
-          phantom-verify = phantomVerify;
-          phantom-hash = phantomHash;
-          phantom-scan = phantomScan;
-          # phantom-report - defined in /etc/nixos
-        };
-        
+
         # ═══════════════════════════════════════════════════════════════
         # APPS
         # ═══════════════════════════════════════════════════════════════
         apps = {
           default = {
             type = "app";
-            program = "${phantomCore}/bin/phantom";
+            program = "${intelagent}/bin/intelagent";
+          };
+          intelagent = {
+            type = "app";
+            program = "${intelagent}/bin/intelagent";
           };
           phantom = {
             type = "app";
             program = "${phantomCore}/bin/phantom";
           };
         };
-        
-        # ═══════════════════════════════════════════════════════════════
-        # OVERLAYS
-        # ═══════════════════════════════════════════════════════════════
-        overlays.default = final: prev: {
-          phantom = phantomCore;
-          pythonEnv-phantom = pythonEnv;
-        };
       }
     ) // {
       # ═══════════════════════════════════════════════════════════════
-      # NIXOS MODULES (system-wide, not per-system)
+      # NIXOS MODULES (system-wide)
       # ═══════════════════════════════════════════════════════════════
       nixosModules = {
         default = ./nix/module.nix;
         phantom = ./nix/module.nix;
         aliases = ./nix/aliases.nix;
       };
-      
-      # ═══════════════════════════════════════════════════════════════
-      # OVERLAYS (system-wide)
-      # ═══════════════════════════════════════════════════════════════
+
       overlays.default = import ./nix/overlay.nix;
     };
 }

@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "securellm-bridge": {
+      "command": "node",
+      "args": [
+        "/home/kernelcore/dev/projects/securellm-mcp/build/src/index.js"
+      ],
+      "env": {
+        "PROJECT_ROOT": "/home/kernelcore/dev/projects/phantom",
+        "KNOWLEDGE_DB_PATH": "/home/kernelcore/.local/share/securellm/knowledge.db",
+        "ENABLE_KNOWLEDGE": "true"
+      }
+    }
+  }
+}

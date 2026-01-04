@@ -1,0 +1,159 @@
+/* IntelAgent SOC - Phantom Cyber Theme */
+
+/* === Global === */
+window {
+    background-color: #000000;
+}
+
+/* === Status Bar === */
+.status-label {
+    color: #00ff00;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    font-weight: bold;
+    text-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+}
+
+/* === Panel Titles === */
+.panel-title {
+    color: #00ffff;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 14px;
+    font-weight: bold;
+    background: linear-gradient(to bottom, #001a1a, #000000);
+    padding: 8px;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+}
+
+.workspace-title {
+    color: #00ff00;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    font-weight: bold;
+    text-shadow: 0 0 4px rgba(0, 255, 0, 0.3);
+}
+
+/* === Command Bar === */
+.command-bar {
+    background: linear-gradient(to top, #0a0a0a, #000000);
+    border-top: 2px solid rgba(0, 255, 0, 0.3);
+    padding: 8px;
+}
+
+.command-prompt {
+    color: #00ff00;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 16px;
+    font-weight: bold;
+    text-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+}
+
+/* === Log Views === */
+.log-view {
+    background-color: #000000;
+    color: #00ff00;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+}
+
+.log-view text {
+    background-color: #000000;
+    color: #00ff00;
+}
+
+/* === Execution Tree === */
+.execution-tree {
+    background-color: #000000;
+    border: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+/* === Intel Visualizer === */
+.intel-viz {
+    background-color: #000000;
+    border: 1px solid rgba(255, 0, 255, 0.2);
+}
+
+/* === Paned Separators === */
+paned > separator {
+    background-color: rgba(0, 255, 0, 0.2);
+    min-width: 2px;
+    min-height: 2px;
+}
+
+paned > separator:hover {
+    background-color: rgba(0, 255, 0, 0.4);
+}
+
+/* === IntelAgent SOC - Dark Theme CSS (old) === */
+
+/* === Command Palette === */
+.command-entry {
+    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+    font-size: 14px;
+    background-color: rgba(20, 20, 30, 0.9);
+    color: #00ff00;
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    border-radius: 6px;
+    padding: 8px 12px;
+    caret-color: #00ff00;
+}
+
+.command-entry:focus {
+    border-color: rgba(0, 255, 0, 0.6);
+    box-shadow: 0 0 8px rgba(0, 255, 0, 0.2);
+}
+
+/* === Log Viewer === */
+textview {
+    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+    font-size: 13px;
+    background-color: #0d1117;
+    color: #c9d1d9;
+}
+
+textview text {
+    background-color: #0d1117;
+    color: #c9d1d9;
+}
+
+/* === Window === */
+window {
+    background-color: #161b22;
+}
+
+/* === Header Bar === */
+headerbar {
+    background: linear-gradient(to bottom, #1c2128, #161b22);
+    border-bottom: 1px solid rgba(0, 255, 0, 0.2);
+}
+
+headerbar label {
+    color: #00ff00;
+    font-weight: bold;
+    font-size: 14px;
+    text-shadow: 0 0 8px rgba(0, 255, 0, 0.3);
+}
+
+/* === Scrollbars === */
+scrollbar {
+    background-color: #0d1117;
+}
+
+scrollbar slider {
+    background-color: rgba(0, 255, 0, 0.2);
+    border-radius: 4px;
+}
+
+scrollbar slider:hover {
+    background-color: rgba(0, 255, 0, 0.3);
+}
+
+/* === General === */
+* {
+    outline-color: rgba(0, 255, 0, 0.4);
+}
+
+/* === Box containers === */
+box {
+    background-color: transparent;
+}

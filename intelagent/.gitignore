@@ -1,0 +1,39 @@
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+*.key
+*.pem
+
+# Build artifacts
+/dist/
+/build/
+
+# Testing
+/coverage/
+
+# Circom
+circuits/build/
+*.r1cs
+*.wasm
+*.zkey
+*.vkey
+
+# Algorand
+algorand-data/
+*.wallet

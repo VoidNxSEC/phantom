@@ -38,6 +38,7 @@ try:
     from phantom.providers.base import AIProvider
     from phantom.providers.llamacpp import LlamaCppProvider
     from phantom.rag.vectors import FAISSVectorStore, SearchResult, create_vector_store
+
     PHANTOM_AVAILABLE = True
 except ImportError:
     PHANTOM_AVAILABLE = False
@@ -71,8 +72,10 @@ RAM_WARNING_MB = 512
 # PYDANTIC MODELS - Strict JSON Schema Validation
 # ═══════════════════════════════════════════════════════════════
 
+
 class ExtractionLevel(str, Enum):
     """Confidence/priority level"""
+
     HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"
@@ -80,14 +83,17 @@ class ExtractionLevel(str, Enum):
 
 class Theme(BaseModel):
     """Extracted theme from content"""
-    model_config = ConfigDict(extra='ignore')
 
-    title: str = Field(..., min_length=1, max_length=100, description="Theme title (2-5 words)")
+    model_config = ConfigDict(extra="ignore")
+
+    title: str = Field(
+        ..., min_length=1, max_length=100, description="Theme title (2-5 words)"
+    )
     description: str = Field(..., min_length=1, description="Brief theme description")
     confidence: ExtractionLevel = Field(default=ExtractionLevel.MEDIUM)
     keywords: list[str] = Field(default_factory=list, max_length=10)
 
-    @field_validator('keywords', mode='before')
+    @field_validator("keywords", mode="before")
     @classmethod
     def limit_keywords(cls, v):
         if isinstance(v, list):
@@ -97,14 +103,15 @@ class Theme(BaseModel):
 
 class Pattern(BaseModel):
     """Identified pattern"""
-    model_config = ConfigDict(extra='ignore')
+
+    model_config = ConfigDict(extra="ignore")
 
     pattern_type: str = Field(..., description="Type: code, workflow, concept, etc")
     description: str = Field(...)
     examples: list[str] = Field(default_factory=list, max_length=3)
     frequency: int = Field(default=1, ge=1)
 
-    @field_validator('examples', mode='before')
+    @field_validator("examples", mode="before")
     @classmethod
     def limit_examples(cls, v):
         if isinstance(v, list):
@@ -114,7 +121,8 @@ class Pattern(BaseModel):
 
 class Learning(BaseModel):
     """Key learning or insight"""
-    model_config = ConfigDict(extra='ignore')
+
+    model_config = ConfigDict(extra="ignore")
 
     title: str = Field(...)
     description: str = Field(...)
@@ -124,7 +132,8 @@ class Learning(BaseModel):
 
 class Concept(BaseModel):
     """Core concept"""
-    model_config = ConfigDict(extra='ignore')
+
+    model_config = ConfigDict(extra="ignore")
 
     name: str = Field(...)
     definition: str = Field(...)
@@ -134,18 +143,22 @@ class Concept(BaseModel):
 
 class Recommendation(BaseModel):
     """Actionable recommendation"""
-    model_config = ConfigDict(extra='ignore')
+
+    model_config = ConfigDict(extra="ignore")
 
     title: str = Field(...)
     description: str = Field(...)
     priority: ExtractionLevel = Field(...)
-    category: str = Field(..., description="Category: best_practice, optimization, security")
+    category: str = Field(
+        ..., description="Category: best_practice, optimization, security"
+    )
     implementation_effort: str = Field(..., description="Effort: low, medium, high")
 
 
 class DocumentInsights(BaseModel):
     """Complete insights from a document"""
-    model_config = ConfigDict(extra='ignore')
+
+    model_config = ConfigDict(extra="ignore")
 
     file_path: str = Field(...)
     file_name: str = Field(...)
@@ -171,6 +184,7 @@ class DocumentInsights(BaseModel):
 # SYSTEM MONITOR - VRAM/RAM Checking
 # ═══════════════════════════════════════════════════════════════
 
+
 class SystemMonitor:
     """Monitor system resources for safe processing"""
 
@@ -183,30 +197,38 @@ class SystemMonitor:
         """Get GPU VRAM usage via nvidia-smi"""
         try:
             import subprocess
+
             result = subprocess.run(
-                ['nvidia-smi', '--query-gpu=memory.used,memory.total,memory.free',
-                 '--format=csv,noheader,nounits'],
-                capture_output=True, text=True, timeout=2
+                [
+                    "nvidia-smi",
+                    "--query-gpu=memory.used,memory.total,memory.free",
+                    "--format=csv,noheader,nounits",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=2,
             )
             if result.returncode == 0:
-                used, total, free = map(int, result.stdout.strip().split(','))
+                used, total, free = map(int, result.stdout.strip().split(","))
                 return {
-                    'used_mb': used, 'total_mb': total, 'free_mb': free,
-                    'usage_percent': (used / total) * 100 if total > 0 else 0,
-                    'available': True
+                    "used_mb": used,
+                    "total_mb": total,
+                    "free_mb": free,
+                    "usage_percent": (used / total) * 100 if total > 0 else 0,
+                    "available": True,
                 }
         except Exception:
             pass
-        return {'free_mb': float('inf'), 'available': False}
+        return {"free_mb": float("inf"), "available": False}
 
     def get_ram_usage(self) -> dict[str, Any]:
         """Get system RAM usage"""
         mem = psutil.virtual_memory()
         return {
-            'used_mb': mem.used // (1024 * 1024),
-            'total_mb': mem.total // (1024 * 1024),
-            'free_mb': mem.available // (1024 * 1024),
-            'usage_percent': mem.percent
+            "used_mb": mem.used // (1024 * 1024),
+            "total_mb": mem.total // (1024 * 1024),
+            "free_mb": mem.available // (1024 * 1024),
+            "usage_percent": mem.percent,
         }
 
     def check_resources(self, pause_on_critical: bool = True) -> bool:
@@ -223,8 +245,8 @@ class SystemMonitor:
         ram = self.get_ram_usage()
 
         # Check VRAM
-        if vram.get('available', False):
-            free = vram['free_mb']
+        if vram.get("available", False):
+            free = vram["free_mb"]
             if free < VRAM_CRITICAL_MB:
                 self.console.print(f"[red]⚠️ CRITICAL: VRAM low ({free}MB)[/red]")
                 if pause_on_critical:
@@ -234,7 +256,7 @@ class SystemMonitor:
                 self.console.print(f"[yellow]⚠️ VRAM warning ({free}MB)[/yellow]")
 
         # Check RAM
-        if ram['free_mb'] < RAM_WARNING_MB:
+        if ram["free_mb"] < RAM_WARNING_MB:
             self.console.print(f"[yellow]⚠️ RAM warning ({ram['free_mb']}MB)[/yellow]")
 
         return True
@@ -243,6 +265,7 @@ class SystemMonitor:
 # ═══════════════════════════════════════════════════════════════
 # PROMPT ENGINEERING - Optimized for extraction
 # ═══════════════════════════════════════════════════════════════
+
 
 class PromptBuilder:
     """Build structured prompts for LLM extraction"""
@@ -268,7 +291,9 @@ Schema:
 }"""
 
     @classmethod
-    def build_extraction_prompt(cls, content: str, file_name: str, chunk_info: str = "") -> str:
+    def build_extraction_prompt(
+        cls, content: str, file_name: str, chunk_info: str = ""
+    ) -> str:
         """Build complete extraction prompt"""
         # Truncate if needed
         max_chars = DEFAULT_MAX_TOKENS * 3
@@ -303,11 +328,11 @@ Extract insights (JSON only):"""
 
         # Find JSON object
         response = response.strip()
-        start_idx = response.find('{')
-        end_idx = response.rfind('}')
+        start_idx = response.find("{")
+        end_idx = response.rfind("}")
 
         if start_idx != -1 and end_idx != -1:
-            response = response[start_idx:end_idx + 1]
+            response = response[start_idx : end_idx + 1]
 
         try:
             return json.loads(response)
@@ -320,9 +345,11 @@ Extract insights (JSON only):"""
 # SEMANTIC CHUNKER - Intelligent text splitting
 # ═══════════════════════════════════════════════════════════════
 
+
 @dataclass
 class Chunk:
     """A text chunk with metadata"""
+
     text: str
     chunk_id: int
     source_file: str
@@ -335,14 +362,14 @@ class SemanticChunker:
     """Intelligent markdown chunking preserving structure"""
 
     MARKDOWN_SEPARATORS = [
-        "\n## ",      # H2 headers
-        "\n### ",     # H3 headers
-        "\n#### ",    # H4 headers
+        "\n## ",  # H2 headers
+        "\n### ",  # H3 headers
+        "\n#### ",  # H4 headers
         "\n\n---\n",  # Horizontal rules
-        "\n\n```",    # Code blocks
-        "\n\n",       # Paragraphs
-        "\n",         # Lines
-        ". ",         # Sentences
+        "\n\n```",  # Code blocks
+        "\n\n",  # Paragraphs
+        "\n",  # Lines
+        ". ",  # Sentences
     ]
 
     def __init__(
@@ -360,6 +387,7 @@ class SemanticChunker:
         if self._tokenizer is None:
             try:
                 import tiktoken
+
                 self._tokenizer = tiktoken.get_encoding("cl100k_base")
             except ImportError:
                 # Fallback: approximate
@@ -382,12 +410,14 @@ class SemanticChunker:
         while current_text:
             if self.count_tokens(current_text) <= self.max_tokens:
                 # Fits in one chunk
-                chunks.append(Chunk(
-                    text=current_text.strip(),
-                    chunk_id=chunk_id,
-                    source_file=source_file,
-                    token_count=self.count_tokens(current_text),
-                ))
+                chunks.append(
+                    Chunk(
+                        text=current_text.strip(),
+                        chunk_id=chunk_id,
+                        source_file=source_file,
+                        token_count=self.count_tokens(current_text),
+                    )
+                )
                 break
 
             # Find best split point
@@ -395,12 +425,14 @@ class SemanticChunker:
             chunk_text = current_text[:split_point].strip()
 
             if chunk_text:
-                chunks.append(Chunk(
-                    text=chunk_text,
-                    chunk_id=chunk_id,
-                    source_file=source_file,
-                    token_count=self.count_tokens(chunk_text),
-                ))
+                chunks.append(
+                    Chunk(
+                        text=chunk_text,
+                        chunk_id=chunk_id,
+                        source_file=source_file,
+                        token_count=self.count_tokens(chunk_text),
+                    )
+                )
                 chunk_id += 1
 
             # Handle overlap
@@ -425,7 +457,7 @@ class SemanticChunker:
 
     def chunk_file(self, filepath: Path) -> list[Chunk]:
         """Chunk a file"""
-        content = filepath.read_text(encoding='utf-8')
+        content = filepath.read_text(encoding="utf-8")
         return self.chunk_text(content, str(filepath.name))
 
 
@@ -433,10 +465,11 @@ class SemanticChunker:
 # CORTEX PROCESSOR - Main Intelligence Engine
 # ═══════════════════════════════════════════════════════════════
 
+
 class CortexProcessor:
     """
     Unified CORTEX Processor - Best of v1 + v2
-    
+
     Pipeline:
     1. Semantic chunking
     2. Parallel LLM classification
@@ -487,17 +520,18 @@ class CortexProcessor:
             try:
                 self.embeddings = EmbeddingGenerator(model_name=embedding_model)
                 self.vector_store = create_vector_store(
-                    self.embeddings.dimension,
-                    backend="auto"
+                    self.embeddings.dimension, backend="auto"
                 )
-                logging.info(f"Vector store initialized (dim={self.embeddings.dimension})")
+                logging.info(
+                    f"Vector store initialized (dim={self.embeddings.dimension})"
+                )
             except Exception as e:
                 logging.warning(f"Vector store init failed: {e}")
 
         # Setup logging
         logging.basicConfig(
             level=logging.DEBUG if verbose else logging.INFO,
-            format='%(asctime)s [%(levelname)s] %(message)s'
+            format="%(asctime)s [%(levelname)s] %(message)s",
         )
 
     def process_document(self, filepath: Path) -> DocumentInsights:
@@ -510,7 +544,7 @@ class CortexProcessor:
         self.console.print(f"\n[cyan]📄 Processing: {filepath.name}[/cyan]")
 
         # Read content
-        content = filepath.read_text(encoding='utf-8')
+        content = filepath.read_text(encoding="utf-8")
         word_count = len(content.split())
 
         # Step 1: Chunk
@@ -531,8 +565,9 @@ class CortexProcessor:
                 texts = [c.text for c in chunks]
                 embeddings = self.embeddings.encode(texts)
                 self.vector_store.add(
-                    embeddings, texts,
-                    [{"chunk_id": c.chunk_id, "source": c.source_file} for c in chunks]
+                    embeddings,
+                    texts,
+                    [{"chunk_id": c.chunk_id, "source": c.source_file} for c in chunks],
                 )
                 vector_indexed = True
                 self.console.print(f"    ✓ Indexed {len(chunks)} vectors")
@@ -543,7 +578,9 @@ class CortexProcessor:
 
         # Step 4: Aggregate
         self.console.print("  [yellow]4/4 Aggregating...[/yellow]")
-        insights = self._aggregate_insights(chunk_results, filepath, word_count, vector_indexed)
+        insights = self._aggregate_insights(
+            chunk_results, filepath, word_count, vector_indexed
+        )
 
         processing_time = time.time() - start_time
         insights.processing_time_seconds = processing_time
@@ -558,8 +595,7 @@ class CortexProcessor:
 
         with ThreadPoolExecutor(max_workers=self.workers) as executor:
             futures = {
-                executor.submit(self._classify_single, chunk): chunk
-                for chunk in chunks
+                executor.submit(self._classify_single, chunk): chunk for chunk in chunks
             }
 
             for future in as_completed(futures):
@@ -579,9 +615,7 @@ class CortexProcessor:
 
         # Build prompt
         prompt = PromptBuilder.build_extraction_prompt(
-            chunk.text,
-            chunk.source_file,
-            f"Chunk {chunk.chunk_id}"
+            chunk.text, chunk.source_file, f"Chunk {chunk.chunk_id}"
         )
 
         # Generate
@@ -602,11 +636,11 @@ class CortexProcessor:
         """Aggregate insights from multiple chunks with deduplication"""
 
         aggregated = {
-            'themes': [],
-            'patterns': [],
-            'learnings': [],
-            'concepts': [],
-            'recommendations': [],
+            "themes": [],
+            "patterns": [],
+            "learnings": [],
+            "concepts": [],
+            "recommendations": [],
         }
 
         seen = {key: set() for key in aggregated}
@@ -616,46 +650,46 @@ class CortexProcessor:
                 continue
 
             # Themes - dedupe by title
-            for item in result.get('themes', []):
-                title = item.get('title', '')
-                if title and title not in seen['themes']:
+            for item in result.get("themes", []):
+                title = item.get("title", "")
+                if title and title not in seen["themes"]:
                     try:
-                        aggregated['themes'].append(Theme(**item))
-                        seen['themes'].add(title)
+                        aggregated["themes"].append(Theme(**item))
+                        seen["themes"].add(title)
                     except Exception:
                         pass
 
             # Concepts - dedupe by name
-            for item in result.get('concepts', []):
-                name = item.get('name', '')
-                if name and name not in seen['concepts']:
+            for item in result.get("concepts", []):
+                name = item.get("name", "")
+                if name and name not in seen["concepts"]:
                     try:
-                        aggregated['concepts'].append(Concept(**item))
-                        seen['concepts'].add(name)
+                        aggregated["concepts"].append(Concept(**item))
+                        seen["concepts"].add(name)
                     except Exception:
                         pass
 
             # Learnings - dedupe by title
-            for item in result.get('learnings', []):
-                title = item.get('title', '')
-                if title and title not in seen['learnings']:
+            for item in result.get("learnings", []):
+                title = item.get("title", "")
+                if title and title not in seen["learnings"]:
                     try:
-                        aggregated['learnings'].append(Learning(**item))
-                        seen['learnings'].add(title)
+                        aggregated["learnings"].append(Learning(**item))
+                        seen["learnings"].add(title)
                     except Exception:
                         pass
 
             # Patterns - collect all (merge later)
-            for item in result.get('patterns', []):
+            for item in result.get("patterns", []):
                 try:
-                    aggregated['patterns'].append(Pattern(**item))
+                    aggregated["patterns"].append(Pattern(**item))
                 except Exception:
                     pass
 
             # Recommendations - collect all
-            for item in result.get('recommendations', []):
+            for item in result.get("recommendations", []):
                 try:
-                    aggregated['recommendations'].append(Recommendation(**item))
+                    aggregated["recommendations"].append(Recommendation(**item))
                 except Exception:
                     pass
 
@@ -664,11 +698,11 @@ class CortexProcessor:
             file_name=filepath.name,
             processed_at=datetime.now(UTC).isoformat(),
             word_count=word_count,
-            themes=aggregated['themes'],
-            patterns=aggregated['patterns'],
-            learnings=aggregated['learnings'],
-            concepts=aggregated['concepts'],
-            recommendations=aggregated['recommendations'],
+            themes=aggregated["themes"],
+            patterns=aggregated["patterns"],
+            learnings=aggregated["learnings"],
+            concepts=aggregated["concepts"],
+            recommendations=aggregated["recommendations"],
             processing_time_seconds=0.0,  # Updated by caller
             model_used=self.provider.name,
             chunk_count=len(chunk_results),

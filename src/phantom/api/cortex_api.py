@@ -35,7 +35,7 @@ logger = logging.getLogger("cortex_api")
 app = FastAPI(
     title="Cortex API",
     description="Backend API for Cortex Desktop (Tauri integration)",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 # CORS
@@ -51,10 +51,12 @@ app.add_middleware(
 # MODELS
 # ═══════════════════════════════════════════════════════════════
 
+
 class ProcessResponse(BaseModel):
     filename: str
     insights: dict[str, Any]
     processing_time: float
+
 
 class AnalyzeResponse(BaseModel):
     filename: str
@@ -62,19 +64,24 @@ class AnalyzeResponse(BaseModel):
     entities: list[dict[str, Any]]
     topics: list[dict[str, Any]]
 
+
 # ═══════════════════════════════════════════════════════════════
 # UTILITIES
 # ═══════════════════════════════════════════════════════════════
 
+
 def save_upload_file(upload_file: UploadFile) -> Path:
     try:
         suffix = Path(upload_file.filename).suffix
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix, dir=TEMP_DIR) as tmp:
+        with tempfile.NamedTemporaryFile(
+            delete=False, suffix=suffix, dir=TEMP_DIR
+        ) as tmp:
             shutil.copyfileobj(upload_file.file, tmp)
             tmp_path = Path(tmp.name)
         return tmp_path
     finally:
         upload_file.file.close()
+
 
 def cleanup_file(path: Path):
     if path.exists():
@@ -83,27 +90,29 @@ def cleanup_file(path: Path):
         except Exception as e:
             logger.error(f"Failed to delete temp file {path}: {e}")
 
+
 # ═══════════════════════════════════════════════════════════════
 # ENDPOINTS
 # ═══════════════════════════════════════════════════════════════
+
 
 @app.get("/health")
 async def health_check():
     return {
         "status": "operational",
         "version": "1.0.0",
-        "engines": {
-            "cortex": "loaded",
-            "spectre": "loaded"
-        }
+        "engines": {"cortex": "loaded", "spectre": "loaded"},
     }
+
 
 @app.post("/process", response_model=ProcessResponse)
 async def process_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    chunk_strategy: str | None = Query(None, description="Chunking strategy: recursive, sliding, simple"),
-    chunk_size: int = 1024
+    chunk_strategy: str | None = Query(
+        None, description="Chunking strategy: recursive, sliding, simple"
+    ),
+    chunk_size: int = 1024,
 ):
     """
     Process a document using CORTEX (LLM Extraction).
@@ -120,11 +129,13 @@ async def process_document(
         dummy_output = TEMP_DIR / f"{uuid.uuid4()}.jsonl"
 
         processor = MarkdownProcessor(
-            input_dir=str(TEMP_DIR), # Dummy, not used for single file logic refactor might be needed
+            input_dir=str(
+                TEMP_DIR
+            ),  # Dummy, not used for single file logic refactor might be needed
             output_file=str(dummy_output),
             chunking_strategy=chunk_strategy,
             chunk_size=chunk_size,
-            verbose=False
+            verbose=False,
         )
 
         # We need to hack/refactor MarkdownProcessor slightly or use internal method
@@ -143,17 +154,17 @@ async def process_document(
         return ProcessResponse(
             filename=file.filename,
             insights=insights.dict(),
-            processing_time=insights.processing_time_seconds
+            processing_time=insights.processing_time_seconds,
         )
 
     except Exception as e:
         logger.error(f"Error processing {file.filename}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/analyze", response_model=AnalyzeResponse)
 async def analyze_document(
-    background_tasks: BackgroundTasks,
-    file: UploadFile = File(...)
+    background_tasks: BackgroundTasks, file: UploadFile = File(...)
 ):
     """
     Analyze a document using SPECTRE (Sentiment & Entities).
@@ -174,16 +185,18 @@ async def analyze_document(
             filename=file.filename,
             sentiment=analysis.sentiment.to_dict() if analysis.sentiment else {},
             entities=[asdict(e) for e in analysis.entities],
-            topics=[asdict(t) for t in analysis.topics]
+            topics=[asdict(t) for t in analysis.topics],
         )
 
     except Exception as e:
         logger.error(f"Error analyzing {file.filename}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 if __name__ == "__main__":
     import uuid
 
     import uvicorn
+
     # Dev server
     uvicorn.run(app, host="0.0.0.0", port=8000)

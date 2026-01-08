@@ -37,6 +37,7 @@ try:
     from rich.panel import Panel
     from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
     from rich.table import Table
+
     RICH_AVAILABLE = True
 except ImportError:
     RICH_AVAILABLE = False
@@ -67,8 +68,7 @@ CODENAME = "PHANTOM-AUDIT"
 
 # Logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -90,23 +90,19 @@ TECH_SIGNATURES = {
     "*.ts": ("TypeScript", TechCategory.LANGUAGE),
     "*.tsx": ("TypeScript", TechCategory.LANGUAGE),
     "*.svelte": ("Svelte", TechCategory.FRAMEWORK),
-
     # Build tools
     "Makefile": ("Make", TechCategory.BUILD_TOOL),
     "CMakeLists.txt": ("CMake", TechCategory.BUILD_TOOL),
     "meson.build": ("Meson", TechCategory.BUILD_TOOL),
-
     # Containers
     "Dockerfile": ("Docker", TechCategory.CONTAINER),
     "docker-compose.yml": ("Docker Compose", TechCategory.CONTAINER),
     "docker-compose.yaml": ("Docker Compose", TechCategory.CONTAINER),
     "podman-compose.yml": ("Podman", TechCategory.CONTAINER),
-
     # CI/CD
     ".github/workflows": ("GitHub Actions", TechCategory.CI_CD),
     ".gitlab-ci.yml": ("GitLab CI", TechCategory.CI_CD),
     "Jenkinsfile": ("Jenkins", TechCategory.CI_CD),
-
     # Databases
     "prisma/schema.prisma": ("Prisma", TechCategory.DATABASE),
 }
@@ -153,15 +149,33 @@ EXT_LANG_MAP = {
 
 # Directories to ignore
 IGNORED_DIRS = {
-    ".git", "node_modules", "target", "build", "dist", "__pycache__",
-    ".venv", "venv", "env", ".env", ".cache", ".idea", ".vscode",
-    "vendor", "deps", "_build", "out", ".next", ".nuxt", "coverage"
+    ".git",
+    "node_modules",
+    "target",
+    "build",
+    "dist",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "env",
+    ".env",
+    ".cache",
+    ".idea",
+    ".vscode",
+    "vendor",
+    "deps",
+    "_build",
+    "out",
+    ".next",
+    ".nuxt",
+    "coverage",
 }
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PROJECT AUDITOR
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class ProjectAuditor:
     """Enterprise-level project auditor with ML capabilities."""
@@ -171,11 +185,11 @@ class ProjectAuditor:
         enable_ai: bool = False,
         ai_url: str = "http://localhost:8080",
         workers: int = 4,
-        verbose: bool = False
+        verbose: bool = False,
     ):
         """
         Initialize ProjectAuditor.
-        
+
         Args:
             enable_ai: Enable AI-powered analysis
             ai_url: LlamaCpp server URL
@@ -194,10 +208,10 @@ class ProjectAuditor:
     def audit_project(self, path: Path) -> ProjectMetrics:
         """
         Run comprehensive audit on a single project.
-        
+
         Args:
             path: Path to project directory
-            
+
         Returns:
             Complete ProjectMetrics
         """
@@ -215,11 +229,7 @@ class ProjectAuditor:
         project_id = hashlib.sha256(str(path).encode()).hexdigest()[:12]
 
         # Initialize metrics
-        metrics = ProjectMetrics(
-            project_id=project_id,
-            name=path.name,
-            path=str(path)
-        )
+        metrics = ProjectMetrics(project_id=project_id, name=path.name, path=str(path))
 
         try:
             # Collect all metrics
@@ -254,11 +264,11 @@ class ProjectAuditor:
     def scan_directory(self, root: Path, max_depth: int = 2) -> list[ProjectMetrics]:
         """
         Scan directory for projects and audit each.
-        
+
         Args:
             root: Root directory to scan
             max_depth: Maximum directory depth
-            
+
         Returns:
             List of ProjectMetrics for all discovered projects
         """
@@ -275,12 +285,14 @@ class ProjectAuditor:
                 TextColumn("[progress.description]{task.description}"),
                 BarColumn(),
                 TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-                console=console
+                console=console,
             ) as progress:
                 task = progress.add_task("Auditing projects...", total=len(projects))
 
                 for project_path in projects:
-                    progress.update(task, description=f"Auditing {project_path.name}...")
+                    progress.update(
+                        task, description=f"Auditing {project_path.name}..."
+                    )
                     try:
                         metrics = self.audit_project(project_path)
                         results.append(metrics)
@@ -297,7 +309,9 @@ class ProjectAuditor:
                     logger.error(f"Failed to audit {project_path}: {e}")
 
         # Sort by viability score
-        results.sort(key=lambda m: m.viability.score if m.viability else 0, reverse=True)
+        results.sort(
+            key=lambda m: m.viability.score if m.viability else 0, reverse=True
+        )
 
         return results
 
@@ -307,9 +321,17 @@ class ProjectAuditor:
 
         # Project indicators
         indicators = {
-            "Cargo.toml", "package.json", "go.mod", "pyproject.toml",
-            "requirements.txt", "flake.nix", "setup.py", "pom.xml",
-            "build.gradle", "Makefile", "CMakeLists.txt"
+            "Cargo.toml",
+            "package.json",
+            "go.mod",
+            "pyproject.toml",
+            "requirements.txt",
+            "flake.nix",
+            "setup.py",
+            "pom.xml",
+            "build.gradle",
+            "Makefile",
+            "CMakeLists.txt",
         }
 
         def scan_dir(path: Path, depth: int):
@@ -358,11 +380,13 @@ class ProjectAuditor:
             lang = EXT_LANG_MAP.get(ext, "Other")
 
             try:
-                content = file.read_text(encoding='utf-8', errors='ignore')
+                content = file.read_text(encoding="utf-8", errors="ignore")
                 lines = content.splitlines()
 
                 total = len(lines)
-                code = sum(1 for l in lines if l.strip() and not self._is_comment(l, ext))
+                code = sum(
+                    1 for l in lines if l.strip() and not self._is_comment(l, ext)
+                )
                 comments = sum(1 for l in lines if self._is_comment(l, ext))
                 blank = sum(1 for l in lines if not l.strip())
 
@@ -395,10 +419,14 @@ class ProjectAuditor:
         if not stripped:
             return False
 
-        if ext in {'.py', '.sh', '.bash', '.yml', '.yaml', '.nix'}:
-            return stripped.startswith('#')
-        elif ext in {'.js', '.ts', '.tsx', '.go', '.rs', '.java', '.c', '.cpp'}:
-            return stripped.startswith('//') or stripped.startswith('/*') or stripped.startswith('*')
+        if ext in {".py", ".sh", ".bash", ".yml", ".yaml", ".nix"}:
+            return stripped.startswith("#")
+        elif ext in {".js", ".ts", ".tsx", ".go", ".rs", ".java", ".c", ".cpp"}:
+            return (
+                stripped.startswith("//")
+                or stripped.startswith("/*")
+                or stripped.startswith("*")
+            )
 
         return False
 
@@ -408,7 +436,9 @@ class ProjectAuditor:
 
         for root_dir, dirs, files in os.walk(path):
             # Prune ignored directories
-            dirs[:] = [d for d in dirs if d not in IGNORED_DIRS and not d.startswith('.')]
+            dirs[:] = [
+                d for d in dirs if d not in IGNORED_DIRS and not d.startswith(".")
+            ]
 
             for file in files:
                 file_path = Path(root_dir) / file
@@ -432,31 +462,37 @@ class ProjectAuditor:
 
         for file in self._iter_files(path):
             ext = file.suffix.lower()
-            if ext not in {'.py', '.rs', '.js', '.ts', '.go'}:
+            if ext not in {".py", ".rs", ".js", ".ts", ".go"}:
                 continue
 
             try:
-                content = file.read_text(encoding='utf-8', errors='ignore')
+                content = file.read_text(encoding="utf-8", errors="ignore")
 
                 # Count functions/classes
-                if ext == '.py':
-                    function_count += len(re.findall(r'^def \w+', content, re.MULTILINE))
-                    class_count += len(re.findall(r'^class \w+', content, re.MULTILINE))
-                elif ext == '.rs':
-                    function_count += len(re.findall(r'fn \w+', content))
-                    class_count += len(re.findall(r'(struct|enum|impl) \w+', content))
-                elif ext in {'.js', '.ts'}:
-                    function_count += len(re.findall(r'function \w+|const \w+ = .*=>', content))
-                    class_count += len(re.findall(r'class \w+', content))
-                elif ext == '.go':
-                    function_count += len(re.findall(r'func \w+', content))
-                    class_count += len(re.findall(r'type \w+ struct', content))
+                if ext == ".py":
+                    function_count += len(
+                        re.findall(r"^def \w+", content, re.MULTILINE)
+                    )
+                    class_count += len(re.findall(r"^class \w+", content, re.MULTILINE))
+                elif ext == ".rs":
+                    function_count += len(re.findall(r"fn \w+", content))
+                    class_count += len(re.findall(r"(struct|enum|impl) \w+", content))
+                elif ext in {".js", ".ts"}:
+                    function_count += len(
+                        re.findall(r"function \w+|const \w+ = .*=>", content)
+                    )
+                    class_count += len(re.findall(r"class \w+", content))
+                elif ext == ".go":
+                    function_count += len(re.findall(r"func \w+", content))
+                    class_count += len(re.findall(r"type \w+ struct", content))
 
                 # Estimate cyclomatic complexity (very rough)
                 # Count decision points: if, for, while, case, &&, ||
                 cc = 1  # Base
-                cc += len(re.findall(r'\bif\b|\bfor\b|\bwhile\b|\bcase\b|\bcatch\b', content))
-                cc += len(re.findall(r'&&|\|\|', content))
+                cc += len(
+                    re.findall(r"\bif\b|\bfor\b|\bwhile\b|\bcase\b|\bcatch\b", content)
+                )
+                cc += len(re.findall(r"&&|\|\|", content))
 
                 total_cc += cc
                 max_cc = max(max_cc, cc)
@@ -474,8 +510,16 @@ class ProjectAuditor:
             # MI = 171 - 5.2 * ln(aveV) - 0.23 * aveG - 16.2 * ln(aveLOC)
             avg_loc = metrics.cyclomatic_complexity_avg * 10  # Rough estimate
             if avg_loc > 0:
-                metrics.maintainability_index = max(0, min(100,
-                    171 - 5.2 * 3 - 0.23 * metrics.cyclomatic_complexity_avg - 16.2 * (avg_loc / 10)))
+                metrics.maintainability_index = max(
+                    0,
+                    min(
+                        100,
+                        171
+                        - 5.2 * 3
+                        - 0.23 * metrics.cyclomatic_complexity_avg
+                        - 16.2 * (avg_loc / 10),
+                    ),
+                )
 
         return metrics
 
@@ -497,28 +541,43 @@ class ProjectAuditor:
             # Last commit date
             result = subprocess.run(
                 ["git", "log", "-1", "--format=%ct"],
-                cwd=path, capture_output=True, text=True, timeout=10
+                cwd=path,
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             if result.returncode == 0 and result.stdout.strip():
                 ts = int(result.stdout.strip())
                 last_commit = datetime.fromtimestamp(ts, tz=UTC)
                 metrics.last_commit_date = last_commit
-                metrics.days_since_last_commit = (datetime.now(tz=UTC) - last_commit).days
+                metrics.days_since_last_commit = (
+                    datetime.now(tz=UTC) - last_commit
+                ).days
 
             # Total commits
             result = subprocess.run(
                 ["git", "rev-list", "--count", "HEAD"],
-                cwd=path, capture_output=True, text=True, timeout=10
+                cwd=path,
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             if result.returncode == 0:
                 metrics.commits_total = int(result.stdout.strip())
 
             # Commits by time period
-            for days, attr in [(7, 'commits_last_7_days'), (30, 'commits_last_30_days'),
-                               (90, 'commits_last_90_days'), (365, 'commits_last_year')]:
+            for days, attr in [
+                (7, "commits_last_7_days"),
+                (30, "commits_last_30_days"),
+                (90, "commits_last_90_days"),
+                (365, "commits_last_year"),
+            ]:
                 result = subprocess.run(
                     ["git", "rev-list", "--count", f"--since={days}.days.ago", "HEAD"],
-                    cwd=path, capture_output=True, text=True, timeout=10
+                    cwd=path,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
                 )
                 if result.returncode == 0:
                     setattr(metrics, attr, int(result.stdout.strip()))
@@ -526,28 +585,39 @@ class ProjectAuditor:
             # Contributors
             result = subprocess.run(
                 ["git", "shortlog", "-sn", "--all"],
-                cwd=path, capture_output=True, text=True, timeout=10
+                cwd=path,
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             if result.returncode == 0:
-                contributors = [l for l in result.stdout.strip().split('\n') if l.strip()]
+                contributors = [
+                    l for l in result.stdout.strip().split("\n") if l.strip()
+                ]
                 metrics.total_contributors = len(contributors)
 
             # Active contributors (last 30 days)
             result = subprocess.run(
                 ["git", "shortlog", "-sn", "--since=30.days.ago"],
-                cwd=path, capture_output=True, text=True, timeout=10
+                cwd=path,
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             if result.returncode == 0:
-                active = [l for l in result.stdout.strip().split('\n') if l.strip()]
+                active = [l for l in result.stdout.strip().split("\n") if l.strip()]
                 metrics.active_contributors_30d = len(active)
 
             # Active contributors (last year)
             result = subprocess.run(
                 ["git", "shortlog", "-sn", "--since=1.year.ago"],
-                cwd=path, capture_output=True, text=True, timeout=10
+                cwd=path,
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             if result.returncode == 0:
-                active = [l for l in result.stdout.strip().split('\n') if l.strip()]
+                active = [l for l in result.stdout.strip().split("\n") if l.strip()]
                 metrics.active_contributors_year = len(active)
 
             # Calculate frequency score
@@ -557,7 +627,9 @@ class ProjectAuditor:
                 # Frequency score: more recent + more frequent = higher score
                 recency_factor = max(0, 100 - metrics.days_since_last_commit) / 100
                 frequency_factor = min(1, metrics.commits_last_year / 100)
-                metrics.commit_frequency_score = (recency_factor * 0.5 + frequency_factor * 0.5) * 100
+                metrics.commit_frequency_score = (
+                    recency_factor * 0.5 + frequency_factor * 0.5
+                ) * 100
 
         except Exception as e:
             logger.error(f"Error analyzing git: {e}")
@@ -574,7 +646,13 @@ class ProjectAuditor:
         metrics = QualityMetrics()
 
         # Check for documentation files
-        readme_candidates = ["README.md", "readme.md", "README.txt", "README", "README.rst"]
+        readme_candidates = [
+            "README.md",
+            "readme.md",
+            "README.txt",
+            "README",
+            "README.rst",
+        ]
         for readme_name in readme_candidates:
             readme_path = path / readme_name
             if readme_path.exists():
@@ -582,9 +660,14 @@ class ProjectAuditor:
                 metrics.readme_quality = self._score_readme(readme_path)
                 break
 
-        metrics.has_changelog = (path / "CHANGELOG.md").exists() or (path / "HISTORY.md").exists()
+        metrics.has_changelog = (path / "CHANGELOG.md").exists() or (
+            path / "HISTORY.md"
+        ).exists()
         metrics.has_contributing = (path / "CONTRIBUTING.md").exists()
-        metrics.has_license = any((path / l).exists() for l in ["LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING"])
+        metrics.has_license = any(
+            (path / l).exists()
+            for l in ["LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING"]
+        )
 
         # Check for test files
         test_files = 0
@@ -593,7 +676,11 @@ class ProjectAuditor:
             source_files += 1
             name = file.stem.lower()
             parent = file.parent.name.lower()
-            if 'test' in name or 'spec' in name or parent in {'tests', 'test', 'spec', '__tests__'}:
+            if (
+                "test" in name
+                or "spec" in name
+                or parent in {"tests", "test", "spec", "__tests__"}
+            ):
                 test_files += 1
 
         if source_files > 0:
@@ -602,10 +689,22 @@ class ProjectAuditor:
             metrics.test_coverage_estimate = min(100, metrics.test_file_ratio * 200)
 
         # Check for linting/formatting
-        linting_files = [".eslintrc", ".eslintrc.js", ".eslintrc.json", "eslint.config.js",
-                         "ruff.toml", "pyproject.toml", ".flake8", ".pylintrc",
-                         "rustfmt.toml", ".rustfmt.toml", "clippy.toml",
-                         ".prettierrc", ".prettierrc.js", "biome.json"]
+        linting_files = [
+            ".eslintrc",
+            ".eslintrc.js",
+            ".eslintrc.json",
+            "eslint.config.js",
+            "ruff.toml",
+            "pyproject.toml",
+            ".flake8",
+            ".pylintrc",
+            "rustfmt.toml",
+            ".rustfmt.toml",
+            "clippy.toml",
+            ".prettierrc",
+            ".prettierrc.js",
+            "biome.json",
+        ]
         metrics.linting_configured = any((path / f).exists() for f in linting_files)
 
         # Type checking
@@ -643,7 +742,7 @@ class ProjectAuditor:
     def _score_readme(self, path: Path) -> float:
         """Score README quality (0-100)."""
         try:
-            content = path.read_text(encoding='utf-8', errors='ignore')
+            content = path.read_text(encoding="utf-8", errors="ignore")
             score = 20  # Base score for existing
 
             length = len(content)
@@ -655,23 +754,23 @@ class ProjectAuditor:
                 score += 10
 
             # Has headers
-            if re.search(r'^#+\s', content, re.MULTILINE):
+            if re.search(r"^#+\s", content, re.MULTILINE):
                 score += 10
 
             # Has code blocks
-            if '```' in content:
+            if "```" in content:
                 score += 10
 
             # Has installation section
-            if re.search(r'install|setup|getting started', content, re.IGNORECASE):
+            if re.search(r"install|setup|getting started", content, re.IGNORECASE):
                 score += 10
 
             # Has usage section
-            if re.search(r'usage|example|quick start', content, re.IGNORECASE):
+            if re.search(r"usage|example|quick start", content, re.IGNORECASE):
                 score += 10
 
             # Has images/badges
-            if '![' in content:
+            if "![" in content:
                 score += 5
 
             return min(100, score)
@@ -704,18 +803,32 @@ class ProjectAuditor:
             try:
                 with open(path / "package.json") as f:
                     pkg = json.load(f)
-                    all_deps = {**pkg.get("dependencies", {}), **pkg.get("devDependencies", {})}
+                    all_deps = {
+                        **pkg.get("dependencies", {}),
+                        **pkg.get("devDependencies", {}),
+                    }
 
                     framework_map = {
-                        "react": "React", "next": "Next.js", "svelte": "Svelte",
-                        "vue": "Vue", "@angular/core": "Angular", "express": "Express",
-                        "fastify": "Fastify", "nestjs": "NestJS", "tauri": "Tauri",
-                        "electron": "Electron", "astro": "Astro"
+                        "react": "React",
+                        "next": "Next.js",
+                        "svelte": "Svelte",
+                        "vue": "Vue",
+                        "@angular/core": "Angular",
+                        "express": "Express",
+                        "fastify": "Fastify",
+                        "nestjs": "NestJS",
+                        "tauri": "Tauri",
+                        "electron": "Electron",
+                        "astro": "Astro",
                     }
 
                     for dep, framework in framework_map.items():
                         if dep in all_deps:
-                            detected.append(TechStackItem(name=framework, category=TechCategory.FRAMEWORK))
+                            detected.append(
+                                TechStackItem(
+                                    name=framework, category=TechCategory.FRAMEWORK
+                                )
+                            )
             except:
                 pass
 
@@ -724,13 +837,21 @@ class ProjectAuditor:
             try:
                 content = (path / "Cargo.toml").read_text()
                 rust_frameworks = {
-                    "axum": "Axum", "actix-web": "Actix", "rocket": "Rocket",
-                    "tokio": "Tokio", "tauri": "Tauri", "bevy": "Bevy",
-                    "sqlx": "SQLx", "diesel": "Diesel", "sea-orm": "SeaORM"
+                    "axum": "Axum",
+                    "actix-web": "Actix",
+                    "rocket": "Rocket",
+                    "tokio": "Tokio",
+                    "tauri": "Tauri",
+                    "bevy": "Bevy",
+                    "sqlx": "SQLx",
+                    "diesel": "Diesel",
+                    "sea-orm": "SeaORM",
                 }
                 for crate, name in rust_frameworks.items():
                     if crate in content:
-                        detected.append(TechStackItem(name=name, category=TechCategory.FRAMEWORK))
+                        detected.append(
+                            TechStackItem(name=name, category=TechCategory.FRAMEWORK)
+                        )
             except:
                 pass
 
@@ -755,8 +876,19 @@ class ProjectAuditor:
                     metrics.databases.append(item.name)
 
         # Calculate modernity score
-        modern_tech = {"Rust", "Go", "TypeScript", "Svelte", "Tauri", "Nix", "Next.js", "Astro"}
-        modern_count = len(set(metrics.primary_languages + metrics.frameworks) & modern_tech)
+        modern_tech = {
+            "Rust",
+            "Go",
+            "TypeScript",
+            "Svelte",
+            "Tauri",
+            "Nix",
+            "Next.js",
+            "Astro",
+        }
+        modern_count = len(
+            set(metrics.primary_languages + metrics.frameworks) & modern_tech
+        )
         metrics.stack_modernity_score = min(100, 40 + modern_count * 15)
 
         return metrics
@@ -782,10 +914,12 @@ class ProjectAuditor:
                     metrics.total_dependencies = len(deps) + len(dev_deps)
 
                     for name, version in deps.items():
-                        metrics.dependencies.append(DependencyInfo(
-                            name=name,
-                            version=version.replace("^", "").replace("~", "")
-                        ))
+                        metrics.dependencies.append(
+                            DependencyInfo(
+                                name=name,
+                                version=version.replace("^", "").replace("~", ""),
+                            )
+                        )
             except:
                 pass
 
@@ -794,9 +928,15 @@ class ProjectAuditor:
             try:
                 content = (path / "Cargo.toml").read_text()
                 # Simple regex to count dependencies
-                dep_matches = re.findall(r'^\s*(\w[\w-]*)\s*=', content, re.MULTILINE)
+                dep_matches = re.findall(r"^\s*(\w[\w-]*)\s*=", content, re.MULTILINE)
                 # Filter out section headers
-                dep_count = len([d for d in dep_matches if d not in ['package', 'dependencies', 'features', 'workspace']])
+                dep_count = len(
+                    [
+                        d
+                        for d in dep_matches
+                        if d not in ["package", "dependencies", "features", "workspace"]
+                    ]
+                )
                 metrics.total_dependencies = max(metrics.total_dependencies, dep_count)
             except:
                 pass
@@ -806,9 +946,14 @@ class ProjectAuditor:
             if (path / req_file).exists():
                 try:
                     content = (path / req_file).read_text()
-                    deps = [l.strip() for l in content.splitlines()
-                            if l.strip() and not l.strip().startswith('#')]
-                    metrics.total_dependencies = max(metrics.total_dependencies, len(deps))
+                    deps = [
+                        l.strip()
+                        for l in content.splitlines()
+                        if l.strip() and not l.strip().startswith("#")
+                    ]
+                    metrics.total_dependencies = max(
+                        metrics.total_dependencies, len(deps)
+                    )
                 except:
                     pass
 
@@ -829,7 +974,9 @@ class ProjectAuditor:
         # Check for security files
         metrics.has_security_policy = (path / "SECURITY.md").exists()
         metrics.has_dependabot = (path / ".github" / "dependabot.yml").exists()
-        metrics.has_code_scanning = (path / ".github" / "workflows" / "codeql.yml").exists()
+        metrics.has_code_scanning = (
+            path / ".github" / "workflows" / "codeql.yml"
+        ).exists()
 
         # Simple secrets detection (very basic)
         secret_patterns = [
@@ -837,17 +984,17 @@ class ProjectAuditor:
             r'secret[_-]?key\s*=\s*["\'][^"\']+["\']',
             r'password\s*=\s*["\'][^"\']+["\']',
             r'aws_access_key_id\s*=\s*["\'][^"\']+["\']',
-            r'-----BEGIN (RSA |EC )?PRIVATE KEY-----',
+            r"-----BEGIN (RSA |EC )?PRIVATE KEY-----",
         ]
 
         secrets_found = 0
         for file in self._iter_files(path):
             # Skip common false positive files
-            if file.name in {'package-lock.json', 'yarn.lock', 'Cargo.lock'}:
+            if file.name in {"package-lock.json", "yarn.lock", "Cargo.lock"}:
                 continue
 
             try:
-                content = file.read_text(encoding='utf-8', errors='ignore')
+                content = file.read_text(encoding="utf-8", errors="ignore")
                 for pattern in secret_patterns:
                     matches = re.findall(pattern, content, re.IGNORECASE)
                     secrets_found += len(matches)
@@ -873,7 +1020,9 @@ class ProjectAuditor:
     # AI ANALYSIS (OPTIONAL)
     # ══════════════════════════════════════════════════════════════════════════
 
-    def _run_ai_analysis(self, path: Path, metrics: ProjectMetrics) -> AIInsights | None:
+    def _run_ai_analysis(
+        self, path: Path, metrics: ProjectMetrics
+    ) -> AIInsights | None:
         """Run AI-powered analysis using local LLM."""
         # This will be expanded with cortex.py integration
         logger.info("AI analysis is enabled but not yet fully implemented")
@@ -904,11 +1053,14 @@ class ProjectAuditor:
 # REPORT GENERATION
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 def generate_report(results: list[ProjectMetrics], format: str = "table") -> str:
     """Generate audit report in specified format."""
 
     if format == "json":
-        return json.dumps([m.model_dump(mode='json') for m in results], indent=2, default=str)
+        return json.dumps(
+            [m.model_dump(mode="json") for m in results], indent=2, default=str
+        )
 
     elif format == "markdown":
         lines = ["# Project Audit Report", ""]
@@ -925,8 +1077,12 @@ def generate_report(results: list[ProjectMetrics], format: str = "table") -> str
             lines.append(f"- **Score**: {score:.1f}/100 ({grade})")
             lines.append(f"- **Recommendation**: {rec}")
             lines.append(f"- **Status**: {m.status.value}")
-            lines.append(f"- **Tech Stack**: {', '.join(m.tech_stack.primary_languages[:3])}")
-            lines.append(f"- **Last Commit**: {m.activity.days_since_last_commit} days ago")
+            lines.append(
+                f"- **Tech Stack**: {', '.join(m.tech_stack.primary_languages[:3])}"
+            )
+            lines.append(
+                f"- **Last Commit**: {m.activity.days_since_last_commit} days ago"
+            )
             lines.append("")
 
         return "\n".join(lines)
@@ -956,14 +1112,16 @@ def generate_report(results: list[ProjectMetrics], format: str = "table") -> str
                     m.status.value,
                     tech[:20],
                     days,
-                    rec.replace("_", " ").title()
+                    rec.replace("_", " ").title(),
                 )
 
             console.print(table)
             return ""
         else:
             lines = []
-            lines.append(f"{'Project':<25} | {'Score':>6} | {'Grade':^5} | {'Status':<12} | {'Tech':<15} | {'Days':>5} | Recommendation")
+            lines.append(
+                f"{'Project':<25} | {'Score':>6} | {'Grade':^5} | {'Status':<12} | {'Tech':<15} | {'Days':>5} | Recommendation"
+            )
             lines.append("-" * 100)
 
             for m in results:
@@ -984,6 +1142,7 @@ def generate_report(results: list[ProjectMetrics], format: str = "table") -> str
 # CLI INTERFACE
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 def main():
     parser = argparse.ArgumentParser(
         description="ProjectPhantom - Enterprise Project Audit Framework",
@@ -994,17 +1153,26 @@ Examples:
   %(prog)s --scan ~/dev/Projects                   # Scan multiple projects
   %(prog)s --scan ~/dev --format json -o report.json  # Save JSON report
   %(prog)s --path ~/dev/proj --ai                  # Enable AI analysis
-        """
+        """,
     )
 
     parser.add_argument("--path", "-p", help="Path to single project to audit")
     parser.add_argument("--scan", "-s", help="Directory to scan for projects")
-    parser.add_argument("--format", "-f", choices=["table", "json", "markdown"],
-                        default="table", help="Output format")
+    parser.add_argument(
+        "--format",
+        "-f",
+        choices=["table", "json", "markdown"],
+        default="table",
+        help="Output format",
+    )
     parser.add_argument("--output", "-o", help="Output file path")
     parser.add_argument("--ai", action="store_true", help="Enable AI-powered analysis")
-    parser.add_argument("--ai-url", default="http://localhost:8080", help="LlamaCpp server URL")
-    parser.add_argument("--max-depth", type=int, default=2, help="Max depth for project discovery")
+    parser.add_argument(
+        "--ai-url", default="http://localhost:8080", help="LlamaCpp server URL"
+    )
+    parser.add_argument(
+        "--max-depth", type=int, default=2, help="Max depth for project discovery"
+    )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     parser.add_argument("--version", action="version", version=f"%(prog)s {VERSION}")
 
@@ -1015,9 +1183,7 @@ Examples:
         sys.exit(1)
 
     auditor = ProjectAuditor(
-        enable_ai=args.ai,
-        ai_url=args.ai_url,
-        verbose=args.verbose
+        enable_ai=args.ai, ai_url=args.ai_url, verbose=args.verbose
     )
 
     if args.path:
@@ -1031,7 +1197,7 @@ Examples:
 
     if report:  # Table format prints directly
         if args.output:
-            with open(args.output, 'w') as f:
+            with open(args.output, "w") as f:
                 f.write(report)
             print(f"Report saved to {args.output}")
         else:
@@ -1039,8 +1205,12 @@ Examples:
 
     # Print summary
     if results:
-        avg_score = sum(m.viability.score for m in results if m.viability) / len(results)
-        print(f"\n📊 Summary: {len(results)} projects audited, avg viability: {avg_score:.1f}/100")
+        avg_score = sum(m.viability.score for m in results if m.viability) / len(
+            results
+        )
+        print(
+            f"\n📊 Summary: {len(results)} projects audited, avg viability: {avg_score:.1f}/100"
+        )
 
 
 if __name__ == "__main__":

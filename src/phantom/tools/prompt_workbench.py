@@ -16,9 +16,11 @@ from prompt_pipeline import PromptPipeline, PromptTemplate, TokenCounter
 # DATA STRUCTURES
 # ═══════════════════════════════════════════════════════════════
 
+
 @dataclass
 class PromptTest:
     """Test case for prompt"""
+
     name: str
     template: str
     variables: dict[str, Any]
@@ -30,6 +32,7 @@ class PromptTest:
 @dataclass
 class TestResult:
     """Result of prompt test"""
+
     test_name: str
     passed: bool
     output: str
@@ -43,6 +46,7 @@ class TestResult:
 # PROMPT WORKBENCH
 # ═══════════════════════════════════════════════════════════════
 
+
 class PromptWorkbench:
     """Interactive prompt testing environment"""
 
@@ -52,13 +56,11 @@ class PromptWorkbench:
         self.tests: list[PromptTest] = []
 
     def render_template(
-        self,
-        template: str,
-        variables: dict[str, Any]
+        self, template: str, variables: dict[str, Any]
     ) -> dict[str, Any]:
         """
         Render template with variables and return analysis
-        
+
         Returns:
             - rendered: Rendered prompt
             - tokens: Token count
@@ -92,27 +94,20 @@ class PromptWorkbench:
                 "tokens": tokens,
                 "variables_used": variables_used,
                 "warnings": warnings,
-                "success": True
+                "success": True,
             }
 
         except Exception as e:
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            return {"success": False, "error": str(e)}
 
     def add_test(self, test: PromptTest):
         """Add test case"""
         self.tests.append(test)
 
-    def run_test(
-        self,
-        test: PromptTest,
-        llm_function = None
-    ) -> TestResult:
+    def run_test(self, test: PromptTest, llm_function=None) -> TestResult:
         """
         Run single test case
-        
+
         Args:
             test: Test to run
             llm_function: Optional LLM function to call (for integration tests)
@@ -132,7 +127,7 @@ class PromptWorkbench:
                     tokens_used=0,
                     latency_ms=0,
                     quality_score=0.0,
-                    errors=[result.get("error", "Unknown error")]
+                    errors=[result.get("error", "Unknown error")],
                 )
 
             rendered = result["rendered"]
@@ -151,7 +146,11 @@ class PromptWorkbench:
 
                 # Check for expected keywords
                 if test.expected_keywords:
-                    found = sum(1 for kw in test.expected_keywords if kw.lower() in output.lower())
+                    found = sum(
+                        1
+                        for kw in test.expected_keywords
+                        if kw.lower() in output.lower()
+                    )
                     quality_score = found / len(test.expected_keywords)
 
                     if quality_score < test.min_quality_score:
@@ -166,7 +165,7 @@ class PromptWorkbench:
                 tokens_used=tokens,
                 latency_ms=latency,
                 quality_score=quality_score,
-                errors=errors if errors else None
+                errors=errors if errors else None,
             )
 
         except Exception as e:
@@ -177,10 +176,10 @@ class PromptWorkbench:
                 tokens_used=0,
                 latency_ms=(time.time() - start) * 1000,
                 quality_score=0.0,
-                errors=[str(e)]
+                errors=[str(e)],
             )
 
-    def run_all_tests(self, llm_function = None) -> list[TestResult]:
+    def run_all_tests(self, llm_function=None) -> list[TestResult]:
         """Run all test cases"""
         results = []
 
@@ -199,12 +198,12 @@ class PromptWorkbench:
                 "variables": t.variables,
                 "expected_keywords": t.expected_keywords,
                 "max_tokens": t.max_tokens,
-                "min_quality_score": t.min_quality_score
+                "min_quality_score": t.min_quality_score,
             }
             for t in self.tests
         ]
 
-        with open(filepath, 'w') as f:
+        with open(filepath, "w") as f:
             json.dump(data, f, indent=2)
 
     def load_tests(self, filepath: Path):
@@ -219,7 +218,7 @@ class PromptWorkbench:
                 variables=t["variables"],
                 expected_keywords=t.get("expected_keywords"),
                 max_tokens=t.get("max_tokens", 2048),
-                min_quality_score=t.get("min_quality_score", 0.7)
+                min_quality_score=t.get("min_quality_score", 0.7),
             )
             for t in data
         ]
@@ -239,10 +238,10 @@ Question: {question}
 Answer:""",
         variables={
             "context": "Python uses try-except blocks for error handling.",
-            "question": "How to handle errors in Python?"
+            "question": "How to handle errors in Python?",
         },
         expected_keywords=["try", "except", "error"],
-        max_tokens=500
+        max_tokens=500,
     ),
     PromptTest(
         name="Few-Shot Example",
@@ -250,19 +249,17 @@ Answer:""",
 {examples}
 
 Now answer: {question}""",
-        variables={
-            "examples": "Q: What is 2+2? A: 4",
-            "question": "What is 3+3?"
-        },
+        variables={"examples": "Q: What is 2+2? A: 4", "question": "What is 3+3?"},
         expected_keywords=["6"],
-        max_tokens=300
-    )
+        max_tokens=300,
+    ),
 ]
 
 
 # ═══════════════════════════════════════════════════════════════
 # CLI FOR TESTING
 # ═══════════════════════════════════════════════════════════════
+
 
 def main():
     """Test prompt workbench"""

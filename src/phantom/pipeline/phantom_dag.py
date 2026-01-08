@@ -51,6 +51,7 @@ MAX_CONTENT_SCAN_SIZE = 10 * 1024 * 1024  # 10MB
 # ENUMS & CLASSIFICATIONS
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class TaskStatus(Enum):
     PENDING = "pending"
     QUEUED = "queued"
@@ -59,6 +60,7 @@ class TaskStatus(Enum):
     FAILED = "failed"
     SKIPPED = "skipped"
     BLOCKED = "blocked"
+
 
 class Classification(Enum):
     DOCUMENTS = "documents"
@@ -78,6 +80,7 @@ class Classification(Enum):
     MALFORMED = "malformed"
     QUARANTINE = "quarantine"
 
+
 class Sensitivity(Enum):
     PUBLIC = 0
     INTERNAL = 1
@@ -86,19 +89,23 @@ class Sensitivity(Enum):
     TOP_SECRET = 4
     RESTRICTED = 5
 
+
 class SanitizationPolicy(Enum):
     NONE = "none"
     STRIP_METADATA = "strip_metadata"
     REDACT_PII = "redact_pii"
     FULL_SANITIZE = "full_sanitize"
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 # DATA STRUCTURES
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class FileFingerprint:
     """Cryptographic file fingerprint for integrity verification"""
+
     sha256: str
     blake3: str
     xxhash: str
@@ -109,14 +116,15 @@ class FileFingerprint:
     def to_dict(self) -> dict:
         return asdict(self)
 
-    def verify_against(self, other: 'FileFingerprint') -> bool:
+    def verify_against(self, other: "FileFingerprint") -> bool:
         """Verify integrity against another fingerprint"""
-        return (self.sha256 == other.sha256 and
-                self.size == other.size)
+        return self.sha256 == other.sha256 and self.size == other.size
+
 
 @dataclass
 class SensitiveFinding:
     """Sensitive data detection result"""
+
     pattern_type: str
     pattern_name: str
     count: int
@@ -124,9 +132,11 @@ class SensitiveFinding:
     samples: list[str] = field(default_factory=list)  # Redacted samples
     risk_score: float = 0.0
 
+
 @dataclass
 class FileRecord:
     """Complete file record with full chain of custody"""
+
     # Identity
     record_id: str
     original_path: str
@@ -160,16 +170,18 @@ class FileRecord:
 
     def to_dict(self) -> dict:
         d = asdict(self)
-        d['tags'] = list(self.tags)
-        d['fingerprint_input'] = self.fingerprint_input.to_dict()
+        d["tags"] = list(self.tags)
+        d["fingerprint_input"] = self.fingerprint_input.to_dict()
         if self.fingerprint_output:
-            d['fingerprint_output'] = self.fingerprint_output.to_dict()
-        d['sensitive_findings'] = [asdict(f) for f in self.sensitive_findings]
+            d["fingerprint_output"] = self.fingerprint_output.to_dict()
+        d["sensitive_findings"] = [asdict(f) for f in self.sensitive_findings]
         return d
+
 
 @dataclass
 class DAGTask:
     """DAG pipeline task node"""
+
     task_id: str
     name: str
     func: Callable
@@ -190,9 +202,11 @@ class DAGTask:
             return self.end_time - self.start_time
         return 0.0
 
+
 @dataclass
 class PipelineContext:
     """Shared context for pipeline execution"""
+
     input_dir: Path
     output_dir: Path
     staging_dir: Path
@@ -219,23 +233,25 @@ class PipelineContext:
     # Threading
     lock: threading.Lock = field(default_factory=threading.Lock)
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 # LOGGING SYSTEM
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class PhantomLogger:
     """Thread-safe colored logging with audit trail"""
 
     COLORS = {
-        'DEBUG': '\033[0;35m',    # Magenta
-        'INFO': '\033[0;36m',     # Cyan
-        'WARNING': '\033[0;33m',  # Yellow
-        'ERROR': '\033[0;31m',    # Red
-        'CRITICAL': '\033[1;31m', # Bold Red
-        'SUCCESS': '\033[0;32m',  # Green
-        'AUDIT': '\033[0;34m',    # Blue
+        "DEBUG": "\033[0;35m",  # Magenta
+        "INFO": "\033[0;36m",  # Cyan
+        "WARNING": "\033[0;33m",  # Yellow
+        "ERROR": "\033[0;31m",  # Red
+        "CRITICAL": "\033[1;31m",  # Bold Red
+        "SUCCESS": "\033[0;32m",  # Green
+        "AUDIT": "\033[0;34m",  # Blue
     }
-    RESET = '\033[0m'
+    RESET = "\033[0m"
 
     def __init__(self, name: str, log_file: Path = None, verbose: bool = True):
         self.name = name
@@ -245,13 +261,13 @@ class PhantomLogger:
 
         # File logger
         if log_file:
-            self.file_handler = open(log_file, 'a')
+            self.file_handler = open(log_file, "a")
         else:
             self.file_handler = None
 
     def _format(self, level: str, message: str) -> tuple[str, str]:
         timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-        color = self.COLORS.get(level, '')
+        color = self.COLORS.get(level, "")
 
         console_msg = f"{color}[{timestamp}] [{level:8}] {message}{self.RESET}"
         file_msg = f"[{timestamp}] [{level:8}] {message}"
@@ -262,31 +278,50 @@ class PhantomLogger:
         console_msg, file_msg = self._format(level, message)
 
         with self.lock:
-            if self.verbose or level in ('ERROR', 'CRITICAL', 'WARNING', 'SUCCESS', 'AUDIT'):
+            if self.verbose or level in (
+                "ERROR",
+                "CRITICAL",
+                "WARNING",
+                "SUCCESS",
+                "AUDIT",
+            ):
                 print(console_msg)
 
             if self.file_handler:
-                self.file_handler.write(file_msg + '\n')
+                self.file_handler.write(file_msg + "\n")
                 self.file_handler.flush()
 
             # Audit trail
-            if level == 'AUDIT':
-                self.audit_log.append({
-                    'timestamp': datetime.now(UTC).isoformat(),
-                    'message': message
-                })
+            if level == "AUDIT":
+                self.audit_log.append(
+                    {"timestamp": datetime.now(UTC).isoformat(), "message": message}
+                )
 
-    def debug(self, msg): self.log('DEBUG', msg)
-    def info(self, msg): self.log('INFO', msg)
-    def warning(self, msg): self.log('WARNING', msg)
-    def error(self, msg): self.log('ERROR', msg)
-    def critical(self, msg): self.log('CRITICAL', msg)
-    def success(self, msg): self.log('SUCCESS', msg)
-    def audit(self, msg): self.log('AUDIT', msg)
+    def debug(self, msg):
+        self.log("DEBUG", msg)
+
+    def info(self, msg):
+        self.log("INFO", msg)
+
+    def warning(self, msg):
+        self.log("WARNING", msg)
+
+    def error(self, msg):
+        self.log("ERROR", msg)
+
+    def critical(self, msg):
+        self.log("CRITICAL", msg)
+
+    def success(self, msg):
+        self.log("SUCCESS", msg)
+
+    def audit(self, msg):
+        self.log("AUDIT", msg)
 
     def close(self):
         if self.file_handler:
             self.file_handler.close()
+
 
 # Global logger
 logger: PhantomLogger = None
@@ -294,6 +329,7 @@ logger: PhantomLogger = None
 # ══════════════════════════════════════════════════════════════════════════════
 # CRYPTOGRAPHIC OPERATIONS
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class CryptoEngine:
     """Cryptographic operations for hashing and pseudonymization"""
@@ -307,8 +343,10 @@ class CryptoEngine:
         # xxHash via subprocess if available
         try:
             result = subprocess.run(
-                ['xxhsum', '-H64', str(filepath)],
-                capture_output=True, text=True, timeout=60
+                ["xxhsum", "-H64", str(filepath)],
+                capture_output=True,
+                text=True,
+                timeout=60,
             )
             xxhash_hex = result.stdout.split()[0] if result.returncode == 0 else ""
         except:
@@ -317,16 +355,18 @@ class CryptoEngine:
         # BLAKE3 via b3sum if available
         try:
             result = subprocess.run(
-                ['b3sum', '--no-names', str(filepath)],
-                capture_output=True, text=True, timeout=60
+                ["b3sum", "--no-names", str(filepath)],
+                capture_output=True,
+                text=True,
+                timeout=60,
             )
             blake3_hex = result.stdout.strip() if result.returncode == 0 else None
         except:
             blake3_hex = None
 
         # Stream hash computation
-        with open(filepath, 'rb') as f:
-            for chunk in iter(lambda: f.read(CHUNK_SIZE), b''):
+        with open(filepath, "rb") as f:
+            for chunk in iter(lambda: f.read(CHUNK_SIZE), b""):
                 sha256_hash.update(chunk)
                 if not blake3_hex:
                     blake2_hash.update(chunk)
@@ -340,11 +380,13 @@ class CryptoEngine:
             xxhash=xxhash_hex or "N/A",
             size=stat.st_size,
             created_at=datetime.now(UTC).isoformat(),
-            nonce=nonce
+            nonce=nonce,
         )
 
     @staticmethod
-    def generate_pseudonym(original_path: str, extension: str, nonce: str = None) -> str:
+    def generate_pseudonym(
+        original_path: str, extension: str, nonce: str = None
+    ) -> str:
         """Generate cryptographically secure pseudonym"""
         if not nonce:
             nonce = secrets.token_hex(4)
@@ -369,275 +411,287 @@ class CryptoEngine:
         current = CryptoEngine.compute_fingerprint(filepath)
         return current.verify_against(expected)
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 # CLASSIFICATION ENGINE
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class ClassificationEngine:
     """Multi-level file classification system"""
 
     # Magic byte signatures
     MAGIC_SIGNATURES = {
-        b'\x89PNG\r\n\x1a\n': ('image/png', Classification.IMAGES),
-        b'\xff\xd8\xff': ('image/jpeg', Classification.IMAGES),
-        b'GIF87a': ('image/gif', Classification.IMAGES),
-        b'GIF89a': ('image/gif', Classification.IMAGES),
-        b'%PDF': ('application/pdf', Classification.DOCUMENTS),
-        b'PK\x03\x04': ('application/zip', Classification.ARCHIVES),
-        b'\x1f\x8b': ('application/gzip', Classification.ARCHIVES),
-        b'Rar!\x1a\x07': ('application/x-rar', Classification.ARCHIVES),
-        b'7z\xbc\xaf\x27\x1c': ('application/x-7z', Classification.ARCHIVES),
-        b'\xfd7zXZ\x00': ('application/x-xz', Classification.ARCHIVES),
-        b'\x7fELF': ('application/x-elf', Classification.EXECUTABLES),
-        b'MZ': ('application/x-dosexec', Classification.EXECUTABLES),
-        b'#!': ('text/x-script', Classification.CODE),
-        b'SQLite format 3': ('application/x-sqlite3', Classification.DATA),
-        b'ID3': ('audio/mpeg', Classification.AUDIO),
-        b'fLaC': ('audio/flac', Classification.AUDIO),
-        b'OggS': ('audio/ogg', Classification.AUDIO),
-        b'RIFF': ('audio/wav', Classification.AUDIO),
+        b"\x89PNG\r\n\x1a\n": ("image/png", Classification.IMAGES),
+        b"\xff\xd8\xff": ("image/jpeg", Classification.IMAGES),
+        b"GIF87a": ("image/gif", Classification.IMAGES),
+        b"GIF89a": ("image/gif", Classification.IMAGES),
+        b"%PDF": ("application/pdf", Classification.DOCUMENTS),
+        b"PK\x03\x04": ("application/zip", Classification.ARCHIVES),
+        b"\x1f\x8b": ("application/gzip", Classification.ARCHIVES),
+        b"Rar!\x1a\x07": ("application/x-rar", Classification.ARCHIVES),
+        b"7z\xbc\xaf\x27\x1c": ("application/x-7z", Classification.ARCHIVES),
+        b"\xfd7zXZ\x00": ("application/x-xz", Classification.ARCHIVES),
+        b"\x7fELF": ("application/x-elf", Classification.EXECUTABLES),
+        b"MZ": ("application/x-dosexec", Classification.EXECUTABLES),
+        b"#!": ("text/x-script", Classification.CODE),
+        b"SQLite format 3": ("application/x-sqlite3", Classification.DATA),
+        b"ID3": ("audio/mpeg", Classification.AUDIO),
+        b"fLaC": ("audio/flac", Classification.AUDIO),
+        b"OggS": ("audio/ogg", Classification.AUDIO),
+        b"RIFF": ("audio/wav", Classification.AUDIO),
     }
 
     # Extension mappings (comprehensive)
     EXT_MAP = {
         # Documents
-        '.pdf': Classification.DOCUMENTS,
-        '.doc': Classification.DOCUMENTS,
-        '.docx': Classification.DOCUMENTS,
-        '.odt': Classification.DOCUMENTS,
-        '.rtf': Classification.DOCUMENTS,
-        '.txt': Classification.DOCUMENTS,
-        '.md': Classification.DOCUMENTS,
-        '.markdown': Classification.DOCUMENTS,
-        '.rst': Classification.DOCUMENTS,
-        '.tex': Classification.DOCUMENTS,
-        '.epub': Classification.DOCUMENTS,
-        '.mobi': Classification.DOCUMENTS,
-
+        ".pdf": Classification.DOCUMENTS,
+        ".doc": Classification.DOCUMENTS,
+        ".docx": Classification.DOCUMENTS,
+        ".odt": Classification.DOCUMENTS,
+        ".rtf": Classification.DOCUMENTS,
+        ".txt": Classification.DOCUMENTS,
+        ".md": Classification.DOCUMENTS,
+        ".markdown": Classification.DOCUMENTS,
+        ".rst": Classification.DOCUMENTS,
+        ".tex": Classification.DOCUMENTS,
+        ".epub": Classification.DOCUMENTS,
+        ".mobi": Classification.DOCUMENTS,
         # Images
-        '.png': Classification.IMAGES,
-        '.jpg': Classification.IMAGES,
-        '.jpeg': Classification.IMAGES,
-        '.gif': Classification.IMAGES,
-        '.bmp': Classification.IMAGES,
-        '.tiff': Classification.IMAGES,
-        '.tif': Classification.IMAGES,
-        '.webp': Classification.IMAGES,
-        '.svg': Classification.IMAGES,
-        '.ico': Classification.IMAGES,
-        '.raw': Classification.IMAGES,
-        '.cr2': Classification.IMAGES,
-        '.nef': Classification.IMAGES,
-        '.heic': Classification.IMAGES,
-        '.heif': Classification.IMAGES,
-
+        ".png": Classification.IMAGES,
+        ".jpg": Classification.IMAGES,
+        ".jpeg": Classification.IMAGES,
+        ".gif": Classification.IMAGES,
+        ".bmp": Classification.IMAGES,
+        ".tiff": Classification.IMAGES,
+        ".tif": Classification.IMAGES,
+        ".webp": Classification.IMAGES,
+        ".svg": Classification.IMAGES,
+        ".ico": Classification.IMAGES,
+        ".raw": Classification.IMAGES,
+        ".cr2": Classification.IMAGES,
+        ".nef": Classification.IMAGES,
+        ".heic": Classification.IMAGES,
+        ".heif": Classification.IMAGES,
         # Audio
-        '.mp3': Classification.AUDIO,
-        '.wav': Classification.AUDIO,
-        '.flac': Classification.AUDIO,
-        '.ogg': Classification.AUDIO,
-        '.m4a': Classification.AUDIO,
-        '.aac': Classification.AUDIO,
-        '.wma': Classification.AUDIO,
-        '.opus': Classification.AUDIO,
-        '.aiff': Classification.AUDIO,
-
+        ".mp3": Classification.AUDIO,
+        ".wav": Classification.AUDIO,
+        ".flac": Classification.AUDIO,
+        ".ogg": Classification.AUDIO,
+        ".m4a": Classification.AUDIO,
+        ".aac": Classification.AUDIO,
+        ".wma": Classification.AUDIO,
+        ".opus": Classification.AUDIO,
+        ".aiff": Classification.AUDIO,
         # Video
-        '.mp4': Classification.VIDEO,
-        '.mkv': Classification.VIDEO,
-        '.avi': Classification.VIDEO,
-        '.mov': Classification.VIDEO,
-        '.wmv': Classification.VIDEO,
-        '.webm': Classification.VIDEO,
-        '.flv': Classification.VIDEO,
-        '.m4v': Classification.VIDEO,
-        '.mpeg': Classification.VIDEO,
-        '.mpg': Classification.VIDEO,
-
+        ".mp4": Classification.VIDEO,
+        ".mkv": Classification.VIDEO,
+        ".avi": Classification.VIDEO,
+        ".mov": Classification.VIDEO,
+        ".wmv": Classification.VIDEO,
+        ".webm": Classification.VIDEO,
+        ".flv": Classification.VIDEO,
+        ".m4v": Classification.VIDEO,
+        ".mpeg": Classification.VIDEO,
+        ".mpg": Classification.VIDEO,
         # Code
-        '.py': Classification.CODE,
-        '.pyw': Classification.CODE,
-        '.pyx': Classification.CODE,
-        '.js': Classification.CODE,
-        '.mjs': Classification.CODE,
-        '.ts': Classification.CODE,
-        '.jsx': Classification.CODE,
-        '.tsx': Classification.CODE,
-        '.rs': Classification.CODE,
-        '.go': Classification.CODE,
-        '.c': Classification.CODE,
-        '.cpp': Classification.CODE,
-        '.cc': Classification.CODE,
-        '.cxx': Classification.CODE,
-        '.h': Classification.CODE,
-        '.hpp': Classification.CODE,
-        '.java': Classification.CODE,
-        '.kt': Classification.CODE,
-        '.kts': Classification.CODE,
-        '.scala': Classification.CODE,
-        '.rb': Classification.CODE,
-        '.php': Classification.CODE,
-        '.sh': Classification.CODE,
-        '.bash': Classification.CODE,
-        '.zsh': Classification.CODE,
-        '.fish': Classification.CODE,
-        '.ps1': Classification.CODE,
-        '.psm1': Classification.CODE,
-        '.nix': Classification.CODE,
-        '.hs': Classification.CODE,
-        '.ml': Classification.CODE,
-        '.swift': Classification.CODE,
-        '.r': Classification.CODE,
-        '.R': Classification.CODE,
-        '.sql': Classification.CODE,
-        '.lua': Classification.CODE,
-        '.pl': Classification.CODE,
-        '.pm': Classification.CODE,
-        '.html': Classification.CODE,
-        '.htm': Classification.CODE,
-        '.css': Classification.CODE,
-        '.scss': Classification.CODE,
-        '.sass': Classification.CODE,
-        '.less': Classification.CODE,
-        '.vue': Classification.CODE,
-        '.svelte': Classification.CODE,
-        '.elm': Classification.CODE,
-        '.ex': Classification.CODE,
-        '.exs': Classification.CODE,
-        '.erl': Classification.CODE,
-        '.hrl': Classification.CODE,
-        '.clj': Classification.CODE,
-        '.cljs': Classification.CODE,
-        '.dart': Classification.CODE,
-        '.zig': Classification.CODE,
-        '.v': Classification.CODE,
-        '.nim': Classification.CODE,
-        '.cr': Classification.CODE,
-        '.d': Classification.CODE,
-
+        ".py": Classification.CODE,
+        ".pyw": Classification.CODE,
+        ".pyx": Classification.CODE,
+        ".js": Classification.CODE,
+        ".mjs": Classification.CODE,
+        ".ts": Classification.CODE,
+        ".jsx": Classification.CODE,
+        ".tsx": Classification.CODE,
+        ".rs": Classification.CODE,
+        ".go": Classification.CODE,
+        ".c": Classification.CODE,
+        ".cpp": Classification.CODE,
+        ".cc": Classification.CODE,
+        ".cxx": Classification.CODE,
+        ".h": Classification.CODE,
+        ".hpp": Classification.CODE,
+        ".java": Classification.CODE,
+        ".kt": Classification.CODE,
+        ".kts": Classification.CODE,
+        ".scala": Classification.CODE,
+        ".rb": Classification.CODE,
+        ".php": Classification.CODE,
+        ".sh": Classification.CODE,
+        ".bash": Classification.CODE,
+        ".zsh": Classification.CODE,
+        ".fish": Classification.CODE,
+        ".ps1": Classification.CODE,
+        ".psm1": Classification.CODE,
+        ".nix": Classification.CODE,
+        ".hs": Classification.CODE,
+        ".ml": Classification.CODE,
+        ".swift": Classification.CODE,
+        ".r": Classification.CODE,
+        ".R": Classification.CODE,
+        ".sql": Classification.CODE,
+        ".lua": Classification.CODE,
+        ".pl": Classification.CODE,
+        ".pm": Classification.CODE,
+        ".html": Classification.CODE,
+        ".htm": Classification.CODE,
+        ".css": Classification.CODE,
+        ".scss": Classification.CODE,
+        ".sass": Classification.CODE,
+        ".less": Classification.CODE,
+        ".vue": Classification.CODE,
+        ".svelte": Classification.CODE,
+        ".elm": Classification.CODE,
+        ".ex": Classification.CODE,
+        ".exs": Classification.CODE,
+        ".erl": Classification.CODE,
+        ".hrl": Classification.CODE,
+        ".clj": Classification.CODE,
+        ".cljs": Classification.CODE,
+        ".dart": Classification.CODE,
+        ".zig": Classification.CODE,
+        ".v": Classification.CODE,
+        ".nim": Classification.CODE,
+        ".cr": Classification.CODE,
+        ".d": Classification.CODE,
         # Data
-        '.json': Classification.DATA,
-        '.jsonl': Classification.DATA,
-        '.ndjson': Classification.DATA,
-        '.xml': Classification.DATA,
-        '.yaml': Classification.DATA,
-        '.yml': Classification.DATA,
-        '.toml': Classification.DATA,
-        '.csv': Classification.DATA,
-        '.tsv': Classification.DATA,
-        '.parquet': Classification.DATA,
-        '.avro': Classification.DATA,
-        '.orc': Classification.DATA,
-        '.db': Classification.DATA,
-        '.sqlite': Classification.DATA,
-        '.sqlite3': Classification.DATA,
-        '.mdb': Classification.DATA,
-        '.accdb': Classification.DATA,
-        '.xls': Classification.DATA,
-        '.xlsx': Classification.DATA,
-        '.ods': Classification.DATA,
-
+        ".json": Classification.DATA,
+        ".jsonl": Classification.DATA,
+        ".ndjson": Classification.DATA,
+        ".xml": Classification.DATA,
+        ".yaml": Classification.DATA,
+        ".yml": Classification.DATA,
+        ".toml": Classification.DATA,
+        ".csv": Classification.DATA,
+        ".tsv": Classification.DATA,
+        ".parquet": Classification.DATA,
+        ".avro": Classification.DATA,
+        ".orc": Classification.DATA,
+        ".db": Classification.DATA,
+        ".sqlite": Classification.DATA,
+        ".sqlite3": Classification.DATA,
+        ".mdb": Classification.DATA,
+        ".accdb": Classification.DATA,
+        ".xls": Classification.DATA,
+        ".xlsx": Classification.DATA,
+        ".ods": Classification.DATA,
         # Archives
-        '.zip': Classification.ARCHIVES,
-        '.tar': Classification.ARCHIVES,
-        '.gz': Classification.ARCHIVES,
-        '.tgz': Classification.ARCHIVES,
-        '.bz2': Classification.ARCHIVES,
-        '.xz': Classification.ARCHIVES,
-        '.7z': Classification.ARCHIVES,
-        '.rar': Classification.ARCHIVES,
-        '.zst': Classification.ARCHIVES,
-        '.lz4': Classification.ARCHIVES,
-        '.lzma': Classification.ARCHIVES,
-        '.cab': Classification.ARCHIVES,
-        '.iso': Classification.ARCHIVES,
-        '.dmg': Classification.ARCHIVES,
-
+        ".zip": Classification.ARCHIVES,
+        ".tar": Classification.ARCHIVES,
+        ".gz": Classification.ARCHIVES,
+        ".tgz": Classification.ARCHIVES,
+        ".bz2": Classification.ARCHIVES,
+        ".xz": Classification.ARCHIVES,
+        ".7z": Classification.ARCHIVES,
+        ".rar": Classification.ARCHIVES,
+        ".zst": Classification.ARCHIVES,
+        ".lz4": Classification.ARCHIVES,
+        ".lzma": Classification.ARCHIVES,
+        ".cab": Classification.ARCHIVES,
+        ".iso": Classification.ARCHIVES,
+        ".dmg": Classification.ARCHIVES,
         # Configs
-        '.conf': Classification.CONFIGS,
-        '.cfg': Classification.CONFIGS,
-        '.ini': Classification.CONFIGS,
-        '.env': Classification.CONFIGS,
-        '.properties': Classification.CONFIGS,
-        '.rc': Classification.CONFIGS,
-        '.config': Classification.CONFIGS,
-
+        ".conf": Classification.CONFIGS,
+        ".cfg": Classification.CONFIGS,
+        ".ini": Classification.CONFIGS,
+        ".env": Classification.CONFIGS,
+        ".properties": Classification.CONFIGS,
+        ".rc": Classification.CONFIGS,
+        ".config": Classification.CONFIGS,
         # Logs
-        '.log': Classification.LOGS,
-        '.out': Classification.LOGS,
-        '.err': Classification.LOGS,
-        '.trace': Classification.LOGS,
-
+        ".log": Classification.LOGS,
+        ".out": Classification.LOGS,
+        ".err": Classification.LOGS,
+        ".trace": Classification.LOGS,
         # Crypto
-        '.pem': Classification.CRYPTO,
-        '.crt': Classification.CRYPTO,
-        '.cer': Classification.CRYPTO,
-        '.der': Classification.CRYPTO,
-        '.key': Classification.CRYPTO,
-        '.pub': Classification.CRYPTO,
-        '.gpg': Classification.CRYPTO,
-        '.asc': Classification.CRYPTO,
-        '.p12': Classification.CRYPTO,
-        '.pfx': Classification.CRYPTO,
-        '.jks': Classification.CRYPTO,
-        '.keystore': Classification.CRYPTO,
-        '.kdbx': Classification.CRYPTO,
-        '.age': Classification.CRYPTO,
-
+        ".pem": Classification.CRYPTO,
+        ".crt": Classification.CRYPTO,
+        ".cer": Classification.CRYPTO,
+        ".der": Classification.CRYPTO,
+        ".key": Classification.CRYPTO,
+        ".pub": Classification.CRYPTO,
+        ".gpg": Classification.CRYPTO,
+        ".asc": Classification.CRYPTO,
+        ".p12": Classification.CRYPTO,
+        ".pfx": Classification.CRYPTO,
+        ".jks": Classification.CRYPTO,
+        ".keystore": Classification.CRYPTO,
+        ".kdbx": Classification.CRYPTO,
+        ".age": Classification.CRYPTO,
         # Executables
-        '.exe': Classification.EXECUTABLES,
-        '.dll': Classification.EXECUTABLES,
-        '.so': Classification.EXECUTABLES,
-        '.dylib': Classification.EXECUTABLES,
-        '.app': Classification.EXECUTABLES,
-        '.bin': Classification.EXECUTABLES,
-        '.msi': Classification.EXECUTABLES,
-        '.deb': Classification.EXECUTABLES,
-        '.rpm': Classification.EXECUTABLES,
-        '.apk': Classification.EXECUTABLES,
-        '.ipa': Classification.EXECUTABLES,
+        ".exe": Classification.EXECUTABLES,
+        ".dll": Classification.EXECUTABLES,
+        ".so": Classification.EXECUTABLES,
+        ".dylib": Classification.EXECUTABLES,
+        ".app": Classification.EXECUTABLES,
+        ".bin": Classification.EXECUTABLES,
+        ".msi": Classification.EXECUTABLES,
+        ".deb": Classification.EXECUTABLES,
+        ".rpm": Classification.EXECUTABLES,
+        ".apk": Classification.EXECUTABLES,
+        ".ipa": Classification.EXECUTABLES,
     }
 
     # Sensitive content patterns
     SENSITIVE_PATTERNS = [
         # Personal Identifiers
-        (r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', 'email', 0.3),
-        (r'\b(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b', 'phone_us', 0.4),
-        (r'\b\d{3}[-.]?\d{2}[-.]?\d{4}\b', 'ssn', 0.9),
-        (r'\b(?:\d{4}[-\s]?){3}\d{4}\b', 'credit_card', 0.9),
-
+        (r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "email", 0.3),
+        (
+            r"\b(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b",
+            "phone_us",
+            0.4,
+        ),
+        (r"\b\d{3}[-.]?\d{2}[-.]?\d{4}\b", "ssn", 0.9),
+        (r"\b(?:\d{4}[-\s]?){3}\d{4}\b", "credit_card", 0.9),
         # Brazilian PII
-        (r'\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b', 'cpf_br', 0.8),
-        (r'\b\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2}\b', 'cnpj_br', 0.8),
-
+        (r"\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b", "cpf_br", 0.8),
+        (r"\b\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2}\b", "cnpj_br", 0.8),
         # API Keys & Secrets
-        (r'(?i)(api[_-]?key|apikey)\s*[=:]\s*["\']?([a-zA-Z0-9_\-]{20,})["\']?', 'api_key', 0.9),
-        (r'(?i)(secret|token|password|passwd|pwd)\s*[=:]\s*["\']?[^\s"\']{8,}["\']?', 'credential', 0.85),
-        (r'(?i)bearer\s+[a-zA-Z0-9_\-\.]+', 'bearer_token', 0.9),
-        (r'(?i)basic\s+[a-zA-Z0-9+/=]+', 'basic_auth', 0.8),
-
+        (
+            r'(?i)(api[_-]?key|apikey)\s*[=:]\s*["\']?([a-zA-Z0-9_\-]{20,})["\']?',
+            "api_key",
+            0.9,
+        ),
+        (
+            r'(?i)(secret|token|password|passwd|pwd)\s*[=:]\s*["\']?[^\s"\']{8,}["\']?',
+            "credential",
+            0.85,
+        ),
+        (r"(?i)bearer\s+[a-zA-Z0-9_\-\.]+", "bearer_token", 0.9),
+        (r"(?i)basic\s+[a-zA-Z0-9+/=]+", "basic_auth", 0.8),
         # AWS
-        (r'AKIA[0-9A-Z]{16}', 'aws_access_key', 0.95),
-        (r'(?i)aws[_\-]?secret[_\-]?access[_\-]?key\s*[=:]\s*["\']?[A-Za-z0-9/+=]{40}["\']?', 'aws_secret', 0.95),
-
+        (r"AKIA[0-9A-Z]{16}", "aws_access_key", 0.95),
+        (
+            r'(?i)aws[_\-]?secret[_\-]?access[_\-]?key\s*[=:]\s*["\']?[A-Za-z0-9/+=]{40}["\']?',
+            "aws_secret",
+            0.95,
+        ),
         # Private Keys
-        (r'-----BEGIN (?:RSA |DSA |EC |OPENSSH )?PRIVATE KEY-----', 'private_key', 1.0),
-        (r'-----BEGIN CERTIFICATE-----', 'certificate', 0.5),
-        (r'-----BEGIN PGP PRIVATE KEY BLOCK-----', 'pgp_private', 1.0),
-
+        (r"-----BEGIN (?:RSA |DSA |EC |OPENSSH )?PRIVATE KEY-----", "private_key", 1.0),
+        (r"-----BEGIN CERTIFICATE-----", "certificate", 0.5),
+        (r"-----BEGIN PGP PRIVATE KEY BLOCK-----", "pgp_private", 1.0),
         # Network
-        (r'\b(?:\d{1,3}\.){3}\d{1,3}\b', 'ipv4', 0.2),
-        (r'\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b', 'uuid', 0.1),
-
+        (r"\b(?:\d{1,3}\.){3}\d{1,3}\b", "ipv4", 0.2),
+        (
+            r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b",
+            "uuid",
+            0.1,
+        ),
         # Database
-        (r'(?i)(?:mysql|postgres|mongodb|redis|jdbc)://[^\s]+', 'db_connection_string', 0.85),
+        (
+            r"(?i)(?:mysql|postgres|mongodb|redis|jdbc)://[^\s]+",
+            "db_connection_string",
+            0.85,
+        ),
     ]
 
     @classmethod
-    def detect_by_magic(cls, filepath: Path) -> tuple[str | None, Classification | None]:
+    def detect_by_magic(
+        cls, filepath: Path
+    ) -> tuple[str | None, Classification | None]:
         """Detect file type by magic bytes"""
         try:
-            with open(filepath, 'rb') as f:
+            with open(filepath, "rb") as f:
                 header = f.read(64)
 
             for magic, (mime, classification) in cls.MAGIC_SIGNATURES.items():
@@ -648,7 +702,9 @@ class ClassificationEngine:
         return None, None
 
     @classmethod
-    def detect_by_extension(cls, filepath: Path) -> tuple[str | None, Classification | None]:
+    def detect_by_extension(
+        cls, filepath: Path
+    ) -> tuple[str | None, Classification | None]:
         """Detect file type by extension"""
         ext = filepath.suffix.lower()
         classification = cls.EXT_MAP.get(ext, Classification.UNKNOWN)
@@ -656,7 +712,9 @@ class ClassificationEngine:
         return mime, classification
 
     @classmethod
-    def scan_sensitive_content(cls, filepath: Path, max_size: int = MAX_CONTENT_SCAN_SIZE) -> list[SensitiveFinding]:
+    def scan_sensitive_content(
+        cls, filepath: Path, max_size: int = MAX_CONTENT_SCAN_SIZE
+    ) -> list[SensitiveFinding]:
         """Scan file for sensitive content patterns"""
         findings = []
 
@@ -666,19 +724,19 @@ class ClassificationEngine:
             if stat.st_size > max_size:
                 return findings
 
-            with open(filepath, 'rb') as f:
+            with open(filepath, "rb") as f:
                 raw = f.read(max_size)
 
             # Try decoding
             try:
-                content = raw.decode('utf-8')
+                content = raw.decode("utf-8")
             except:
                 try:
-                    content = raw.decode('latin-1')
+                    content = raw.decode("latin-1")
                 except:
                     return findings
 
-            lines = content.split('\n')
+            lines = content.split("\n")
 
             for pattern, pattern_name, risk_base in cls.SENSITIVE_PATTERNS:
                 matches = []
@@ -687,21 +745,27 @@ class ClassificationEngine:
                 for i, line in enumerate(lines, 1):
                     found = re.findall(pattern, line, re.IGNORECASE)
                     if found:
-                        matches.extend(found if isinstance(found[0], str) else [m[0] if isinstance(m, tuple) else m for m in found])
+                        matches.extend(
+                            found
+                            if isinstance(found[0], str)
+                            else [m[0] if isinstance(m, tuple) else m for m in found]
+                        )
                         line_numbers.append(i)
 
                 if matches:
                     # Redact samples for audit
                     redacted_samples = [cls._redact_sample(m) for m in matches[:3]]
 
-                    findings.append(SensitiveFinding(
-                        pattern_type='regex',
-                        pattern_name=pattern_name,
-                        count=len(matches),
-                        line_numbers=line_numbers[:10],
-                        samples=redacted_samples,
-                        risk_score=min(risk_base * len(matches), 1.0)
-                    ))
+                    findings.append(
+                        SensitiveFinding(
+                            pattern_type="regex",
+                            pattern_name=pattern_name,
+                            count=len(matches),
+                            line_numbers=line_numbers[:10],
+                            samples=redacted_samples,
+                            risk_score=min(risk_base * len(matches), 1.0),
+                        )
+                    )
 
         except Exception as e:
             if logger:
@@ -713,8 +777,12 @@ class ClassificationEngine:
     def _redact_sample(sample: str, visible_chars: int = 4) -> str:
         """Redact sensitive sample for logging"""
         if len(sample) <= visible_chars * 2:
-            return '*' * len(sample)
-        return sample[:visible_chars] + '*' * (len(sample) - visible_chars * 2) + sample[-visible_chars:]
+            return "*" * len(sample)
+        return (
+            sample[:visible_chars]
+            + "*" * (len(sample) - visible_chars * 2)
+            + sample[-visible_chars:]
+        )
 
     @classmethod
     def classify(cls, filepath: Path) -> tuple[Classification, str, Sensitivity]:
@@ -741,19 +809,21 @@ class ClassificationEngine:
         if classification == Classification.CRYPTO:
             sensitivity = Sensitivity.SECRET
             ext = filepath.suffix.lower()
-            if ext in ('.key', '.pem', '.p12', '.pfx'):
+            if ext in (".key", ".pem", ".p12", ".pfx"):
                 sensitivity = Sensitivity.TOP_SECRET
 
         # Config files with sensitive extensions
         if classification == Classification.CONFIGS:
-            if filepath.suffix.lower() == '.env':
+            if filepath.suffix.lower() == ".env":
                 sensitivity = Sensitivity.CONFIDENTIAL
 
         return classification, mime_type, sensitivity
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 # SANITIZATION ENGINE
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class SanitizationEngine:
     """Content sanitization and metadata stripping"""
@@ -763,8 +833,9 @@ class SanitizationEngine:
         """Strip EXIF and other metadata from images"""
         try:
             result = subprocess.run(
-                ['exiftool', '-all=', '-overwrite_original', str(filepath)],
-                capture_output=True, timeout=60
+                ["exiftool", "-all=", "-overwrite_original", str(filepath)],
+                capture_output=True,
+                timeout=60,
             )
             return result.returncode == 0
         except:
@@ -777,8 +848,9 @@ class SanitizationEngine:
         """Strip metadata from PDF files"""
         try:
             result = subprocess.run(
-                ['exiftool', '-all=', '-overwrite_original', str(filepath)],
-                capture_output=True, timeout=60
+                ["exiftool", "-all=", "-overwrite_original", str(filepath)],
+                capture_output=True,
+                timeout=60,
             )
             return result.returncode == 0
         except:
@@ -786,10 +858,12 @@ class SanitizationEngine:
             return False
 
     @staticmethod
-    def sanitize_text_pii(filepath: Path, output_path: Path, findings: list[SensitiveFinding]) -> bool:
+    def sanitize_text_pii(
+        filepath: Path, output_path: Path, findings: list[SensitiveFinding]
+    ) -> bool:
         """Redact PII patterns in text files"""
         try:
-            with open(filepath, encoding='utf-8', errors='replace') as f:
+            with open(filepath, encoding="utf-8", errors="replace") as f:
                 content = f.read()
 
             # Apply redactions for high-risk patterns
@@ -797,10 +871,15 @@ class SanitizationEngine:
                 if finding.risk_score >= 0.7:
                     for pattern, name, _ in ClassificationEngine.SENSITIVE_PATTERNS:
                         if name == finding.pattern_name:
-                            content = re.sub(pattern, f'[REDACTED:{name}]', content, flags=re.IGNORECASE)
+                            content = re.sub(
+                                pattern,
+                                f"[REDACTED:{name}]",
+                                content,
+                                flags=re.IGNORECASE,
+                            )
                             break
 
-            with open(output_path, 'w', encoding='utf-8') as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 f.write(content)
 
             return True
@@ -808,9 +887,11 @@ class SanitizationEngine:
             shutil.copy2(filepath, output_path)
             return False
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 # DAG EXECUTOR
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class DAGExecutor:
     """Directed Acyclic Graph task executor with dependency resolution"""
@@ -881,7 +962,9 @@ class DAGExecutor:
             if task.retry_count < task.max_retries:
                 task.status = TaskStatus.PENDING
                 if logger:
-                    logger.warning(f"Retrying task {task.name} ({task.retry_count}/{task.max_retries})")
+                    logger.warning(
+                        f"Retrying task {task.name} ({task.retry_count}/{task.max_retries})"
+                    )
 
             return False
 
@@ -895,8 +978,12 @@ class DAGExecutor:
 
                 if not ready_tasks:
                     # Check if all done or blocked
-                    pending = [t for t in self.tasks.values() if t.status == TaskStatus.PENDING]
-                    running = [t for t in self.tasks.values() if t.status == TaskStatus.RUNNING]
+                    pending = [
+                        t for t in self.tasks.values() if t.status == TaskStatus.PENDING
+                    ]
+                    running = [
+                        t for t in self.tasks.values() if t.status == TaskStatus.RUNNING
+                    ]
 
                     if not pending and not running:
                         break
@@ -911,7 +998,10 @@ class DAGExecutor:
                     continue
 
                 # Submit ready tasks
-                futures = {executor.submit(self.execute_task, task): task for task in ready_tasks}
+                futures = {
+                    executor.submit(self.execute_task, task): task
+                    for task in ready_tasks
+                }
 
                 for future in as_completed(futures):
                     task = futures[future]
@@ -925,20 +1015,34 @@ class DAGExecutor:
 
         # Compile results
         results = {
-            'total_tasks': len(self.tasks),
-            'completed': len([t for t in self.tasks.values() if t.status == TaskStatus.COMPLETED]),
-            'failed': len([t for t in self.tasks.values() if t.status == TaskStatus.FAILED]),
-            'blocked': len([t for t in self.tasks.values() if t.status == TaskStatus.BLOCKED]),
-            'duration': end_time - start_time,
-            'tasks': {tid: {'status': t.status.value, 'duration': t.duration, 'error': t.error}
-                     for tid, t in self.tasks.items()}
+            "total_tasks": len(self.tasks),
+            "completed": len(
+                [t for t in self.tasks.values() if t.status == TaskStatus.COMPLETED]
+            ),
+            "failed": len(
+                [t for t in self.tasks.values() if t.status == TaskStatus.FAILED]
+            ),
+            "blocked": len(
+                [t for t in self.tasks.values() if t.status == TaskStatus.BLOCKED]
+            ),
+            "duration": end_time - start_time,
+            "tasks": {
+                tid: {
+                    "status": t.status.value,
+                    "duration": t.duration,
+                    "error": t.error,
+                }
+                for tid, t in self.tasks.items()
+            },
         }
 
         return results
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 # PHANTOM PIPELINE
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class PhantomPipeline:
     """Main pipeline orchestrator"""
@@ -971,7 +1075,7 @@ class PhantomPipeline:
         conn = sqlite3.connect(str(self.db_path))
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS file_records (
                 record_id TEXT PRIMARY KEY,
                 original_path TEXT,
@@ -988,17 +1092,17 @@ class PhantomPipeline:
                 destination_path TEXT,
                 metadata JSON
             )
-        ''')
+        """)
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS pseudonym_map (
                 pseudonym TEXT PRIMARY KEY,
                 original_path TEXT,
                 created_at TEXT
             )
-        ''')
+        """)
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS audit_log (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp TEXT,
@@ -1006,7 +1110,7 @@ class PhantomPipeline:
                 record_id TEXT,
                 details TEXT
             )
-        ''')
+        """)
 
         conn.commit()
         conn.close()
@@ -1016,33 +1120,39 @@ class PhantomPipeline:
         conn = sqlite3.connect(str(self.db_path))
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT OR REPLACE INTO file_records 
             (record_id, original_path, original_name, pseudonym, classification,
              sensitivity, mime_type, extension, size, sha256, blake3, 
              processed_at, destination_path, metadata)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            record.record_id,
-            record.original_path,
-            record.original_name,
-            record.pseudonym,
-            record.classification,
-            record.sensitivity,
-            record.mime_type,
-            record.extension,
-            record.fingerprint_input.size,
-            record.fingerprint_input.sha256,
-            record.fingerprint_input.blake3,
-            record.processed_at,
-            record.destination_path,
-            json.dumps(record.to_dict())
-        ))
+        """,
+            (
+                record.record_id,
+                record.original_path,
+                record.original_name,
+                record.pseudonym,
+                record.classification,
+                record.sensitivity,
+                record.mime_type,
+                record.extension,
+                record.fingerprint_input.size,
+                record.fingerprint_input.sha256,
+                record.fingerprint_input.blake3,
+                record.processed_at,
+                record.destination_path,
+                json.dumps(record.to_dict()),
+            ),
+        )
 
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT OR REPLACE INTO pseudonym_map (pseudonym, original_path, created_at)
             VALUES (?, ?, ?)
-        ''', (record.pseudonym, record.original_path, record.processed_at))
+        """,
+            (record.pseudonym, record.original_path, record.processed_at),
+        )
 
         conn.commit()
         conn.close()
@@ -1052,10 +1162,13 @@ class PhantomPipeline:
         conn = sqlite3.connect(str(self.db_path))
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT INTO audit_log (timestamp, event_type, record_id, details)
             VALUES (?, ?, ?, ?)
-        ''', (datetime.now(UTC).isoformat(), event_type, record_id, details))
+        """,
+            (datetime.now(UTC).isoformat(), event_type, record_id, details),
+        )
 
         conn.commit()
         conn.close()
@@ -1079,21 +1192,27 @@ class PhantomPipeline:
             fingerprint_input = CryptoEngine.compute_fingerprint(filepath)
 
             # Step 2: Classify
-            classification, mime_type, sensitivity = ClassificationEngine.classify(filepath)
+            classification, mime_type, sensitivity = ClassificationEngine.classify(
+                filepath
+            )
 
             # Step 3: Generate pseudonym
             pseudonym = CryptoEngine.generate_pseudonym(
-                str_path,
-                filepath.suffix.lower(),
-                fingerprint_input.nonce
+                str_path, filepath.suffix.lower(), fingerprint_input.nonce
             )
 
             # Step 4: Scan for sensitive content (for text-based files)
             sensitive_findings = []
-            if classification in (Classification.DOCUMENTS, Classification.CODE,
-                                  Classification.CONFIGS, Classification.DATA,
-                                  Classification.LOGS):
-                sensitive_findings = ClassificationEngine.scan_sensitive_content(filepath)
+            if classification in (
+                Classification.DOCUMENTS,
+                Classification.CODE,
+                Classification.CONFIGS,
+                Classification.DATA,
+                Classification.LOGS,
+            ):
+                sensitive_findings = ClassificationEngine.scan_sensitive_content(
+                    filepath
+                )
 
                 # Upgrade sensitivity if findings
                 if sensitive_findings:
@@ -1117,7 +1236,7 @@ class PhantomPipeline:
                 extension=filepath.suffix.lower(),
                 fingerprint_input=fingerprint_input,
                 sensitive_findings=sensitive_findings,
-                processed_at=datetime.now(UTC).isoformat()
+                processed_at=datetime.now(UTC).isoformat(),
             )
 
             # Add auto-tags
@@ -1129,7 +1248,7 @@ class PhantomPipeline:
             if fingerprint_input.size > 100 * 1024 * 1024:
                 record.tags.add("large_file")
 
-            if filepath.name.startswith('.'):
+            if filepath.name.startswith("."):
                 record.tags.add("hidden_file")
 
             # Step 5: Determine destination
@@ -1144,17 +1263,26 @@ class PhantomPipeline:
                     if classification == Classification.IMAGES:
                         SanitizationEngine.strip_image_metadata(filepath, dest_path)
                         record.metadata_stripped = True
-                    elif classification == Classification.DOCUMENTS and mime_type == 'application/pdf':
+                    elif (
+                        classification == Classification.DOCUMENTS
+                        and mime_type == "application/pdf"
+                    ):
                         SanitizationEngine.strip_pdf_metadata(filepath, dest_path)
                         record.metadata_stripped = True
                     else:
                         shutil.copy2(filepath, dest_path)
 
                 elif self.ctx.sanitization_policy == SanitizationPolicy.REDACT_PII:
-                    if classification in (Classification.CODE, Classification.CONFIGS,
-                                          Classification.DATA, Classification.DOCUMENTS):
+                    if classification in (
+                        Classification.CODE,
+                        Classification.CONFIGS,
+                        Classification.DATA,
+                        Classification.DOCUMENTS,
+                    ):
                         if sensitive_findings:
-                            SanitizationEngine.sanitize_text_pii(filepath, dest_path, sensitive_findings)
+                            SanitizationEngine.sanitize_text_pii(
+                                filepath, dest_path, sensitive_findings
+                            )
                             record.content_modified = True
                         else:
                             shutil.copy2(filepath, dest_path)
@@ -1201,8 +1329,11 @@ class PhantomPipeline:
             record.processing_duration_ms = (time.time() - start_time) * 1000
 
             logger.success(f"✓ {filepath.name} → {classification.value}/{pseudonym}")
-            self._audit_event("FILE_PROCESSED", record_id,
-                            f"{str_path} -> {pseudonym} ({classification.value})")
+            self._audit_event(
+                "FILE_PROCESSED",
+                record_id,
+                f"{str_path} -> {pseudonym} ({classification.value})",
+            )
 
             return record
 
@@ -1218,8 +1349,8 @@ class PhantomPipeline:
     def discover_files(self) -> list[Path]:
         """Discover all files in input directory"""
         files = []
-        for item in self.ctx.input_dir.rglob('*'):
-            if item.is_file() and not item.name.startswith('.phantom'):
+        for item in self.ctx.input_dir.rglob("*"):
+            if item.is_file() and not item.name.startswith(".phantom"):
                 files.append(item)
         return files
 
@@ -1259,20 +1390,29 @@ class PhantomPipeline:
         report = self._generate_report(end_time - start_time)
 
         # Save report
-        report_path = self.ctx.output_dir / ".phantom" / "reports" / f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(report_path, 'w') as f:
+        report_path = (
+            self.ctx.output_dir
+            / ".phantom"
+            / "reports"
+            / f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        )
+        with open(report_path, "w") as f:
             json.dump(report, f, indent=2, default=str)
 
         logger.success(f"Report saved: {report_path}")
 
         # Save pseudonym map
         map_path = self.ctx.output_dir / ".phantom" / "pseudonym_map.json"
-        with open(map_path, 'w') as f:
-            json.dump({
-                'version': VERSION,
-                'created': datetime.now(UTC).isoformat(),
-                'mappings': self.ctx.pseudonym_map
-            }, f, indent=2)
+        with open(map_path, "w") as f:
+            json.dump(
+                {
+                    "version": VERSION,
+                    "created": datetime.now(UTC).isoformat(),
+                    "mappings": self.ctx.pseudonym_map,
+                },
+                f,
+                indent=2,
+            )
 
         self._print_summary(report)
 
@@ -1292,40 +1432,44 @@ class PhantomPipeline:
                 sensitive_file_count += 1
 
         return {
-            'phantom_version': VERSION,
-            'codename': CODENAME,
-            'generated_at': datetime.now(UTC).isoformat(),
-            'pipeline': {
-                'input_directory': str(self.ctx.input_dir),
-                'output_directory': str(self.ctx.output_dir),
-                'dry_run': self.ctx.dry_run,
-                'workers': self.ctx.workers,
-                'sanitization_policy': self.ctx.sanitization_policy.value
+            "phantom_version": VERSION,
+            "codename": CODENAME,
+            "generated_at": datetime.now(UTC).isoformat(),
+            "pipeline": {
+                "input_directory": str(self.ctx.input_dir),
+                "output_directory": str(self.ctx.output_dir),
+                "dry_run": self.ctx.dry_run,
+                "workers": self.ctx.workers,
+                "sanitization_policy": self.ctx.sanitization_policy.value,
             },
-            'statistics': {
-                'total_files': self.ctx.total_files,
-                'processed': self.ctx.processed,
-                'failed': self.ctx.failed,
-                'quarantined': self.ctx.quarantined,
-                'success_rate': f"{(self.ctx.processed / max(self.ctx.total_files, 1)) * 100:.2f}%",
-                'total_bytes': self.ctx.total_bytes,
-                'total_size_human': self._human_size(self.ctx.total_bytes),
-                'duration_seconds': f"{duration:.2f}",
-                'throughput_files_per_sec': f"{self.ctx.processed / max(duration, 0.001):.2f}",
-                'throughput_mb_per_sec': f"{(self.ctx.total_bytes / 1024 / 1024) / max(duration, 0.001):.2f}",
-                'files_with_sensitive_data': sensitive_file_count
+            "statistics": {
+                "total_files": self.ctx.total_files,
+                "processed": self.ctx.processed,
+                "failed": self.ctx.failed,
+                "quarantined": self.ctx.quarantined,
+                "success_rate": f"{(self.ctx.processed / max(self.ctx.total_files, 1)) * 100:.2f}%",
+                "total_bytes": self.ctx.total_bytes,
+                "total_size_human": self._human_size(self.ctx.total_bytes),
+                "duration_seconds": f"{duration:.2f}",
+                "throughput_files_per_sec": f"{self.ctx.processed / max(duration, 0.001):.2f}",
+                "throughput_mb_per_sec": f"{(self.ctx.total_bytes / 1024 / 1024) / max(duration, 0.001):.2f}",
+                "files_with_sensitive_data": sensitive_file_count,
             },
-            'classification_breakdown': dict(by_classification),
-            'sensitivity_breakdown': {
+            "classification_breakdown": dict(by_classification),
+            "sensitivity_breakdown": {
                 Sensitivity(k).name: v for k, v in sorted(by_sensitivity.items())
             },
-            'extension_breakdown': dict(sorted(by_extension.items(), key=lambda x: -x[1])[:20]),
-            'records': {k: v.to_dict() for k, v in list(self.ctx.records.items())[:100]}  # First 100
+            "extension_breakdown": dict(
+                sorted(by_extension.items(), key=lambda x: -x[1])[:20]
+            ),
+            "records": {
+                k: v.to_dict() for k, v in list(self.ctx.records.items())[:100]
+            },  # First 100
         }
 
     def _human_size(self, size: int) -> str:
         """Convert bytes to human readable"""
-        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        for unit in ["B", "KB", "MB", "GB", "TB"]:
             if size < 1024:
                 return f"{size:.2f} {unit}"
             size /= 1024
@@ -1333,7 +1477,8 @@ class PhantomPipeline:
 
     def _print_banner(self):
         """Print startup banner"""
-        banner = """
+        banner = (
+            """
 \033[0;35m╔══════════════════════════════════════════════════════════════════════════════╗
 ║  ██████╗ ██╗  ██╗ █████╗ ███╗   ██╗████████╗ ██████╗ ███╗   ███╗              ║
 ║  ██╔══██╗██║  ██║██╔══██╗████╗  ██║╚══██╔══╝██╔═══██╗████╗ ████║              ║
@@ -1341,53 +1486,60 @@ class PhantomPipeline:
 ║  ██╔═══╝ ██╔══██║██╔══██║██║╚██╗██║   ██║   ██║   ██║██║╚██╔╝██║              ║
 ║  ██║     ██║  ██║██║  ██║██║ ╚████║   ██║   ╚██████╔╝██║ ╚═╝ ██║              ║
 ║  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝    ╚═════╝ ╚═╝     ╚═╝              ║
-║  DAG ORCHESTRATOR v""" + VERSION + """                                                         ║
+║  DAG ORCHESTRATOR v"""
+            + VERSION
+            + """                                                         ║
 ║  ──────────────────────────────────────────────────────────────────────────── ║
 ║  NSA-Grade Data Classification & Sanitization Pipeline                        ║
 ╚══════════════════════════════════════════════════════════════════════════════╝\033[0m
 """
+        )
         print(banner)
 
     def _print_summary(self, report: dict):
         """Print execution summary"""
-        stats = report['statistics']
+        stats = report["statistics"]
         print(f"""
 \033[0;32m╔══════════════════════════════════════════════════════════════════════════════╗
 ║                           EXECUTION SUMMARY                                    ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║  Total Files:           {stats['total_files']:>10}                                          ║
-║  Processed:             {stats['processed']:>10}                                          ║
-║  Failed:                {stats['failed']:>10}                                          ║
-║  Quarantined:           {stats['quarantined']:>10}                                          ║
-║  Success Rate:          {stats['success_rate']:>10}                                          ║
-║  Total Size:            {stats['total_size_human']:>10}                                          ║
-║  Duration:              {stats['duration_seconds']:>10}s                                         ║
-║  Throughput:            {stats['throughput_files_per_sec']:>10} files/sec                               ║
-║  Sensitive Files:       {stats['files_with_sensitive_data']:>10}                                          ║
+║  Total Files:           {stats["total_files"]:>10}                                          ║
+║  Processed:             {stats["processed"]:>10}                                          ║
+║  Failed:                {stats["failed"]:>10}                                          ║
+║  Quarantined:           {stats["quarantined"]:>10}                                          ║
+║  Success Rate:          {stats["success_rate"]:>10}                                          ║
+║  Total Size:            {stats["total_size_human"]:>10}                                          ║
+║  Duration:              {stats["duration_seconds"]:>10}s                                         ║
+║  Throughput:            {stats["throughput_files_per_sec"]:>10} files/sec                               ║
+║  Sensitive Files:       {stats["files_with_sensitive_data"]:>10}                                          ║
 ╚══════════════════════════════════════════════════════════════════════════════╝\033[0m
 """)
 
         # Classification breakdown
         print("\n\033[0;36m📊 Classification Breakdown:\033[0m")
-        for cls, count in sorted(report['classification_breakdown'].items(), key=lambda x: -x[1]):
-            pct = (count / max(stats['processed'], 1)) * 100
-            bar = '█' * int(pct / 5) + '░' * (20 - int(pct / 5))
+        for cls, count in sorted(
+            report["classification_breakdown"].items(), key=lambda x: -x[1]
+        ):
+            pct = (count / max(stats["processed"], 1)) * 100
+            bar = "█" * int(pct / 5) + "░" * (20 - int(pct / 5))
             print(f"  {cls:15} {bar} {count:>5} ({pct:5.1f}%)")
 
         # Sensitivity breakdown
         print("\n\033[0;33m🔒 Sensitivity Breakdown:\033[0m")
-        for sens, count in report['sensitivity_breakdown'].items():
+        for sens, count in report["sensitivity_breakdown"].items():
             print(f"  {sens:15} {count:>5}")
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # CLI INTERFACE
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description='PHANTOM DAG ORCHESTRATOR - NSA-Grade Data Classification Pipeline',
+        description="PHANTOM DAG ORCHESTRATOR - NSA-Grade Data Classification Pipeline",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -1395,18 +1547,26 @@ Examples:
   phantom-dag -i /data/dump -o /data/organized --sanitize full
   phantom-dag -i ./input -o ./output -w 16 -v --dry-run
   phantom-dag --resolve PH-abc123-def456.pdf
-"""
+""",
     )
 
-    parser.add_argument('-i', '--input', required=True, help='Input directory')
-    parser.add_argument('-o', '--output', required=True, help='Output directory')
-    parser.add_argument('-w', '--workers', type=int, default=None, help='Worker threads')
-    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
-    parser.add_argument('--dry-run', action='store_true', help='Simulate without moving files')
-    parser.add_argument('--sanitize', choices=['none', 'strip', 'pii', 'full'], default='strip',
-                       help='Sanitization policy')
-    parser.add_argument('--resolve', help='Resolve pseudonym to original path')
-    parser.add_argument('--version', action='version', version=f'PHANTOM-DAG {VERSION}')
+    parser.add_argument("-i", "--input", required=True, help="Input directory")
+    parser.add_argument("-o", "--output", required=True, help="Output directory")
+    parser.add_argument(
+        "-w", "--workers", type=int, default=None, help="Worker threads"
+    )
+    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Simulate without moving files"
+    )
+    parser.add_argument(
+        "--sanitize",
+        choices=["none", "strip", "pii", "full"],
+        default="strip",
+        help="Sanitization policy",
+    )
+    parser.add_argument("--resolve", help="Resolve pseudonym to original path")
+    parser.add_argument("--version", action="version", version=f"PHANTOM-DAG {VERSION}")
 
     args = parser.parse_args()
 
@@ -1417,15 +1577,15 @@ Examples:
     logger = PhantomLogger(
         "phantom-dag",
         log_file=log_dir / f"phantom_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log",
-        verbose=args.verbose
+        verbose=args.verbose,
     )
 
     # Sanitization policy mapping
     sanitize_map = {
-        'none': SanitizationPolicy.NONE,
-        'strip': SanitizationPolicy.STRIP_METADATA,
-        'pii': SanitizationPolicy.REDACT_PII,
-        'full': SanitizationPolicy.FULL_SANITIZE
+        "none": SanitizationPolicy.NONE,
+        "strip": SanitizationPolicy.STRIP_METADATA,
+        "pii": SanitizationPolicy.REDACT_PII,
+        "full": SanitizationPolicy.FULL_SANITIZE,
     }
 
     # Create context
@@ -1440,7 +1600,9 @@ Examples:
         workers=args.workers or os.cpu_count(),
         dry_run=args.dry_run,
         verbose=args.verbose,
-        sanitization_policy=sanitize_map.get(args.sanitize, SanitizationPolicy.STRIP_METADATA)
+        sanitization_policy=sanitize_map.get(
+            args.sanitize, SanitizationPolicy.STRIP_METADATA
+        ),
     )
 
     # Execute pipeline
@@ -1449,5 +1611,6 @@ Examples:
 
     logger.close()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

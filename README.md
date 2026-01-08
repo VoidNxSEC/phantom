@@ -17,10 +17,13 @@
 
 *Production-grade document intelligence, RAG pipeline, and AI classification system*
 
+[![CI](https://github.com/marcosfpina/phantom/actions/workflows/ci.yml/badge.svg)](https://github.com/marcosfpina/phantom/actions/workflows/ci.yml)
+[![Security](https://github.com/marcosfpina/phantom/actions/workflows/security.yml/badge.svg)](https://github.com/marcosfpina/phantom/actions/workflows/security.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![NixOS](https://img.shields.io/badge/NixOS-5277C3.svg?logo=nixos&logoColor=white)](https://nixos.org/)
 [![Rust](https://img.shields.io/badge/Rust-000000.svg?logo=rust&logoColor=white)](https://www.rust-lang.org/)
+
 [![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-fe5196.svg?logo=conventionalcommits)](https://conventionalcommits.org)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)

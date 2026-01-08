@@ -20,6 +20,7 @@ BATCH_SIZE = 32
 @dataclass
 class EmbeddingResult:
     """Result from embedding generation."""
+
     embeddings: np.ndarray
     model: str
     dimension: int
@@ -29,7 +30,7 @@ class EmbeddingResult:
 class EmbeddingGenerator:
     """
     Generate embeddings using sentence-transformers.
-    
+
     Supports multiple backends and models for flexibility.
     """
 
@@ -41,7 +42,7 @@ class EmbeddingGenerator:
     ):
         """
         Initialize embedding model.
-        
+
         Args:
             model_name: HuggingFace model name
             device: "cpu" or "cuda"
@@ -59,15 +60,20 @@ class EmbeddingGenerator:
         if self._model is None:
             try:
                 from sentence_transformers import SentenceTransformer
+
                 self._model = SentenceTransformer(
                     self.model_name,
                     device=self.device,
                     cache_folder=str(self.cache_dir) if self.cache_dir else None,
                 )
                 self._dimension = self._model.get_sentence_embedding_dimension()
-                logger.info(f"Loaded embedding model: {self.model_name} (dim={self._dimension})")
+                logger.info(
+                    f"Loaded embedding model: {self.model_name} (dim={self._dimension})"
+                )
             except ImportError:
-                raise ImportError("sentence-transformers required: pip install sentence-transformers")
+                raise ImportError(
+                    "sentence-transformers required: pip install sentence-transformers"
+                )
         return self._model
 
     @property
@@ -86,13 +92,13 @@ class EmbeddingGenerator:
     ) -> np.ndarray:
         """
         Generate embeddings for texts.
-        
+
         Args:
             texts: List of text strings
             batch_size: Batch size for encoding
             show_progress: Show progress bar
             normalize: L2 normalize embeddings
-            
+
         Returns:
             numpy array of shape (len(texts), embedding_dim)
         """

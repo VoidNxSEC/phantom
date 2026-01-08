@@ -4,11 +4,11 @@ Phantom Core - Embeddings Generator.
 Uses sentence-transformers for semantic embeddings.
 """
 
-import numpy as np
-from pathlib import Path
-from typing import List, Dict, Optional, Union
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
+from pathlib import Path
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -32,12 +32,12 @@ class EmbeddingGenerator:
     
     Supports multiple backends and models for flexibility.
     """
-    
+
     def __init__(
         self,
         model_name: str = DEFAULT_MODEL,
         device: str = "cpu",
-        cache_dir: Optional[Path] = None,
+        cache_dir: Path | None = None,
     ):
         """
         Initialize embedding model.
@@ -51,8 +51,8 @@ class EmbeddingGenerator:
         self.device = device
         self.cache_dir = cache_dir
         self._model = None
-        self._dimension: Optional[int] = None
-    
+        self._dimension: int | None = None
+
     @property
     def model(self):
         """Lazy load model on first use."""
@@ -69,17 +69,17 @@ class EmbeddingGenerator:
             except ImportError:
                 raise ImportError("sentence-transformers required: pip install sentence-transformers")
         return self._model
-    
+
     @property
     def dimension(self) -> int:
         """Get embedding dimension."""
         if self._dimension is None:
             _ = self.model  # Trigger lazy load
         return self._dimension  # type: ignore
-    
+
     def encode(
         self,
-        texts: List[str],
+        texts: list[str],
         batch_size: int = BATCH_SIZE,
         show_progress: bool = False,
         normalize: bool = True,
@@ -104,14 +104,14 @@ class EmbeddingGenerator:
             convert_to_numpy=True,
         )
         return embeddings
-    
+
     def encode_single(self, text: str, normalize: bool = True) -> np.ndarray:
         """Encode single text."""
         return self.encode([text], normalize=normalize)[0]
-    
+
     def encode_with_metadata(
         self,
-        texts: List[str],
+        texts: list[str],
         batch_size: int = BATCH_SIZE,
     ) -> EmbeddingResult:
         """Encode texts and return with metadata."""

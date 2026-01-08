@@ -1,26 +1,24 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 CORTEX API - FastAPI Backend for Cortex Desktop
 Exposes Cortex and Spectre engines via HTTP endpoints.
 """
 
+import logging
 import os
 import shutil
 import tempfile
-import logging
 from pathlib import Path
-from typing import Optional, List, Dict, Any
-from enum import Enum
+from typing import Any
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Query
+from fastapi import BackgroundTasks, FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 # Import Core Engines
 try:
-    from cortex import MarkdownProcessor, MarkdownInsights
-    from spectre import SpectreAnalyzer, DocumentAnalysis
+    from cortex import MarkdownInsights, MarkdownProcessor
+    from spectre import DocumentAnalysis, SpectreAnalyzer
 except ImportError as e:
     print(f"CRITICAL: Failed to import core engines: {e}")
     sys.exit(1)
@@ -55,14 +53,14 @@ app.add_middleware(
 
 class ProcessResponse(BaseModel):
     filename: str
-    insights: Dict[str, Any]
+    insights: dict[str, Any]
     processing_time: float
 
 class AnalyzeResponse(BaseModel):
     filename: str
-    sentiment: Dict[str, Any]
-    entities: List[Dict[str, Any]]
-    topics: List[Dict[str, Any]]
+    sentiment: dict[str, Any]
+    entities: list[dict[str, Any]]
+    topics: list[dict[str, Any]]
 
 # ═══════════════════════════════════════════════════════════════
 # UTILITIES
@@ -92,7 +90,7 @@ def cleanup_file(path: Path):
 @app.get("/health")
 async def health_check():
     return {
-        "status": "operational", 
+        "status": "operational",
         "version": "1.0.0",
         "engines": {
             "cortex": "loaded",
@@ -104,23 +102,23 @@ async def health_check():
 async def process_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    chunk_strategy: Optional[str] = Query(None, description="Chunking strategy: recursive, sliding, simple"),
+    chunk_strategy: str | None = Query(None, description="Chunking strategy: recursive, sliding, simple"),
     chunk_size: int = 1024
 ):
     """
     Process a document using CORTEX (LLM Extraction).
     """
     logger.info(f"Processing upload: {file.filename}")
-    
+
     tmp_path = save_upload_file(file)
     background_tasks.add_task(cleanup_file, tmp_path)
-    
+
     try:
         # Initialize Processor
         # Note: In a real app, we might want to reuse the processor or use a queue
         # For now, we instantiate per request but point to a dummy output file
         dummy_output = TEMP_DIR / f"{uuid.uuid4()}.jsonl"
-        
+
         processor = MarkdownProcessor(
             input_dir=str(TEMP_DIR), # Dummy, not used for single file logic refactor might be needed
             output_file=str(dummy_output),
@@ -128,26 +126,26 @@ async def process_document(
             chunk_size=chunk_size,
             verbose=False
         )
-        
+
         # We need to hack/refactor MarkdownProcessor slightly or use internal method
         # The current CORTEX implementation scans a directory.
         # Let's call the internal method directly.
-        
+
         insights = processor.process_single_file(tmp_path)
-        
+
         if not insights:
             raise HTTPException(status_code=500, detail="Failed to extract insights")
-            
+
         # Clean up the dummy output if created
         if dummy_output.exists():
             os.remove(dummy_output)
-            
+
         return ProcessResponse(
             filename=file.filename,
             insights=insights.dict(),
             processing_time=insights.processing_time_seconds
         )
-        
+
     except Exception as e:
         logger.error(f"Error processing {file.filename}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -161,30 +159,31 @@ async def analyze_document(
     Analyze a document using SPECTRE (Sentiment & Entities).
     """
     logger.info(f"Analyzing upload: {file.filename}")
-    
+
     tmp_path = save_upload_file(file)
     background_tasks.add_task(cleanup_file, tmp_path)
-    
+
     try:
         analyzer = SpectreAnalyzer()
         analysis = analyzer.analyze_document(tmp_path)
-        
+
         if not analysis:
             raise HTTPException(status_code=500, detail="Analysis failed")
-            
+
         return AnalyzeResponse(
             filename=file.filename,
             sentiment=analysis.sentiment.to_dict() if analysis.sentiment else {},
             entities=[asdict(e) for e in analysis.entities],
             topics=[asdict(t) for t in analysis.topics]
         )
-        
+
     except Exception as e:
         logger.error(f"Error analyzing {file.filename}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    import uvicorn
     import uuid
+
+    import uvicorn
     # Dev server
     uvicorn.run(app, host="0.0.0.0", port=8000)

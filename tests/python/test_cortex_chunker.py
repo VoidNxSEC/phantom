@@ -1,6 +1,6 @@
 import pytest
 from pathlib import Path
-from cortex_chunker import MarkdownChunker, ChunkStrategy, Chunk
+from phantom.rag.cortex_chunker import MarkdownChunker, ChunkStrategy, Chunk
 
 @pytest.fixture
 def sample_markdown():

@@ -10,7 +10,6 @@ Usage:
 import argparse
 import sys
 from dataclasses import dataclass
-from typing import Optional
 
 # ═══════════════════════════════════════════════════════════════
 # CONFIGURATION
@@ -58,12 +57,12 @@ class VRAMBreakdown:
     kv_cache_gb: float
     overhead_gb: float
     batch_gb: float
-    
+
     @property
     def total_gb(self) -> float:
         return self.model_gb + self.kv_cache_gb + self.overhead_gb + self.batch_gb
-    
-    def format_report(self, gpu_vram: Optional[float] = None) -> str:
+
+    def format_report(self, gpu_vram: float | None = None) -> str:
         """Format detailed report"""
         lines = []
         lines.append("╔═══════════════════════════════════════════════╗")
@@ -77,21 +76,21 @@ class VRAMBreakdown:
         lines.append(f"  Batch:        {self.batch_gb:>6.2f} GB")
         lines.append("  " + "─" * 20)
         lines.append(f"  TOTAL:        {self.total_gb:>6.2f} GB")
-        
+
         if gpu_vram:
             lines.append("")
             lines.append("🎮 GPU Information:")
             lines.append(f"  GPU VRAM:     {gpu_vram:>6.2f} GB")
             free = gpu_vram - self.total_gb
             lines.append(f"  Free:         {free:>6.2f} GB")
-            
+
             # Status
             status_color = {
                 'critical': '🔴',
                 'warning': '🟡',
                 'ok': '🟢',
             }
-            
+
             if free < 1.0:
                 status = 'critical'
                 msg = "CRITICAL - Not enough VRAM!"
@@ -101,9 +100,9 @@ class VRAMBreakdown:
             else:
                 status = 'ok'
                 msg = "OK - Safe to run"
-            
+
             lines.append(f"  Status:       {status_color[status]} {msg}")
-            
+
             # Recommendations
             if free < 2.0:
                 lines.append("")
@@ -118,7 +117,7 @@ class VRAMBreakdown:
                     lines.append("  ⚠️  Very tight! Consider:")
                     lines.append("     • Reducing context size")
                     lines.append("     • Lower quantization for safety")
-        
+
         return "\n".join(lines)
 
 
@@ -143,14 +142,14 @@ def calculate_vram(
     # Model VRAM
     if quantization not in QUANTIZATION_FACTORS:
         raise ValueError(f"Unknown quantization: {quantization}. Available: {list(QUANTIZATION_FACTORS.keys())}")
-    
+
     factor = QUANTIZATION_FACTORS[quantization]
     model_gb = model_size_b * factor
-    
+
     # KV Cache VRAM (simplified formula)
     # More accurate would need model specs, but this is a good approximation
     kv_cache_gb = context_size * 0.00073  # Empirical for ~30B models
-    
+
     # If we have model specs, use more accurate formula
     model_size_int = int(round(model_size_b))
     if model_size_int in MODEL_SPECS:
@@ -158,10 +157,10 @@ def calculate_vram(
         # VRAM_kv = 2 × layers × hidden_dim × context_size × precision / (8 × 1024³)
         # Assuming FP16 precision (2 bytes)
         kv_cache_gb = (2 * specs['layers'] * specs['hidden_dim'] * context_size * 2) / (8 * 1024**3)
-    
+
     # Batch overhead (minimal for llama.cpp)
     batch_gb = batch_size * context_size * 0.0002 if batch_size > 1 else 0.0
-    
+
     return VRAMBreakdown(
         model_gb=model_gb,
         kv_cache_gb=kv_cache_gb,
@@ -170,7 +169,7 @@ def calculate_vram(
     )
 
 
-def get_gpu_vram() -> Optional[float]:
+def get_gpu_vram() -> float | None:
     """Try to detect GPU VRAM"""
     try:
         import subprocess
@@ -185,7 +184,7 @@ def get_gpu_vram() -> Optional[float]:
             return vram_mb / 1024  # Convert to GB
     except:
         pass
-    
+
     return None
 
 
@@ -194,29 +193,29 @@ def interactive_mode():
     print("\n╔═══════════════════════════════════════════════╗")
     print("║  VRAM Calculator - Interactive Mode           ║")
     print("╚═══════════════════════════════════════════════╝\n")
-    
+
     # Model size
     print("📦 Model Size (in billions of parameters)")
     print("   Common: 7, 13, 30, 34, 70")
     model_size = float(input("   Enter model size: "))
-    
+
     # Quantization
     print("\n🔢 Quantization Type")
     print(f"   Available: {', '.join(QUANTIZATION_FACTORS.keys())}")
     print("   Recommended: Q4_K_M (best quality/size balance)")
     quantization = input("   Enter quantization: ").upper()
-    
+
     # Context size
     print("\n📝 Context Size (in tokens)")
     print("   Common: 2048, 4096, 8192, 16384")
     context_size = int(input("   Enter context size: "))
-    
+
     # Batch size
     print("\n📊 Batch Size")
     print("   Default: 1 (llama.cpp server)")
     batch_input = input("   Enter batch size [1]: ").strip()
     batch_size = int(batch_input) if batch_input else 1
-    
+
     # GPU VRAM
     auto_vram = get_gpu_vram()
     if auto_vram:
@@ -227,7 +226,7 @@ def interactive_mode():
         print("\n🎮 GPU VRAM (optional)")
         vram_input = input("   Enter GPU VRAM in GB (or press Enter to skip): ").strip()
         gpu_vram = float(vram_input) if vram_input else None
-    
+
     # Calculate
     print("\n🔄 Calculating...\n")
     breakdown = calculate_vram(model_size, quantization, context_size, batch_size)
@@ -251,7 +250,7 @@ Examples:
   %(prog)s -m 7 -q Q4_K_M -c 4096
         """
     )
-    
+
     parser.add_argument(
         '-i', '--interactive',
         action='store_true',
@@ -288,25 +287,25 @@ Examples:
         action='store_true',
         help='Auto-detect GPU VRAM with nvidia-smi'
     )
-    
+
     args = parser.parse_args()
-    
+
     # Interactive mode
     if args.interactive:
         interactive_mode()
         return
-    
+
     # Check required arguments
     if not all([args.model_size, args.quantization, args.context_size]):
         parser.error("--model-size, --quantization, and --context-size are required (or use --interactive)")
-    
+
     # Auto-detect GPU if requested
     gpu_vram = args.gpu_vram
     if args.auto_detect and not gpu_vram:
         gpu_vram = get_gpu_vram()
         if gpu_vram:
             print(f"🎮 Detected GPU VRAM: {gpu_vram:.1f} GB\n")
-    
+
     # Calculate
     try:
         breakdown = calculate_vram(
@@ -315,14 +314,14 @@ Examples:
             args.context_size,
             args.batch_size
         )
-        
+
         print(breakdown.format_report(gpu_vram))
         print()
-        
+
         # Exit code based on fit
         if gpu_vram and breakdown.total_gb > gpu_vram:
             sys.exit(1)  # Won't fit
-        
+
     except ValueError as e:
         print(f"❌ Error: {e}")
         sys.exit(1)

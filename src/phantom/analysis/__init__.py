@@ -1,31 +1,37 @@
 """
-Phantom Analysis - Sentiment, entities, topics, and viability scoring.
+Phantom Analysis - Sentiment, AI analysis, and viability scoring.
 
 Classes:
-    SentimentAnalyzer - Multi-dimensional sentiment analysis
-    EntityExtractor - Named entity recognition
-    TopicModeler - Topic modeling and extraction
+    SentimentEngine - Sentiment analysis engine
+    SpectreAnalyzer - Comprehensive document analysis
     ViabilityScorer - Project viability assessment
+    AIAnalyzer - AI-powered analysis
+    LatencyOptimizer - Performance optimization
 """
 
 def __getattr__(name):
-    if name == "SentimentAnalyzer":
-        from phantom.analysis.sentiment import SentimentAnalyzer
-        return SentimentAnalyzer
-    if name == "EntityExtractor":
-        from phantom.analysis.entities import EntityExtractor
-        return EntityExtractor
-    if name == "TopicModeler":
-        from phantom.analysis.topics import TopicModeler
-        return TopicModeler
+    if name == "SentimentEngine" or name == "SentimentAnalyzer":
+        from phantom.analysis.sentiment_analysis import SentimentEngine
+        return SentimentEngine
+    if name == "SpectreAnalyzer":
+        from phantom.analysis.spectre import SpectreAnalyzer
+        return SpectreAnalyzer
     if name == "ViabilityScorer":
-        from phantom.analysis.viability import ViabilityScorer
+        from phantom.analysis.viability_scorer import ViabilityScorer
         return ViabilityScorer
+    if name == "AIAnalyzer":
+        from phantom.analysis.ai_analyzer import AIAnalyzer
+        return AIAnalyzer
+    if name == "LatencyOptimizer":
+        from phantom.analysis.latency_optimizer import LatencyOptimizer
+        return LatencyOptimizer
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 __all__ = [
-    "SentimentAnalyzer",
-    "EntityExtractor", 
-    "TopicModeler",
+    "SentimentEngine",
+    "SentimentAnalyzer",  # Alias for SentimentEngine
+    "SpectreAnalyzer",
     "ViabilityScorer",
+    "AIAnalyzer",
+    "LatencyOptimizer",
 ]

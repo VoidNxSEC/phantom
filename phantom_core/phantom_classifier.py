@@ -1,5 +1,25 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-""
+# -*- coding: utf-8 -*-
+"""
+DEPRECATED: This module is deprecated and will be removed in v3.0.0.
+Please use the new modular structure under `phantom.*` instead.
+
+Migration:
+    from phantom.core import CortexProcessor
+    from phantom.pipeline import FileClassifier, DAGPipeline
+
+See phantom_core/DEPRECATED.md for full migration guide.
+"""
+import warnings
+
+warnings.warn(
+    "phantom_core is deprecated. Use phantom.* modules instead. "
+    "See phantom_core/DEPRECATED.md for migration guide.",
+    DeprecationWarning,
+    stacklevel=2
+)
+
+"""
 ╔══════════════════════════════════════════════════════════════════╗
 ║  PHANTOM CLASSIFIER v2.0 - NSA-Grade Data Pipeline              ║
 ║  ─────────────────────────────────────────────────────────────── ║
@@ -9,7 +29,7 @@
 ║  • Intelligent multi-level classification                        ║
 ║  • Forensic-grade audit trails                                   ║
 ╚══════════════════════════════════════════════════════════════════╝
-""
+"""
 
 import os
 import sys

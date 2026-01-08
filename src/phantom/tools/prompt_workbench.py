@@ -4,13 +4,13 @@ CORTEX - Prompt Workbench
 Testing and validation framework for prompts
 """
 
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass
-from pathlib import Path
 import json
 import time
-from prompt_pipeline import PromptPipeline, PromptTemplate, TokenCounter
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
+from prompt_pipeline import PromptPipeline, PromptTemplate, TokenCounter
 
 # ═══════════════════════════════════════════════════════════════
 # DATA STRUCTURES
@@ -21,8 +21,8 @@ class PromptTest:
     """Test case for prompt"""
     name: str
     template: str
-    variables: Dict[str, Any]
-    expected_keywords: List[str] = None
+    variables: dict[str, Any]
+    expected_keywords: list[str] = None
     max_tokens: int = 2048
     min_quality_score: float = 0.7
 
@@ -36,7 +36,7 @@ class TestResult:
     tokens_used: int
     latency_ms: float
     quality_score: float
-    errors: List[str] = None
+    errors: list[str] = None
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -45,17 +45,17 @@ class TestResult:
 
 class PromptWorkbench:
     """Interactive prompt testing environment"""
-    
+
     def __init__(self, pipeline: PromptPipeline = None):
         self.pipeline = pipeline or PromptPipeline()
         self.token_counter = TokenCounter()
-        self.tests: List[PromptTest] = []
-    
+        self.tests: list[PromptTest] = []
+
     def render_template(
         self,
         template: str,
-        variables: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        variables: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Render template with variables and return analysis
         
@@ -68,25 +68,25 @@ class PromptWorkbench:
         try:
             # Create temporary template
             temp = PromptTemplate(template)
-            
+
             # Render
             rendered = temp.render(**variables)
-            
+
             # Count tokens
             tokens = self.token_counter.count(rendered)
-            
+
             # Check which variables were used
             variables_used = temp.variables
-            
+
             # Warnings
             warnings = []
             if tokens > 4000:
                 warnings.append(f"High token count: {tokens}")
-            
+
             unused = set(variables.keys()) - set(variables_used)
             if unused:
                 warnings.append(f"Unused variables: {unused}")
-            
+
             return {
                 "rendered": rendered,
                 "tokens": tokens,
@@ -94,17 +94,17 @@ class PromptWorkbench:
                 "warnings": warnings,
                 "success": True
             }
-            
+
         except Exception as e:
             return {
                 "success": False,
                 "error": str(e)
             }
-    
+
     def add_test(self, test: PromptTest):
         """Add test case"""
         self.tests.append(test)
-    
+
     def run_test(
         self,
         test: PromptTest,
@@ -119,11 +119,11 @@ class PromptWorkbench:
         """
         start = time.time()
         errors = []
-        
+
         try:
             # Render template
             result = self.render_template(test.template, test.variables)
-            
+
             if not result["success"]:
                 return TestResult(
                     test_name=test.name,
@@ -134,31 +134,31 @@ class PromptWorkbench:
                     quality_score=0.0,
                     errors=[result.get("error", "Unknown error")]
                 )
-            
+
             rendered = result["rendered"]
             tokens = result["tokens"]
-            
+
             # Check token limit
             if tokens > test.max_tokens:
                 errors.append(f"Token limit exceeded: {tokens} > {test.max_tokens}")
-            
+
             # If LLM function provided, test actual generation
             output = ""
             quality_score = 1.0
-            
+
             if llm_function:
                 output = llm_function(rendered)
-                
+
                 # Check for expected keywords
                 if test.expected_keywords:
                     found = sum(1 for kw in test.expected_keywords if kw.lower() in output.lower())
                     quality_score = found / len(test.expected_keywords)
-                    
+
                     if quality_score < test.min_quality_score:
                         errors.append(f"Quality score too low: {quality_score:.2f}")
-            
+
             latency = (time.time() - start) * 1000
-            
+
             return TestResult(
                 test_name=test.name,
                 passed=len(errors) == 0,
@@ -168,7 +168,7 @@ class PromptWorkbench:
                 quality_score=quality_score,
                 errors=errors if errors else None
             )
-            
+
         except Exception as e:
             return TestResult(
                 test_name=test.name,
@@ -179,17 +179,17 @@ class PromptWorkbench:
                 quality_score=0.0,
                 errors=[str(e)]
             )
-    
-    def run_all_tests(self, llm_function = None) -> List[TestResult]:
+
+    def run_all_tests(self, llm_function = None) -> list[TestResult]:
         """Run all test cases"""
         results = []
-        
+
         for test in self.tests:
             result = self.run_test(test, llm_function)
             results.append(result)
-        
+
         return results
-    
+
     def save_tests(self, filepath: Path):
         """Save tests to JSON file"""
         data = [
@@ -203,15 +203,15 @@ class PromptWorkbench:
             }
             for t in self.tests
         ]
-        
+
         with open(filepath, 'w') as f:
             json.dump(data, f, indent=2)
-    
+
     def load_tests(self, filepath: Path):
         """Load tests from JSON file"""
         with open(filepath) as f:
             data = json.load(f)
-        
+
         self.tests = [
             PromptTest(
                 name=t["name"],
@@ -267,30 +267,30 @@ Now answer: {question}""",
 def main():
     """Test prompt workbench"""
     workbench = PromptWorkbench()
-    
+
     # Load default tests
     workbench.tests = DEFAULT_TESTS
-    
+
     print("=" * 60)
     print("PROMPT WORKBENCH - Test Suite")
     print("=" * 60)
-    
+
     # Run tests
     results = workbench.run_all_tests()
-    
+
     # Display results
     passed = sum(1 for r in results if r.passed)
-    
+
     for result in results:
         status = "✅ PASS" if result.passed else "❌ FAIL"
         print(f"\n{status} - {result.test_name}")
         print(f"   Tokens: {result.tokens_used}")
         print(f"   Latency: {result.latency_ms:.1f}ms")
         print(f"   Quality: {result.quality_score:.2f}")
-        
+
         if result.errors:
             print(f"   Errors: {', '.join(result.errors)}")
-    
+
     print(f"\n{'=' * 60}")
     print(f"Results: {passed}/{len(results)} tests passed")
     print(f"{'=' * 60}")

@@ -20,9 +20,9 @@ async def upload_files(
     Returns processing IDs for tracking
     """
     import uuid
-    
+
     results = []
-    
+
     for file in files:
         # Validate file type
         ext = Path(file.filename).suffix.lower()
@@ -33,16 +33,16 @@ async def upload_files(
                 "reason": f"Unsupported file type: {ext}"
             })
             continue
-        
+
         # Generate processing ID
         proc_id = str(uuid.uuid4())[:8]
-        
+
         # Save file temporarily
         with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
             content = await file.read()
             tmp.write(content)
             tmp_path = Path(tmp.name)
-        
+
         # Add to processing queue
         _processing_queue[proc_id] = {
             "filename": file.filename,
@@ -51,13 +51,13 @@ async def upload_files(
             "progress": 0,
             "started_at": datetime.now().isoformat()
         }
-        
+
         results.append({
             "filename": file.filename,
             "processing_id": proc_id,
             "status": "queued"
         })
-    
+
     return {
         "uploaded": len([r for r in results if r["status"] == "queued"]),
         "rejected": len([r for r in results if r["status"] == "rejected"]),
@@ -70,7 +70,7 @@ async def get_processing_status(processing_id: str):
     """Get file processing status"""
     if processing_id not in _processing_queue:
         raise HTTPException(status_code=404, detail="Processing ID not found")
-    
+
     return _processing_queue[processing_id]
 
 
@@ -96,11 +96,11 @@ async def set_api_keys(keys: Dict[str, str]):
     }
     """
     global _provider_keys
-    
+
     for provider, key in keys.items():
         if provider in _provider_keys:
             _provider_keys[provider] = key
-    
+
     return {
         "updated": list(keys.keys()),
         "status": "success"
@@ -130,7 +130,7 @@ async def test_prompt(request: PromptTestRequest):
         request.template,
         request.variables
     )
-    
+
     return result
 
 

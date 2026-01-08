@@ -25,24 +25,23 @@ __version__ = "2.0.0"
 __codename__ = "PHANTOM"
 
 # Core exports
-from phantom.core import (
-    CortexProcessor,
-    SemanticChunker,
-    EmbeddingGenerator,
-)
-
 # Analysis exports
 from phantom.analysis import (
-    SentimentAnalyzer,
-    EntityExtractor,
-    TopicModeler,
+    SentimentEngine,
+    SpectreAnalyzer,
+    ViabilityScorer,
+)
+from phantom.core import (
+    CortexProcessor,
+    EmbeddingGenerator,
+    SemanticChunker,
 )
 
 # Pipeline exports
 from phantom.pipeline import (
     DAGPipeline,
-    FileClassifier,
     DataSanitizer,
+    FileClassifier,
 )
 
 __all__ = [
@@ -51,12 +50,12 @@ __all__ = [
     "__codename__",
     # Core
     "CortexProcessor",
-    "SemanticChunker", 
+    "SemanticChunker",
     "EmbeddingGenerator",
     # Analysis
-    "SentimentAnalyzer",
-    "EntityExtractor",
-    "TopicModeler",
+    "SentimentEngine",
+    "SpectreAnalyzer",
+    "ViabilityScorer",
     # Pipeline
     "DAGPipeline",
     "FileClassifier",

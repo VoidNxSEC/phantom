@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 CORTEX - Advanced Prompt Pipeline
 
@@ -10,11 +9,9 @@ Optimized prompt engineering system for RAG applications with:
 - Token budget management
 """
 
-from typing import List, Dict, Optional, Any
-from dataclasses import dataclass
-from pathlib import Path
-import json
 import re
+from dataclasses import dataclass
+from typing import Any
 
 # Try to import tiktoken for accurate token counting
 try:
@@ -104,13 +101,13 @@ FEW_SHOT_EXAMPLES = [
 
 class TokenCounter:
     """Accurate token counting using tiktoken"""
-    
+
     def __init__(self, encoding_name: str = DEFAULT_ENCODING):
         if TIKTOKEN_AVAILABLE:
             self.encoding = tiktoken.get_encoding(encoding_name)
         else:
             self.encoding = None
-    
+
     def count(self, text: str) -> int:
         """Count tokens in text"""
         if self.encoding:
@@ -130,8 +127,8 @@ class Source:
     id: int
     text: str
     score: float
-    metadata: Dict[str, Any]
-    
+    metadata: dict[str, Any]
+
     def format(self) -> str:
         """Format source for prompt"""
         return f"[Source {self.id}] {self.text}"
@@ -142,7 +139,7 @@ class Message:
     """Chat message"""
     role: str  # "user" | "assistant"
     content: str
-    
+
     def format(self) -> str:
         """Format message for prompt"""
         role_label = "User" if self.role == "user" else "Assistant"
@@ -155,21 +152,21 @@ class Message:
 
 class PromptTemplate:
     """Template with variable substitution"""
-    
+
     def __init__(self, template: str):
         self.template = template
         self.variables = self._extract_variables(template)
-    
-    def _extract_variables(self, template: str) -> List[str]:
+
+    def _extract_variables(self, template: str) -> list[str]:
         """Extract {variable} placeholders"""
         return re.findall(r'\{(\w+)\}', template)
-    
+
     def render(self, **kwargs) -> str:
         """Render template with variables"""
         missing = set(self.variables) - set(kwargs.keys())
         if missing:
             raise ValueError(f"Missing template variables: {missing}")
-        
+
         return self.template.format(**kwargs)
 
 
@@ -179,12 +176,12 @@ class PromptTemplate:
 
 class ContextOptimizer:
     """Optimize retrieved context for prompt"""
-    
+
     def __init__(self, max_tokens: int = DEFAULT_MAX_CONTEXT_TOKENS):
         self.max_tokens = max_tokens
         self.token_counter = TokenCounter()
-    
-    def optimize(self, sources: List[Source]) -> List[Source]:
+
+    def optimize(self, sources: list[Source]) -> list[Source]:
         """
         Optimize sources to fit token budget
         
@@ -196,17 +193,17 @@ class ContextOptimizer:
         """
         # Sort by score
         sorted_sources = sorted(sources, key=lambda x: x.score, reverse=True)
-        
+
         # Remove duplicates
         unique_sources = self._dedup_sources(sorted_sources)
-        
+
         # Fit to budget
         selected = []
         token_count = 0
-        
+
         for source in unique_sources:
             source_tokens = self.token_counter.count(source.text)
-            
+
             if token_count + source_tokens <= self.max_tokens:
                 selected.append(source)
                 token_count += source_tokens
@@ -217,13 +214,13 @@ class ContextOptimizer:
                     truncated = self._truncate_source(source, remaining)
                     selected.append(truncated)
                 break
-        
+
         return selected
-    
-    def _dedup_sources(self, sources: List[Source], threshold: float = 0.8) -> List[Source]:
+
+    def _dedup_sources(self, sources: list[Source], threshold: float = 0.8) -> list[Source]:
         """Remove near-duplicate sources"""
         unique = []
-        
+
         for source in sources:
             is_duplicate = False
             for existing in unique:
@@ -231,33 +228,33 @@ class ContextOptimizer:
                 if similarity > threshold:
                     is_duplicate = True
                     break
-            
+
             if not is_duplicate:
                 unique.append(source)
-        
+
         return unique
-    
+
     def _text_similarity(self, text1: str, text2: str) -> float:
         """Simple text similarity (Jaccard)"""
         words1 = set(text1.lower().split())
         words2 = set(text2.lower().split())
-        
+
         intersection = words1 & words2
         union = words1 | words2
-        
+
         return len(intersection) / len(union) if union else 0.0
-    
+
     def _truncate_source(self, source: Source, max_tokens: int) -> Source:
         """Truncate source to fit token budget"""
         words = source.text.split()
         truncated = ""
-        
+
         for word in words:
             test = truncated + " " + word
             if self.token_counter.count(test) > max_tokens:
                 break
             truncated = test
-        
+
         return Source(
             id=source.id,
             text=truncated.strip() + "...",
@@ -272,7 +269,7 @@ class ContextOptimizer:
 
 class PromptPipeline:
     """Main prompt engineering pipeline"""
-    
+
     def __init__(
         self,
         system_prompt: str = SYSTEM_PROMPT,
@@ -282,16 +279,16 @@ class PromptPipeline:
         self.system_prompt = system_prompt
         self.max_context_tokens = max_context_tokens
         self.max_history_turns = max_history_turns
-        
+
         self.template = PromptTemplate(RAG_PROMPT_TEMPLATE)
         self.optimizer = ContextOptimizer(max_context_tokens)
         self.token_counter = TokenCounter()
-    
+
     def build_rag_prompt(
         self,
         question: str,
-        sources: List[Source],
-        history: List[Message] = None
+        sources: list[Source],
+        history: list[Message] = None
     ) -> str:
         """
         Build complete RAG prompt
@@ -307,55 +304,55 @@ class PromptPipeline:
         # Optimize context
         optimized_sources = self.optimizer.optimize(sources)
         context = self._format_context(optimized_sources)
-        
+
         # Format history
         history_text = self._format_history(history or [])
-        
+
         # Render template
         user_prompt = self.template.render(
             history=history_text,
             context=context,
             question=question
         )
-        
+
         # Combine system + user
         full_prompt = f"{self.system_prompt}\n\n{user_prompt}"
-        
+
         return full_prompt
-    
-    def _format_context(self, sources: List[Source]) -> str:
+
+    def _format_context(self, sources: list[Source]) -> str:
         """Format sources for prompt"""
         if not sources:
             return "[No relevant context found]"
-        
+
         formatted = [source.format() for source in sources]
         return "\n\n".join(formatted)
-    
-    def _format_history(self, messages: List[Message]) -> str:
+
+    def _format_history(self, messages: list[Message]) -> str:
         """Format conversation history"""
         if not messages:
             return "[Start of conversation]"
-        
+
         # Keep last N turns
         recent = messages[-self.max_history_turns * 2:]  # *2 for user+assistant pairs
-        
+
         formatted = [msg.format() for msg in recent]
         return "\n".join(formatted)
-    
-    def add_few_shot_examples(self, prompt: str, examples: List[Dict] = None) -> str:
+
+    def add_few_shot_examples(self, prompt: str, examples: list[dict] = None) -> str:
         """Add few-shot examples to prompt"""
         examples = examples or FEW_SHOT_EXAMPLES
-        
+
         examples_text = "\n\nExample Interactions:\n"
         for i, ex in enumerate(examples[:3], 1):  # Limit to 3 examples
             examples_text += f"\nExample {i}:\n"
             examples_text += f"Context: {ex['context']}\n"
             examples_text += f"Question: {ex['question']}\n"
             examples_text += f"Answer: {ex['answer']}\n"
-        
+
         # Insert before the actual query
         return prompt.replace("Current Question:", examples_text + "\nCurrent Question:")
-    
+
     def estimate_tokens(self, prompt: str) -> int:
         """Estimate token count for prompt"""
         return self.token_counter.count(prompt)
@@ -373,13 +370,13 @@ def main():
         Source(2, "FastAPI supports async/await for better performance.", 0.82, {}),
         Source(3, "Use logging instead of print for production code.", 0.75, {})
     ]
-    
+
     # Example history
     history = [
         Message("user", "Tell me about Python"),
         Message("assistant", "Python is a versatile programming language.")
     ]
-    
+
     # Build prompt
     pipeline = PromptPipeline()
     prompt = pipeline.build_rag_prompt(
@@ -387,7 +384,7 @@ def main():
         sources=sources,
         history=history
     )
-    
+
     print("=" * 60)
     print("GENERATED PROMPT")
     print("=" * 60)

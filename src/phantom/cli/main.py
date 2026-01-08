@@ -10,9 +10,9 @@ Usage:
     phantom tools vram                        Calculate VRAM requirements
 """
 
-import typer
 from pathlib import Path
-from typing import Optional
+
+import typer
 from rich.console import Console
 
 app = typer.Typer(
@@ -33,7 +33,7 @@ def extract(
     """Extract insights from markdown documents using LLM."""
     console.print(f"[cyan]🔮 Extracting insights from:[/] {input_path}")
     console.print(f"[cyan]📁 Output:[/] {output_path}")
-    
+
     # TODO: Implement extraction using CortexProcessor
     console.print("[yellow]⚠️ Not yet implemented in new structure[/]")
 
@@ -46,7 +46,7 @@ def analyze(
 ):
     """Perform comprehensive analysis on a document."""
     console.print(f"[cyan]📊 Analyzing:[/] {file}")
-    
+
     # TODO: Implement analysis
     console.print("[yellow]⚠️ Not yet implemented in new structure[/]")
 
@@ -59,7 +59,7 @@ def classify(
 ):
     """Classify files into categories."""
     console.print(f"[cyan]🗂️ Classifying:[/] {input_dir}")
-    
+
     # TODO: Implement using DAGPipeline
     console.print("[yellow]⚠️ Not yet implemented in new structure[/]")
 
@@ -70,7 +70,7 @@ def scan(
 ):
     """Scan for sensitive data patterns."""
     console.print(f"[cyan]🔍 Scanning:[/] {directory}")
-    
+
     # TODO: Implement sensitive data scanner
     console.print("[yellow]⚠️ Not yet implemented in new structure[/]")
 
@@ -88,7 +88,7 @@ def rag_query(
 ):
     """Query the RAG pipeline."""
     console.print(f"[cyan]❓ Querying:[/] {question}")
-    
+
     # TODO: Implement RAG query
     console.print("[yellow]⚠️ RAG pipeline not yet implemented[/]")
 
@@ -100,7 +100,7 @@ def rag_ingest(
 ):
     """Ingest documents into RAG index."""
     console.print(f"[cyan]📥 Ingesting:[/] {directory}")
-    
+
     # TODO: Implement RAG ingestion
     console.print("[yellow]⚠️ RAG pipeline not yet implemented[/]")
 
@@ -112,11 +112,11 @@ app.add_typer(tools_app, name="tools")
 
 @tools_app.command("vram")
 def tools_vram(
-    model: Optional[str] = typer.Option(None, "-m", "--model", help="Model name"),
+    model: str | None = typer.Option(None, "-m", "--model", help="Model name"),
 ):
     """Calculate VRAM requirements for models."""
     console.print("[cyan]🎮 VRAM Calculator[/]")
-    
+
     # TODO: Implement VRAM calculator
     console.print("[yellow]⚠️ Not yet implemented in new structure[/]")
 
@@ -150,7 +150,7 @@ def api_serve(
 ):
     """Start the REST API server."""
     console.print(f"[cyan]🚀 Starting API server on {host}:{port}[/]")
-    
+
     import uvicorn
     uvicorn.run(
         "phantom.api.app:create_app",
@@ -164,7 +164,7 @@ def api_serve(
 @app.command()
 def version():
     """Show version information."""
-    from phantom import __version__, __codename__
+    from phantom import __codename__, __version__
     console.print(f"[cyan]🔮 Phantom[/] v{__version__} ({__codename__})")
 
 

@@ -1,5 +1,5 @@
 import pytest
-from sentiment_analysis import SentimentEngine
+from phantom.analysis.sentiment_analysis import SentimentEngine
 
 @pytest.fixture
 def engine():

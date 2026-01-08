@@ -4,18 +4,17 @@ LlamaCPP Provider - Local LLM server.
 Connects to a local llama.cpp server for inference.
 """
 
+import logging
 import os
 import time
-import logging
-from typing import Optional
 
 import requests
 
 from phantom.providers.base import (
     AIProvider,
+    GenerationResult,
     ProviderConfig,
     ProviderStatus,
-    GenerationResult,
 )
 
 logger = logging.getLogger(__name__)
@@ -23,14 +22,14 @@ logger = logging.getLogger(__name__)
 
 class LlamaCppProvider(AIProvider):
     """Local LlamaCPP server provider."""
-    
+
     DEFAULT_URL = "http://localhost:8080"
-    
+
     def __init__(
         self,
-        base_url: Optional[str] = None,
+        base_url: str | None = None,
         timeout: int = 120,
-        config: Optional[ProviderConfig] = None,
+        config: ProviderConfig | None = None,
     ):
         if config is None:
             config = ProviderConfig(
@@ -38,17 +37,17 @@ class LlamaCppProvider(AIProvider):
                 timeout=timeout,
             )
         super().__init__(config)
-        self._available: Optional[bool] = None
-    
+        self._available: bool | None = None
+
     @property
     def name(self) -> str:
         return "llamacpp"
-    
+
     def is_available(self) -> bool:
         """Check if LlamaCPP server is running."""
         if self._available is not None:
             return self._available
-        
+
         try:
             response = requests.get(
                 f"{self.config.base_url}/health",
@@ -60,19 +59,19 @@ class LlamaCppProvider(AIProvider):
             logger.debug(f"LlamaCPP not available: {e}")
             self._available = False
             self._status = ProviderStatus.UNAVAILABLE
-        
+
         return self._available
-    
+
     def generate(
         self,
         prompt: str,
-        max_tokens: Optional[int] = None,
-        temperature: Optional[float] = None,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
         **kwargs
     ) -> GenerationResult:
         """Generate text using local LlamaCPP server."""
         start_time = time.time()
-        
+
         payload = {
             "prompt": prompt,
             "n_predict": max_tokens or self.config.max_tokens,
@@ -80,7 +79,7 @@ class LlamaCppProvider(AIProvider):
             "top_p": self.config.top_p,
             "stop": kwargs.get("stop", []),
         }
-        
+
         try:
             response = requests.post(
                 f"{self.config.base_url}/completion",
@@ -89,9 +88,9 @@ class LlamaCppProvider(AIProvider):
             )
             response.raise_for_status()
             data = response.json()
-            
+
             latency = (time.time() - start_time) * 1000
-            
+
             return GenerationResult(
                 text=data.get("content", ""),
                 tokens_used=data.get("tokens_evaluated", 0),

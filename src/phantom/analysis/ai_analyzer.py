@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                    PROJECTPHANTOM - AI ANALYZER                              ║
@@ -17,16 +16,13 @@ Capabilities:
 - Risk identification
 """
 
-import os
-import json
-import logging
-import time
 import asyncio
 import hashlib
-from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple
-from dataclasses import dataclass, field
+import logging
+import os
+import time
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 
 try:
     import requests
@@ -41,11 +37,10 @@ except ImportError:
     HTTPX_AVAILABLE = False
 
 from metrics_schema import (
-    ProjectMetrics,
     AIInsights,
-    RiskFactor,
-    RiskLevel,
     ImprovementSuggestion,
+    ProjectMetrics,
+    RiskLevel,
 )
 
 logger = logging.getLogger(__name__)
@@ -62,20 +57,20 @@ class AIConfig:
     local_url: str = "http://localhost:8080"
     local_model: str = "default"
     local_timeout: int = 120
-    
+
     # Cloud providers
     enable_fallback: bool = True
-    fallback_order: List[str] = field(default_factory=lambda: ["deepseek", "openai", "anthropic"])
-    
+    fallback_order: list[str] = field(default_factory=lambda: ["deepseek", "openai", "anthropic"])
+
     # Generation parameters
     max_tokens: int = 2048
     temperature: float = 0.3
     top_p: float = 0.9
-    
+
     # Retry settings
     max_retries: int = 3
     retry_delay: float = 2.0
-    
+
     # Cache settings
     enable_cache: bool = True
     cache_ttl: int = 3600  # 1 hour
@@ -90,37 +85,37 @@ DEFAULT_CONFIG = AIConfig()
 
 class AIProvider(ABC):
     """Abstract base class for AI providers."""
-    
+
     @property
     @abstractmethod
     def name(self) -> str:
         pass
-    
+
     @abstractmethod
     def is_available(self) -> bool:
         pass
-    
+
     @abstractmethod
-    async def generate(self, prompt: str, max_tokens: int = 2048) -> Optional[str]:
+    async def generate(self, prompt: str, max_tokens: int = 2048) -> str | None:
         pass
 
 
 class LlamaCppProvider(AIProvider):
     """Local LlamaCpp server provider."""
-    
+
     def __init__(self, base_url: str = "http://localhost:8080", timeout: int = 120):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
-        self._available: Optional[bool] = None
-    
+        self._available: bool | None = None
+
     @property
     def name(self) -> str:
         return "llamacpp"
-    
+
     def is_available(self) -> bool:
         if self._available is not None:
             return self._available
-        
+
         try:
             if REQUESTS_AVAILABLE:
                 response = requests.get(f"{self.base_url}/health", timeout=5)
@@ -129,14 +124,14 @@ class LlamaCppProvider(AIProvider):
                 self._available = False
         except:
             self._available = False
-        
+
         logger.debug(f"LlamaCpp availability: {self._available}")
         return self._available
-    
-    async def generate(self, prompt: str, max_tokens: int = 2048) -> Optional[str]:
+
+    async def generate(self, prompt: str, max_tokens: int = 2048) -> str | None:
         if not self.is_available():
             return None
-        
+
         payload = {
             "prompt": prompt,
             "n_predict": max_tokens,
@@ -145,7 +140,7 @@ class LlamaCppProvider(AIProvider):
             "stop": ["</s>", "###"],
             "stream": False
         }
-        
+
         try:
             if HTTPX_AVAILABLE:
                 async with httpx.AsyncClient(timeout=self.timeout) as client:
@@ -167,40 +162,40 @@ class LlamaCppProvider(AIProvider):
                     return data.get("content", "")
         except Exception as e:
             logger.error(f"LlamaCpp generation failed: {e}")
-        
+
         return None
 
 
 class DeepSeekProvider(AIProvider):
     """DeepSeek API provider."""
-    
-    def __init__(self, api_key: Optional[str] = None):
+
+    def __init__(self, api_key: str | None = None):
         self.api_key = api_key or os.environ.get("DEEPSEEK_API_KEY", "")
         self.base_url = "https://api.deepseek.com/v1"
-    
+
     @property
     def name(self) -> str:
         return "deepseek"
-    
+
     def is_available(self) -> bool:
         return bool(self.api_key)
-    
-    async def generate(self, prompt: str, max_tokens: int = 2048) -> Optional[str]:
+
+    async def generate(self, prompt: str, max_tokens: int = 2048) -> str | None:
         if not self.is_available():
             return None
-        
+
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
-        
+
         payload = {
             "model": "deepseek-chat",
             "messages": [{"role": "user", "content": prompt}],
             "max_tokens": max_tokens,
             "temperature": 0.3
         }
-        
+
         try:
             if HTTPX_AVAILABLE:
                 async with httpx.AsyncClient(timeout=60) as client:
@@ -224,40 +219,40 @@ class DeepSeekProvider(AIProvider):
                     return data["choices"][0]["message"]["content"]
         except Exception as e:
             logger.error(f"DeepSeek generation failed: {e}")
-        
+
         return None
 
 
 class OpenAIProvider(AIProvider):
     """OpenAI API provider."""
-    
-    def __init__(self, api_key: Optional[str] = None):
+
+    def __init__(self, api_key: str | None = None):
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
         self.base_url = "https://api.openai.com/v1"
-    
+
     @property
     def name(self) -> str:
         return "openai"
-    
+
     def is_available(self) -> bool:
         return bool(self.api_key)
-    
-    async def generate(self, prompt: str, max_tokens: int = 2048) -> Optional[str]:
+
+    async def generate(self, prompt: str, max_tokens: int = 2048) -> str | None:
         if not self.is_available():
             return None
-        
+
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
-        
+
         payload = {
             "model": "gpt-4o-mini",
             "messages": [{"role": "user", "content": prompt}],
             "max_tokens": max_tokens,
             "temperature": 0.3
         }
-        
+
         try:
             if HTTPX_AVAILABLE:
                 async with httpx.AsyncClient(timeout=60) as client:
@@ -281,40 +276,40 @@ class OpenAIProvider(AIProvider):
                     return data["choices"][0]["message"]["content"]
         except Exception as e:
             logger.error(f"OpenAI generation failed: {e}")
-        
+
         return None
 
 
 class AnthropicProvider(AIProvider):
     """Anthropic Claude API provider."""
-    
-    def __init__(self, api_key: Optional[str] = None):
+
+    def __init__(self, api_key: str | None = None):
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
         self.base_url = "https://api.anthropic.com/v1"
-    
+
     @property
     def name(self) -> str:
         return "anthropic"
-    
+
     def is_available(self) -> bool:
         return bool(self.api_key)
-    
-    async def generate(self, prompt: str, max_tokens: int = 2048) -> Optional[str]:
+
+    async def generate(self, prompt: str, max_tokens: int = 2048) -> str | None:
         if not self.is_available():
             return None
-        
+
         headers = {
             "x-api-key": self.api_key,
             "Content-Type": "application/json",
             "anthropic-version": "2023-06-01"
         }
-        
+
         payload = {
             "model": "claude-3-haiku-20240307",
             "max_tokens": max_tokens,
             "messages": [{"role": "user", "content": prompt}]
         }
-        
+
         try:
             if HTTPX_AVAILABLE:
                 async with httpx.AsyncClient(timeout=60) as client:
@@ -338,7 +333,7 @@ class AnthropicProvider(AIProvider):
                     return data["content"][0]["text"]
         except Exception as e:
             logger.error(f"Anthropic generation failed: {e}")
-        
+
         return None
 
 
@@ -348,8 +343,8 @@ class AnthropicProvider(AIProvider):
 
 class AIAnalyzer:
     """Unified AI analysis interface with local-first approach."""
-    
-    def __init__(self, config: Optional[AIConfig] = None):
+
+    def __init__(self, config: AIConfig | None = None):
         """
         Initialize AI analyzer.
         
@@ -357,11 +352,11 @@ class AIAnalyzer:
             config: AI configuration
         """
         self.config = config or DEFAULT_CONFIG
-        self._providers: Dict[str, AIProvider] = {}
-        self._cache: Dict[str, Tuple[str, float]] = {}  # hash -> (response, timestamp)
-        
+        self._providers: dict[str, AIProvider] = {}
+        self._cache: dict[str, tuple[str, float]] = {}  # hash -> (response, timestamp)
+
         self._init_providers()
-    
+
     def _init_providers(self) -> None:
         """Initialize all available providers."""
         # Local provider (always first priority)
@@ -369,22 +364,22 @@ class AIAnalyzer:
             self.config.local_url,
             self.config.local_timeout
         )
-        
+
         # Cloud providers
         self._providers["deepseek"] = DeepSeekProvider()
         self._providers["openai"] = OpenAIProvider()
         self._providers["anthropic"] = AnthropicProvider()
-        
+
         # Log availability
         for name, provider in self._providers.items():
             if provider.is_available():
                 logger.info(f"AI Provider available: {name}")
-    
-    def get_available_providers(self) -> List[str]:
+
+    def get_available_providers(self) -> list[str]:
         """Get list of available providers."""
         return [name for name, p in self._providers.items() if p.is_available()]
-    
-    async def generate(self, prompt: str, prefer_local: bool = True) -> Optional[str]:
+
+    async def generate(self, prompt: str, prefer_local: bool = True) -> str | None:
         """
         Generate AI response with automatic fallback.
         
@@ -403,7 +398,7 @@ class AIAnalyzer:
                 if time.time() - timestamp < self.config.cache_ttl:
                     logger.debug(f"Cache hit for prompt: {cache_key}")
                     return response
-        
+
         # Build provider order
         order = []
         if prefer_local:
@@ -412,15 +407,15 @@ class AIAnalyzer:
             order.extend(self.config.fallback_order)
         if not prefer_local:
             order.append("llamacpp")
-        
+
         # Try each provider in order
         for provider_name in order:
             provider = self._providers.get(provider_name)
             if not provider or not provider.is_available():
                 continue
-            
+
             logger.debug(f"Trying provider: {provider_name}")
-            
+
             for attempt in range(self.config.max_retries):
                 try:
                     response = await provider.generate(prompt, self.config.max_tokens)
@@ -428,17 +423,17 @@ class AIAnalyzer:
                         # Cache successful response
                         if self.config.enable_cache:
                             self._cache[cache_key] = (response, time.time())
-                        
+
                         logger.info(f"Generated response using {provider_name}")
                         return response
                 except Exception as e:
                     logger.warning(f"Provider {provider_name} attempt {attempt + 1} failed: {e}")
                     if attempt < self.config.max_retries - 1:
                         await asyncio.sleep(self.config.retry_delay)
-        
+
         logger.error("All AI providers failed")
         return None
-    
+
     async def analyze_project(self, metrics: ProjectMetrics) -> AIInsights:
         """
         Generate AI insights for a project.
@@ -450,9 +445,9 @@ class AIAnalyzer:
             AI-generated insights
         """
         prompt = self._build_analysis_prompt(metrics)
-        
+
         response = await self.generate(prompt)
-        
+
         if not response:
             return AIInsights(
                 summary="AI analysis unavailable - all providers failed",
@@ -461,9 +456,9 @@ class AIAnalyzer:
                 opportunities=[],
                 threats=[]
             )
-        
+
         return self._parse_analysis_response(response, metrics)
-    
+
     def _build_analysis_prompt(self, metrics: ProjectMetrics) -> str:
         """Build analysis prompt from metrics."""
         return f"""Analyze the following project and provide insights. Return a structured analysis.
@@ -528,20 +523,20 @@ TOP_RECOMMENDATIONS:
 2. (recommendation 2)
 3. (recommendation 3)
 """
-    
+
     def _parse_analysis_response(self, response: str, metrics: ProjectMetrics) -> AIInsights:
         """Parse AI response into structured insights."""
         insights = AIInsights()
-        
+
         try:
             lines = response.strip().split('\n')
             current_section = None
-            
+
             for line in lines:
                 line = line.strip()
                 if not line:
                     continue
-                
+
                 # Detect section headers
                 if line.startswith("SUMMARY:"):
                     insights.summary = line.replace("SUMMARY:", "").strip()
@@ -587,14 +582,14 @@ TOP_RECOMMENDATIONS:
                         insights.summary = line
                 elif current_section == "tech_debt" and not line.startswith("TOP_"):
                     insights.tech_debt_summary += " " + line
-        
+
         except Exception as e:
             logger.error(f"Error parsing AI response: {e}")
             insights.summary = f"Analysis generated but parsing failed: {response[:200]}..."
-        
+
         return insights
-    
-    async def assess_technical_debt(self, code_samples: List[str]) -> str:
+
+    async def assess_technical_debt(self, code_samples: list[str]) -> str:
         """
         AI-powered technical debt assessment.
         
@@ -616,11 +611,11 @@ CODE SAMPLES:
 
 Provide a brief, actionable assessment focusing on the most critical issues.
 """
-        
+
         response = await self.generate(prompt)
         return response or "Technical debt assessment unavailable"
-    
-    async def suggest_improvements(self, metrics: ProjectMetrics) -> List[ImprovementSuggestion]:
+
+    async def suggest_improvements(self, metrics: ProjectMetrics) -> list[ImprovementSuggestion]:
         """
         Generate prioritized improvement suggestions.
         
@@ -650,9 +645,9 @@ Format as:
 1. [PRIORITY/EFFORT] Title: Description
 2. ...
 """
-        
+
         response = await self.generate(prompt)
-        
+
         suggestions = []
         if response:
             lines = response.strip().split('\n')
@@ -665,16 +660,16 @@ Format as:
                             priority_effort = parts[0].split('[')[1].split('/')
                             priority = priority_effort[0].lower().strip()
                             effort = priority_effort[1].lower().strip() if len(priority_effort) > 1 else "medium"
-                            
+
                             title_desc = parts[1].strip()
                             if ':' in title_desc:
                                 title, desc = title_desc.split(':', 1)
                             else:
                                 title = title_desc[:50]
                                 desc = title_desc
-                            
+
                             priority_map = {"low": RiskLevel.LOW, "medium": RiskLevel.MEDIUM, "high": RiskLevel.HIGH}
-                            
+
                             suggestions.append(ImprovementSuggestion(
                                 title=title.strip(),
                                 description=desc.strip(),
@@ -683,7 +678,7 @@ Format as:
                             ))
                     except Exception as e:
                         logger.debug(f"Error parsing suggestion: {e}")
-        
+
         return suggestions
 
 
@@ -718,7 +713,7 @@ def sync_analysis(metrics: ProjectMetrics) -> AIInsights:
     return asyncio.run(quick_analysis(metrics))
 
 
-async def check_providers() -> Dict[str, bool]:
+async def check_providers() -> dict[str, bool]:
     """
     Check which AI providers are available.
     
@@ -726,7 +721,7 @@ async def check_providers() -> Dict[str, bool]:
         Dictionary of provider name to availability
     """
     analyzer = AIAnalyzer()
-    return {name: provider.is_available() 
+    return {name: provider.is_available()
             for name, provider in analyzer._providers.items()}
 
 
@@ -735,26 +730,25 @@ async def check_providers() -> Dict[str, bool]:
 # ══════════════════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
-    import sys
-    
+
     async def main():
         print("AI Analyzer - Provider Check")
         print("=" * 40)
-        
+
         analyzer = AIAnalyzer()
         providers = analyzer.get_available_providers()
-        
+
         if not providers:
             print("❌ No AI providers available!")
             print("\nTo enable providers:")
             print("  - Local: Start LlamaCpp server on http://localhost:8080")
             print("  - Cloud: Set DEEPSEEK_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY")
             return
-        
+
         print("Available providers:")
         for p in providers:
             print(f"  ✅ {p}")
-        
+
         # Quick test
         print("\nTesting generation...")
         response = await analyzer.generate("Say 'Hello from ProjectPhantom!' in one line.")
@@ -762,5 +756,5 @@ if __name__ == "__main__":
             print(f"✅ Response: {response[:100]}")
         else:
             print("❌ Generation failed")
-    
+
     asyncio.run(main())

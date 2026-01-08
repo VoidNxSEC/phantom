@@ -19,6 +19,7 @@ def test_imports():
         from rich.progress import Progress
         import requests
         import psutil
+        from phantom.core import cortex
         print("✅ All imports successful!")
         return True
     except ImportError as e:
@@ -30,7 +31,7 @@ def test_pydantic_models():
     """Test Pydantic model validation"""
     print("\n🔍 Testing Pydantic models...")
     try:
-        import cortex
+        from phantom.core import cortex
         
         # Test Theme model
         theme = cortex.Theme(
@@ -87,7 +88,7 @@ def test_prompt_builder():
     """Test prompt building functionality"""
     print("\n🔍 Testing PromptBuilder...")
     try:
-        import cortex
+        from phantom.core import cortex
         
         content = "# Test Document\n\nThis is a test markdown file."
         prompt = cortex.PromptBuilder.build_extraction_prompt(content, "test.md")
@@ -108,7 +109,7 @@ def test_json_parsing():
     """Test JSON response parsing"""
     print("\n🔍 Testing JSON parsing...")
     try:
-        import cortex
+        from phantom.core import cortex
         
         # Test with markdown code blocks
         response1 = """```json
@@ -154,7 +155,7 @@ def test_system_monitor():
     """Test system monitoring"""
     print("\n🔍 Testing SystemMonitor...")
     try:
-        import cortex
+        from phantom.core import cortex
         from rich.console import Console
         
         console = Console()

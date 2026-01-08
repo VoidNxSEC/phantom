@@ -14,8 +14,8 @@ import time
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from cortex_chunker import MarkdownChunker, ChunkStrategy, Chunk
-from cortex_embeddings import EmbeddingManager, SearchResult
+from phantom.rag.cortex_chunker import MarkdownChunker, ChunkStrategy, Chunk
+from phantom.rag.cortex_embeddings import EmbeddingManager, SearchResult
 
 
 # ═══════════════════════════════════════════════════════════════

@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from cortex_api import app
+from phantom.api.cortex_api import app
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -10,7 +10,7 @@ def test_health_check():
     assert response.status_code == 200
     assert response.json()["status"] == "operational"
 
-@patch("cortex_api.MarkdownProcessor")
+@patch("phantom.api.cortex_api.MarkdownProcessor")
 def test_process_endpoint(mock_processor):
     # Mock the processor instance and its method
     instance = mock_processor.return_value
@@ -36,7 +36,7 @@ def test_process_endpoint(mock_processor):
     assert "insights" in data
     instance.process_single_file.assert_called_once()
 
-@patch("cortex_api.SpectreAnalyzer")
+@patch("phantom.api.cortex_api.SpectreAnalyzer")
 def test_analyze_endpoint(mock_analyzer):
     # Mock analyzer
     instance = mock_analyzer.return_value

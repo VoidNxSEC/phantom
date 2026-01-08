@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 ╔══════════════════════════════════════════════════════════════════╗
 ║  CORTEX UNIFIED v2.0 - Intelligent Document Intelligence Engine ║
@@ -15,34 +14,30 @@
 ╚══════════════════════════════════════════════════════════════════╝
 """
 
-import os
-import sys
 import json
-import time
 import logging
-import psutil
-from pathlib import Path
-from datetime import datetime, timezone
-from typing import List, Dict, Optional, Any, Union
-from dataclasses import dataclass, field, asdict
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from enum import Enum
+from pathlib import Path
+from typing import Any
+
+import psutil
 
 # Pydantic for validation
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # Rich for beautiful output
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn
-from rich.panel import Panel
-from rich.table import Table
 
 # Internal imports
 try:
     from phantom.core.embeddings import EmbeddingGenerator
-    from phantom.rag.vectors import FAISSVectorStore, create_vector_store, SearchResult
     from phantom.providers.base import AIProvider
     from phantom.providers.llamacpp import LlamaCppProvider
+    from phantom.rag.vectors import FAISSVectorStore, SearchResult, create_vector_store
     PHANTOM_AVAILABLE = True
 except ImportError:
     PHANTOM_AVAILABLE = False
@@ -86,12 +81,12 @@ class ExtractionLevel(str, Enum):
 class Theme(BaseModel):
     """Extracted theme from content"""
     model_config = ConfigDict(extra='ignore')
-    
+
     title: str = Field(..., min_length=1, max_length=100, description="Theme title (2-5 words)")
     description: str = Field(..., min_length=1, description="Brief theme description")
     confidence: ExtractionLevel = Field(default=ExtractionLevel.MEDIUM)
-    keywords: List[str] = Field(default_factory=list, max_length=10)
-    
+    keywords: list[str] = Field(default_factory=list, max_length=10)
+
     @field_validator('keywords', mode='before')
     @classmethod
     def limit_keywords(cls, v):
@@ -103,12 +98,12 @@ class Theme(BaseModel):
 class Pattern(BaseModel):
     """Identified pattern"""
     model_config = ConfigDict(extra='ignore')
-    
+
     pattern_type: str = Field(..., description="Type: code, workflow, concept, etc")
     description: str = Field(...)
-    examples: List[str] = Field(default_factory=list, max_length=3)
+    examples: list[str] = Field(default_factory=list, max_length=3)
     frequency: int = Field(default=1, ge=1)
-    
+
     @field_validator('examples', mode='before')
     @classmethod
     def limit_examples(cls, v):
@@ -120,7 +115,7 @@ class Pattern(BaseModel):
 class Learning(BaseModel):
     """Key learning or insight"""
     model_config = ConfigDict(extra='ignore')
-    
+
     title: str = Field(...)
     description: str = Field(...)
     category: str = Field(..., description="Category: technical, process, concept")
@@ -130,17 +125,17 @@ class Learning(BaseModel):
 class Concept(BaseModel):
     """Core concept"""
     model_config = ConfigDict(extra='ignore')
-    
+
     name: str = Field(...)
     definition: str = Field(...)
-    related_concepts: List[str] = Field(default_factory=list, max_length=5)
+    related_concepts: list[str] = Field(default_factory=list, max_length=5)
     complexity: ExtractionLevel = Field(default=ExtractionLevel.MEDIUM)
 
 
 class Recommendation(BaseModel):
     """Actionable recommendation"""
     model_config = ConfigDict(extra='ignore')
-    
+
     title: str = Field(...)
     description: str = Field(...)
     priority: ExtractionLevel = Field(...)
@@ -151,19 +146,19 @@ class Recommendation(BaseModel):
 class DocumentInsights(BaseModel):
     """Complete insights from a document"""
     model_config = ConfigDict(extra='ignore')
-    
+
     file_path: str = Field(...)
     file_name: str = Field(...)
     processed_at: str = Field(...)
     word_count: int = Field(ge=0)
-    
+
     # Extracted data
-    themes: List[Theme] = Field(default_factory=list)
-    patterns: List[Pattern] = Field(default_factory=list)
-    learnings: List[Learning] = Field(default_factory=list)
-    concepts: List[Concept] = Field(default_factory=list)
-    recommendations: List[Recommendation] = Field(default_factory=list)
-    
+    themes: list[Theme] = Field(default_factory=list)
+    patterns: list[Pattern] = Field(default_factory=list)
+    learnings: list[Learning] = Field(default_factory=list)
+    concepts: list[Concept] = Field(default_factory=list)
+    recommendations: list[Recommendation] = Field(default_factory=list)
+
     # Metadata
     processing_time_seconds: float = Field(ge=0)
     model_used: str = Field(default="local")
@@ -178,18 +173,18 @@ class DocumentInsights(BaseModel):
 
 class SystemMonitor:
     """Monitor system resources for safe processing"""
-    
-    def __init__(self, console: Optional[Console] = None):
+
+    def __init__(self, console: Console | None = None):
         self.console = console or Console()
         self.last_check = 0.0
         self.check_interval = 5.0  # seconds
-    
-    def get_vram_usage(self) -> Dict[str, Any]:
+
+    def get_vram_usage(self) -> dict[str, Any]:
         """Get GPU VRAM usage via nvidia-smi"""
         try:
             import subprocess
             result = subprocess.run(
-                ['nvidia-smi', '--query-gpu=memory.used,memory.total,memory.free', 
+                ['nvidia-smi', '--query-gpu=memory.used,memory.total,memory.free',
                  '--format=csv,noheader,nounits'],
                 capture_output=True, text=True, timeout=2
             )
@@ -203,8 +198,8 @@ class SystemMonitor:
         except Exception:
             pass
         return {'free_mb': float('inf'), 'available': False}
-    
-    def get_ram_usage(self) -> Dict[str, Any]:
+
+    def get_ram_usage(self) -> dict[str, Any]:
         """Get system RAM usage"""
         mem = psutil.virtual_memory()
         return {
@@ -213,7 +208,7 @@ class SystemMonitor:
             'free_mb': mem.available // (1024 * 1024),
             'usage_percent': mem.percent
         }
-    
+
     def check_resources(self, pause_on_critical: bool = True) -> bool:
         """
         Check if resources are safe for processing.
@@ -223,10 +218,10 @@ class SystemMonitor:
         if now - self.last_check < self.check_interval:
             return True
         self.last_check = now
-        
+
         vram = self.get_vram_usage()
         ram = self.get_ram_usage()
-        
+
         # Check VRAM
         if vram.get('available', False):
             free = vram['free_mb']
@@ -237,11 +232,11 @@ class SystemMonitor:
                 return False
             elif free < VRAM_WARNING_MB:
                 self.console.print(f"[yellow]⚠️ VRAM warning ({free}MB)[/yellow]")
-        
+
         # Check RAM
         if ram['free_mb'] < RAM_WARNING_MB:
             self.console.print(f"[yellow]⚠️ RAM warning ({ram['free_mb']}MB)[/yellow]")
-        
+
         return True
 
 
@@ -251,7 +246,7 @@ class SystemMonitor:
 
 class PromptBuilder:
     """Build structured prompts for LLM extraction"""
-    
+
     SYSTEM_PROMPT = """You are an expert analyst extracting structured insights from documentation.
 
 Extract:
@@ -279,11 +274,11 @@ Schema:
         max_chars = DEFAULT_MAX_TOKENS * 3
         if len(content) > max_chars:
             content = content[:max_chars] + "\n\n[... truncated ...]"
-        
+
         context = f"SOURCE: {file_name}"
         if chunk_info:
             context += f" | {chunk_info}"
-        
+
         return f"""{cls.SYSTEM_PROMPT}
 
 {context}
@@ -294,7 +289,7 @@ CONTENT:
 Extract insights (JSON only):"""
 
     @staticmethod
-    def parse_json_response(response: str) -> Optional[Dict]:
+    def parse_json_response(response: str) -> dict | None:
         """Parse JSON from LLM response, handling markdown blocks"""
         # Strip markdown code blocks
         if "```json" in response:
@@ -305,15 +300,15 @@ Extract insights (JSON only):"""
             start = response.find("```") + 3
             end = response.find("```", start)
             response = response[start:end].strip()
-        
+
         # Find JSON object
         response = response.strip()
         start_idx = response.find('{')
         end_idx = response.rfind('}')
-        
+
         if start_idx != -1 and end_idx != -1:
             response = response[start_idx:end_idx + 1]
-        
+
         try:
             return json.loads(response)
         except json.JSONDecodeError as e:
@@ -338,7 +333,7 @@ class Chunk:
 
 class SemanticChunker:
     """Intelligent markdown chunking preserving structure"""
-    
+
     MARKDOWN_SEPARATORS = [
         "\n## ",      # H2 headers
         "\n### ",     # H3 headers
@@ -349,7 +344,7 @@ class SemanticChunker:
         "\n",         # Lines
         ". ",         # Sentences
     ]
-    
+
     def __init__(
         self,
         max_tokens: int = DEFAULT_CHUNK_SIZE,
@@ -358,7 +353,7 @@ class SemanticChunker:
         self.max_tokens = max_tokens
         self.overlap = overlap
         self._tokenizer = None
-    
+
     @property
     def tokenizer(self):
         """Lazy load tiktoken"""
@@ -370,20 +365,20 @@ class SemanticChunker:
                 # Fallback: approximate
                 self._tokenizer = None
         return self._tokenizer
-    
+
     def count_tokens(self, text: str) -> int:
         """Count tokens in text"""
         if self.tokenizer:
             return len(self.tokenizer.encode(text))
         # Fallback: ~4 chars per token
         return len(text) // 4
-    
-    def chunk_text(self, text: str, source_file: str) -> List[Chunk]:
+
+    def chunk_text(self, text: str, source_file: str) -> list[Chunk]:
         """Split text into semantic chunks"""
         chunks = []
         current_text = text
         chunk_id = 0
-        
+
         while current_text:
             if self.count_tokens(current_text) <= self.max_tokens:
                 # Fits in one chunk
@@ -394,11 +389,11 @@ class SemanticChunker:
                     token_count=self.count_tokens(current_text),
                 ))
                 break
-            
+
             # Find best split point
             split_point = self._find_split_point(current_text)
             chunk_text = current_text[:split_point].strip()
-            
+
             if chunk_text:
                 chunks.append(Chunk(
                     text=chunk_text,
@@ -407,28 +402,28 @@ class SemanticChunker:
                     token_count=self.count_tokens(chunk_text),
                 ))
                 chunk_id += 1
-            
+
             # Handle overlap
             overlap_start = max(0, split_point - self.overlap * 4)  # ~4 chars per token
             current_text = current_text[overlap_start:].strip()
-        
+
         return chunks
-    
+
     def _find_split_point(self, text: str) -> int:
         """Find best semantic split point"""
         target_chars = self.max_tokens * 4  # Approximate
-        
+
         # Try each separator in order of preference
         for sep in self.MARKDOWN_SEPARATORS:
             # Find last occurrence before target
             pos = text.rfind(sep, 0, target_chars + len(sep))
             if pos > 0:
                 return pos + len(sep)
-        
+
         # Fallback: hard split at target
         return min(target_chars, len(text))
-    
-    def chunk_file(self, filepath: Path) -> List[Chunk]:
+
+    def chunk_file(self, filepath: Path) -> list[Chunk]:
         """Chunk a file"""
         content = filepath.read_text(encoding='utf-8')
         return self.chunk_text(content, str(filepath.name))
@@ -449,17 +444,17 @@ class CortexProcessor:
     4. FAISS vector indexing
     5. Aggregation and output
     """
-    
+
     def __init__(
         self,
-        provider: Optional[AIProvider] = None,
+        provider: AIProvider | None = None,
         llamacpp_url: str = "http://localhost:8080",
         chunk_size: int = DEFAULT_CHUNK_SIZE,
         chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
         workers: int = DEFAULT_WORKERS,
         enable_vectors: bool = True,
         embedding_model: str = "all-MiniLM-L6-v2",
-        vector_path: Optional[Path] = None,
+        vector_path: Path | None = None,
         verbose: bool = False,
     ):
         self.chunk_size = chunk_size
@@ -468,26 +463,26 @@ class CortexProcessor:
         self.enable_vectors = enable_vectors
         self.vector_path = vector_path
         self.verbose = verbose
-        
+
         self.console = Console()
         self.monitor = SystemMonitor(self.console)
-        
+
         # Initialize chunker
         self.chunker = SemanticChunker(
             max_tokens=chunk_size,
             overlap=chunk_overlap,
         )
-        
+
         # Initialize provider - LlamaCpp only
         if provider:
             self.provider = provider
         else:
             self.provider = LlamaCppProvider(base_url=llamacpp_url)
-        
+
         # Initialize embeddings and vector store
-        self.embeddings: Optional[EmbeddingGenerator] = None
-        self.vector_store: Optional[FAISSVectorStore] = None
-        
+        self.embeddings: EmbeddingGenerator | None = None
+        self.vector_store: FAISSVectorStore | None = None
+
         if enable_vectors and PHANTOM_AVAILABLE:
             try:
                 self.embeddings = EmbeddingGenerator(model_name=embedding_model)
@@ -498,36 +493,36 @@ class CortexProcessor:
                 logging.info(f"Vector store initialized (dim={self.embeddings.dimension})")
             except Exception as e:
                 logging.warning(f"Vector store init failed: {e}")
-        
+
         # Setup logging
         logging.basicConfig(
             level=logging.DEBUG if verbose else logging.INFO,
             format='%(asctime)s [%(levelname)s] %(message)s'
         )
-    
+
     def process_document(self, filepath: Path) -> DocumentInsights:
         """
         Process a single document through the full pipeline.
         """
         start_time = time.time()
         filepath = Path(filepath)
-        
+
         self.console.print(f"\n[cyan]📄 Processing: {filepath.name}[/cyan]")
-        
+
         # Read content
         content = filepath.read_text(encoding='utf-8')
         word_count = len(content.split())
-        
+
         # Step 1: Chunk
         self.console.print("  [yellow]1/4 Chunking...[/yellow]")
         chunks = self.chunker.chunk_text(content, filepath.name)
         self.console.print(f"    ✓ {len(chunks)} chunks")
-        
+
         # Step 2: Classify with LLM
         self.console.print("  [yellow]2/4 Classifying with LLM...[/yellow]")
         chunk_results = self._classify_chunks(chunks)
         self.console.print(f"    ✓ {len(chunk_results)} classified")
-        
+
         # Step 3: Generate embeddings
         vector_indexed = False
         if self.enable_vectors and self.embeddings and self.vector_store:
@@ -545,28 +540,28 @@ class CortexProcessor:
                 logging.warning(f"Vector indexing failed: {e}")
         else:
             self.console.print("  [dim]3/4 Skipping vectors[/dim]")
-        
+
         # Step 4: Aggregate
         self.console.print("  [yellow]4/4 Aggregating...[/yellow]")
         insights = self._aggregate_insights(chunk_results, filepath, word_count, vector_indexed)
-        
+
         processing_time = time.time() - start_time
         insights.processing_time_seconds = processing_time
-        
+
         self.console.print(f"[green]✓ Done in {processing_time:.1f}s[/green]")
-        
+
         return insights
-    
-    def _classify_chunks(self, chunks: List[Chunk]) -> List[Dict]:
+
+    def _classify_chunks(self, chunks: list[Chunk]) -> list[dict]:
         """Classify chunks in parallel"""
         results = []
-        
+
         with ThreadPoolExecutor(max_workers=self.workers) as executor:
             futures = {
                 executor.submit(self._classify_single, chunk): chunk
                 for chunk in chunks
             }
-            
+
             for future in as_completed(futures):
                 try:
                     result = future.result()
@@ -574,21 +569,21 @@ class CortexProcessor:
                         results.append(result)
                 except Exception as e:
                     logging.error(f"Classification error: {e}")
-        
+
         return results
-    
-    def _classify_single(self, chunk: Chunk) -> Optional[Dict]:
+
+    def _classify_single(self, chunk: Chunk) -> dict | None:
         """Classify a single chunk"""
         # Check resources
         self.monitor.check_resources(pause_on_critical=True)
-        
+
         # Build prompt
         prompt = PromptBuilder.build_extraction_prompt(
             chunk.text,
             chunk.source_file,
             f"Chunk {chunk.chunk_id}"
         )
-        
+
         # Generate
         try:
             result = self.provider.generate(prompt)
@@ -596,16 +591,16 @@ class CortexProcessor:
         except Exception as e:
             logging.error(f"Generation failed for chunk {chunk.chunk_id}: {e}")
             return None
-    
+
     def _aggregate_insights(
         self,
-        chunk_results: List[Dict],
+        chunk_results: list[dict],
         filepath: Path,
         word_count: int,
         vector_indexed: bool,
     ) -> DocumentInsights:
         """Aggregate insights from multiple chunks with deduplication"""
-        
+
         aggregated = {
             'themes': [],
             'patterns': [],
@@ -613,13 +608,13 @@ class CortexProcessor:
             'concepts': [],
             'recommendations': [],
         }
-        
+
         seen = {key: set() for key in aggregated}
-        
+
         for result in chunk_results:
             if not result:
                 continue
-            
+
             # Themes - dedupe by title
             for item in result.get('themes', []):
                 title = item.get('title', '')
@@ -629,7 +624,7 @@ class CortexProcessor:
                         seen['themes'].add(title)
                     except Exception:
                         pass
-            
+
             # Concepts - dedupe by name
             for item in result.get('concepts', []):
                 name = item.get('name', '')
@@ -639,7 +634,7 @@ class CortexProcessor:
                         seen['concepts'].add(name)
                     except Exception:
                         pass
-            
+
             # Learnings - dedupe by title
             for item in result.get('learnings', []):
                 title = item.get('title', '')
@@ -649,25 +644,25 @@ class CortexProcessor:
                         seen['learnings'].add(title)
                     except Exception:
                         pass
-            
+
             # Patterns - collect all (merge later)
             for item in result.get('patterns', []):
                 try:
                     aggregated['patterns'].append(Pattern(**item))
                 except Exception:
                     pass
-            
+
             # Recommendations - collect all
             for item in result.get('recommendations', []):
                 try:
                     aggregated['recommendations'].append(Recommendation(**item))
                 except Exception:
                     pass
-        
+
         return DocumentInsights(
             file_path=str(filepath),
             file_name=filepath.name,
-            processed_at=datetime.now(timezone.utc).isoformat(),
+            processed_at=datetime.now(UTC).isoformat(),
             word_count=word_count,
             themes=aggregated['themes'],
             patterns=aggregated['patterns'],
@@ -680,22 +675,22 @@ class CortexProcessor:
             vector_indexed=vector_indexed,
             confidence=ExtractionLevel.MEDIUM,
         )
-    
-    def search(self, query: str, top_k: int = 5) -> List[SearchResult]:
+
+    def search(self, query: str, top_k: int = 5) -> list[SearchResult]:
         """Semantic search over indexed documents"""
         if not self.vector_store or not self.embeddings:
             raise ValueError("Vector search not enabled")
-        
+
         query_embedding = self.embeddings.encode_single(query)
         return self.vector_store.search(query_embedding, top_k=top_k)
-    
-    def save_index(self, filepath: Optional[Path] = None):
+
+    def save_index(self, filepath: Path | None = None):
         """Save vector index to disk"""
         if self.vector_store:
             path = filepath or self.vector_path or Path("./phantom_index")
             self.vector_store.save(path)
             self.console.print(f"[green]✓ Index saved to {path}[/green]")
-    
+
     def load_index(self, filepath: Path):
         """Load vector index from disk"""
         if PHANTOM_AVAILABLE:
@@ -714,7 +709,7 @@ __all__ = [
     # Data models
     "DocumentInsights",
     "Theme",
-    "Pattern", 
+    "Pattern",
     "Learning",
     "Concept",
     "Recommendation",

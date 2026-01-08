@@ -11,6 +11,7 @@ Classes:
 
 from phantom.providers.base import AIProvider, ProviderConfig
 
+
 def __getattr__(name):
     if name == "LlamaCppProvider":
         from phantom.providers.llamacpp import LlamaCppProvider

@@ -4,10 +4,10 @@ CORTEX - Cloud Provider Integration
 Support for OpenAI, Anthropic, and other cloud LLM providers
 """
 
-import os
-from typing import Optional, Dict, Any, List
-from dataclasses import dataclass
 import logging
+import os
+from dataclasses import dataclass
+from typing import Any
 
 # Optional imports
 try:
@@ -31,39 +31,39 @@ class LLMConfig:
     temperature: float = 0.7
     max_tokens: int = 2048
     top_p: float = 0.9
-    api_key: Optional[str] = None
+    api_key: str | None = None
 
 
 class CloudProviderClient:
     """Unified interface for cloud LLM providers"""
-    
+
     def __init__(self, config: LLMConfig):
         self.config = config
         self.client = None
         self._initialize_client()
-    
+
     def _initialize_client(self):
         """Initialize provider-specific client"""
         if self.config.provider == "openai":
             if not OPENAI_AVAILABLE:
                 raise ImportError("openai package not installed. Run: pip install openai")
-            
+
             api_key = self.config.api_key or os.getenv("OPENAI_API_KEY")
             if not api_key:
                 raise ValueError("OpenAI API key not provided")
-            
+
             self.client = openai.OpenAI(api_key=api_key)
-            
+
         elif self.config.provider == "anthropic":
             if not ANTHROPIC_AVAILABLE:
                 raise ImportError("anthropic package not installed. Run: pip install anthropic")
-            
+
             api_key = self.config.api_key or os.getenv("ANTHROPIC_API_KEY")
             if not api_key:
                 raise ValueError("Anthropic API key not provided")
-            
+
             self.client = Anthropic(api_key=api_key)
-    
+
     def generate(self, prompt: str) -> str:
         """Generate completion"""
         if self.config.provider == "openai":
@@ -72,7 +72,7 @@ class CloudProviderClient:
             return self._generate_anthropic(prompt)
         else:
             raise ValueError(f"Unsupported provider: {self.config.provider}")
-    
+
     def _generate_openai(self, prompt: str) -> str:
         """OpenAI completion"""
         try:
@@ -85,13 +85,13 @@ class CloudProviderClient:
                 max_tokens=self.config.max_tokens,
                 top_p=self.config.top_p
             )
-            
+
             return response.choices[0].message.content
-            
+
         except Exception as e:
             logging.error(f"OpenAI API error: {e}")
             raise
-    
+
     def _generate_anthropic(self, prompt: str) -> str:
         """Anthropic completion"""
         try:
@@ -104,9 +104,9 @@ class CloudProviderClient:
                     {"role": "user", "content": prompt}
                 ]
             )
-            
+
             return message.content[0].text
-            
+
         except Exception as e:
             logging.error(f"Anthropic API error: {e}")
             raise
@@ -131,25 +131,25 @@ MODELS = {
 }
 
 
-def get_available_models() -> Dict[str, List[Dict[str, Any]]]:
+def get_available_models() -> dict[str, list[dict[str, Any]]]:
     """Get list of available models by provider"""
     result = {}
-    
+
     # Always include local
     result["local"] = [
         {"id": k, **v} for k, v in MODELS["local"].items()
     ]
-    
+
     # OpenAI if available
     if OPENAI_AVAILABLE:
         result["openai"] = [
             {"id": k, **v} for k, v in MODELS["openai"].items()
         ]
-    
+
     # Anthropic if available
     if ANTHROPIC_AVAILABLE:
         result["anthropic"] = [
             {"id": k, **v} for k, v in MODELS["anthropic"].items()
         ]
-    
+
     return result

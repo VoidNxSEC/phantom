@@ -5,17 +5,17 @@ Provides semantic search and LLM-powered Q&A over documents.
 """
 
 from phantom.rag.vectors import (
-    VectorStore,
     FAISSVectorStore,
     NumpyVectorStore,
     SearchResult,
+    VectorStore,
     create_vector_store,
 )
 
 __all__ = [
     # Vector stores
     "VectorStore",
-    "FAISSVectorStore", 
+    "FAISSVectorStore",
     "NumpyVectorStore",
     "SearchResult",
     "create_vector_store",

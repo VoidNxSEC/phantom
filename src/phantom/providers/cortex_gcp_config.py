@@ -5,19 +5,17 @@
 ╚══════════════════════════════════════════════════════════════════╝
 """
 
-import os
 import json
-from pathlib import Path
-from typing import Optional, Dict, Any
+import os
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 # Google Cloud imports
 try:
-    from google.cloud import aiplatform
-    from google.cloud import bigquery
-    from google.cloud import storage
     from google.auth import default as get_default_credentials
     from google.auth.exceptions import DefaultCredentialsError
+    from google.cloud import aiplatform, bigquery, storage
     GCP_AVAILABLE = True
 except ImportError:
     GCP_AVAILABLE = False
@@ -29,7 +27,7 @@ class GCPConfig:
     """Google Cloud Platform configuration"""
     project_id: str
     region: str
-    credentials_path: Optional[Path] = None
+    credentials_path: Path | None = None
 
     # Vertex AI
     vertex_location: str = "us-central1"
@@ -39,7 +37,7 @@ class GCPConfig:
     bigquery_dataset: str = "phantom_rag"
 
     # Cloud Storage
-    storage_bucket: Optional[str] = None
+    storage_bucket: str | None = None
 
     # Retry & Rate Limiting
     max_retries: int = 3
@@ -50,7 +48,7 @@ class GCPConfig:
 class GCPConfigManager:
     """Manages GCP configuration and credentials"""
 
-    def __init__(self, config: Optional[GCPConfig] = None):
+    def __init__(self, config: GCPConfig | None = None):
         """
         Initialize GCP configuration manager
 
@@ -164,7 +162,7 @@ class GCPConfigManager:
         print(f"✓ Cloud Storage client created (project={self.config.project_id})")
         return client
 
-    def get_config_summary(self) -> Dict[str, Any]:
+    def get_config_summary(self) -> dict[str, Any]:
         """Get configuration summary"""
 
         return {

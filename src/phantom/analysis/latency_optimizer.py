@@ -4,13 +4,9 @@ CORTEX - Latency Optimization & Caching
 Performance optimizations for faster query processing
 """
 
-from functools import lru_cache
-from typing import List, Optional, Tuple, Any
 import hashlib
-import json
 import time
-from datetime import datetime, timedelta
-
+from typing import Any
 
 # ═══════════════════════════════════════════════════════════════
 # QUERY CACHE
@@ -18,49 +14,49 @@ from datetime import datetime, timedelta
 
 class QueryCache:
     """LRU cache for semantic search queries"""
-    
+
     def __init__(self, maxsize: int = 1000, ttl_seconds: int = 3600):
         self.maxsize = maxsize
         self.ttl_seconds = ttl_seconds
-        self.cache: Dict[str, Tuple[Any, float]] = {}
-    
+        self.cache: Dict[str, tuple[Any, float]] = {}
+
     def _make_key(self, query: str, top_k: int) -> str:
         """Generate cache key"""
         data = f"{query}:{top_k}".encode()
         return hashlib.sha256(data).hexdigest()[:16]
-    
-    def get(self, query: str, top_k: int) -> Optional[Any]:
+
+    def get(self, query: str, top_k: int) -> Any | None:
         """Get cached result"""
         key = self._make_key(query, top_k)
-        
+
         if key not in self.cache:
             return None
-        
+
         result, timestamp = self.cache[key]
-        
+
         # Check TTL
         if time.time() - timestamp > self.ttl_seconds:
             del self.cache[key]
             return None
-        
+
         return result
-    
+
     def set(self, query: str, top_k: int, result: Any):
         """Cache result"""
         key = self._make_key(query, top_k)
-        
+
         # LRU eviction
         if len(self.cache) >= self.maxsize:
             # Remove oldest entry
             oldest_key = min(self.cache.keys(), key=lambda k: self.cache[k][1])
             del self.cache[oldest_key]
-        
+
         self.cache[key] = (result, time.time())
-    
+
     def clear(self):
         """Clear all cache"""
         self.cache.clear()
-    
+
     def stats(self) -> Dict[str, Any]:
         """Get cache statistics"""
         return {
@@ -77,18 +73,18 @@ class QueryCache:
 
 class ConnectionPool:
     """HTTP connection pooling for external APIs"""
-    
+
     def __init__(self):
         self.sessions = {}
-    
+
     async def get_session(self, provider: str):
         """Get or create session for provider"""
         # Placeholder - would use httpx.AsyncClient in production
         if provider not in self.sessions:
             self.sessions[provider] = {"created_at": time.time()}
-        
+
         return self.sessions[provider]
-    
+
     async def close_all(self):
         """Close all sessions"""
         self.sessions.clear()
@@ -100,21 +96,21 @@ class ConnectionPool:
 
 class BatchProcessor:
     """Batch processing for embeddings and search"""
-    
+
     def __init__(self, batch_size: int = 32):
         self.batch_size = batch_size
         self.queue = []
-    
+
     def add(self, item: Any):
         """Add item to batch queue"""
         self.queue.append(item)
-        
+
         if len(self.queue) >= self.batch_size:
             return self.flush()
-        
+
         return None
-    
-    def flush(self) -> List[Any]:
+
+    def flush(self) -> list[Any]:
         """Process all queued items"""
         batch = self.queue[:]
         self.queue.clear()
@@ -126,10 +122,10 @@ class BatchProcessor:
 # ═══════════════════════════════════════════════════════════════
 
 async def parallel_semantic_search(
-    queries: List[str],
+    queries: list[str],
     search_func,
     top_k: int = 5
-) -> List[List[Any]]:
+) -> list[list[Any]]:
     """
     Execute multiple semantic searches in parallel
     
@@ -145,7 +141,7 @@ async def parallel_semantic_search(
         asyncio.to_thread(search_func, query, top_k)
         for query in queries
     ]
-    
+
     results = await asyncio.gather(*tasks)
     return results
 
@@ -156,11 +152,11 @@ async def parallel_semantic_search(
 
 class LatencyMetrics:
     """Track query latency metrics"""
-    
+
     def __init__(self):
         self.queries = []
         self.max_history = 1000
-    
+
     def record(self, query_type: str, latency_ms: float):
         """Record query latency"""
         self.queries.append({
@@ -168,23 +164,23 @@ class LatencyMetrics:
             "latency_ms": latency_ms,
             "timestamp": time.time()
         })
-        
+
         # Keep only recent queries
         if len(self.queries) > self.max_history:
             self.queries = self.queries[-self.max_history:]
-    
-    def get_stats(self, query_type: Optional[str] = None) -> Dict[str, float]:
+
+    def get_stats(self, query_type: str | None = None) -> Dict[str, float]:
         """Get latency statistics"""
         queries = self.queries
-        
+
         if query_type:
             queries = [q for q in queries if q["type"] == query_type]
-        
+
         if not queries:
             return {"count": 0}
-        
+
         latencies = [q["latency_ms"] for q in queries]
-        
+
         return {
             "count": len(latencies),
             "avg_ms": sum(latencies) / len(latencies),

@@ -5,8 +5,8 @@ All LLM providers inherit from AIProvider and implement the generate method.
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
-from typing import Optional, AsyncIterator
 from enum import Enum
 
 
@@ -46,33 +46,33 @@ class GenerationResult:
 
 class AIProvider(ABC):
     """Abstract base class for AI providers."""
-    
-    def __init__(self, config: Optional[ProviderConfig] = None):
+
+    def __init__(self, config: ProviderConfig | None = None):
         self.config = config or ProviderConfig()
         self._status: ProviderStatus = ProviderStatus.UNAVAILABLE
-    
+
     @property
     @abstractmethod
     def name(self) -> str:
         """Provider name identifier."""
         ...
-    
+
     @property
     def status(self) -> ProviderStatus:
         """Current provider status."""
         return self._status
-    
+
     @abstractmethod
     def is_available(self) -> bool:
         """Check if provider is available and configured."""
         ...
-    
+
     @abstractmethod
     def generate(
         self,
         prompt: str,
-        max_tokens: Optional[int] = None,
-        temperature: Optional[float] = None,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
         **kwargs
     ) -> GenerationResult:
         """
@@ -88,12 +88,12 @@ class AIProvider(ABC):
             GenerationResult with generated text
         """
         ...
-    
+
     async def agenerate(
         self,
         prompt: str,
-        max_tokens: Optional[int] = None,
-        temperature: Optional[float] = None,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
         **kwargs
     ) -> GenerationResult:
         """Async version of generate. Default implementation wraps sync."""
@@ -101,7 +101,7 @@ class AIProvider(ABC):
         return await asyncio.to_thread(
             self.generate, prompt, max_tokens, temperature, **kwargs
         )
-    
+
     async def stream(
         self,
         prompt: str,
@@ -115,6 +115,6 @@ class AIProvider(ABC):
         """
         result = await self.agenerate(prompt, **kwargs)
         yield result.text
-    
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(name={self.name!r}, status={self.status.value})"

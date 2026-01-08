@@ -1,3 +1,5 @@
+<div align="center">
+
 # PHANTOM
 
 ```
@@ -12,11 +14,20 @@
 ```
 
 **Living Machine Learning Framework**
+
 *Production-grade document intelligence, RAG pipeline, and AI classification system*
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![NixOS](https://img.shields.io/badge/NixOS-declarative-5277C3.svg)](https://nixos.org/)
+[![NixOS](https://img.shields.io/badge/NixOS-5277C3.svg?logo=nixos&logoColor=white)](https://nixos.org/)
+[![Rust](https://img.shields.io/badge/Rust-000000.svg?logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-fe5196.svg?logo=conventionalcommits)](https://conventionalcommits.org)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
+[Features](#features) | [Quick Start](#quick-start) | [Documentation](#module-reference) | [Contributing](CONTRIBUTING.md)
+
+</div>
 
 ---
 
@@ -406,7 +417,11 @@ mypy src/
 
 ## Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
+Contributions are welcome! Please read our guidelines:
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Development workflow and code standards
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) - Community guidelines
+- [SECURITY.md](SECURITY.md) - Security policy and vulnerability reporting
 
 ### Development Workflow
 
@@ -447,7 +462,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 Built with **NixOS** | Powered by **llama.cpp TURBO** | Licensed under **MIT**
 
 ```
-Last updated: 2025-12-30
-Version: 2.0.0 (PHANTOM CLASSIFIER)
+Last updated: 2026-01-08
+Version: 2.0.0 (PHANTOM)
 Codename: CORTEX-UNIFIED
 ```

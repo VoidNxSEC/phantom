@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                    PROJECTPHANTOM - METRICS SCHEMA                           ║
@@ -16,12 +15,10 @@ Provides type-safe data structures for:
 """
 
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Set, Any
 from enum import Enum
-from dataclasses import dataclass, field
-from pydantic import BaseModel, Field, field_validator
+from typing import Any
 
+from pydantic import BaseModel, Field
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ENUMS
@@ -40,7 +37,7 @@ class InvestmentRecommendation(str, Enum):
     """Investment recommendation categories."""
     STRATEGIC_ASSET = "strategic_asset"      # 90-100
     STRONG_PROJECT = "strong_project"        # 80-89
-    SOLID_FOUNDATION = "solid_foundation"    # 70-79  
+    SOLID_FOUNDATION = "solid_foundation"    # 70-79
     NEEDS_ATTENTION = "needs_attention"      # 60-69
     AT_RISK = "at_risk"                      # 50-59
     CRITICAL = "critical"                    # 40-49
@@ -92,8 +89,8 @@ class CodeMetrics(BaseModel):
     file_count: int = Field(0, description="Total number of files")
     avg_file_size: float = Field(0.0, description="Average file size in lines")
     max_file_size: int = Field(0, description="Largest file in lines")
-    lines_by_language: Dict[str, int] = Field(default_factory=dict)
-    files_by_language: Dict[str, int] = Field(default_factory=dict)
+    lines_by_language: dict[str, int] = Field(default_factory=dict)
+    files_by_language: dict[str, int] = Field(default_factory=dict)
 
 
 class ComplexityMetrics(BaseModel):
@@ -111,7 +108,7 @@ class ComplexityMetrics(BaseModel):
 class ActivityMetrics(BaseModel):
     """Git activity metrics."""
     is_git_repo: bool = Field(False)
-    last_commit_date: Optional[datetime] = None
+    last_commit_date: datetime | None = None
     days_since_last_commit: int = Field(999, description="Days since last commit")
     commits_last_7_days: int = Field(0)
     commits_last_30_days: int = Field(0)
@@ -143,8 +140,8 @@ class QualityMetrics(BaseModel):
 class DependencyInfo(BaseModel):
     """Dependency information."""
     name: str
-    version: Optional[str] = None
-    latest_version: Optional[str] = None
+    version: str | None = None
+    latest_version: str | None = None
     is_outdated: bool = False
     days_since_update: int = 0
     has_known_vulnerabilities: bool = False
@@ -162,7 +159,7 @@ class DependencyMetrics(BaseModel):
     vulnerable_dependencies: int = Field(0)
     dependency_freshness: float = Field(0.0, description="Freshness score (0-100)")
     security_score: float = Field(0.0, description="Security score (0-100)")
-    dependencies: List[DependencyInfo] = Field(default_factory=list)
+    dependencies: list[DependencyInfo] = Field(default_factory=list)
 
 
 class SecurityMetrics(BaseModel):
@@ -183,20 +180,20 @@ class TechStackItem(BaseModel):
     """Technology stack item."""
     name: str
     category: TechCategory
-    version: Optional[str] = None
+    version: str | None = None
     confidence: float = Field(1.0, description="Detection confidence (0-1)")
 
 
 class TechStackMetrics(BaseModel):
     """Technology stack analysis."""
-    primary_languages: List[str] = Field(default_factory=list)
-    frameworks: List[str] = Field(default_factory=list)
-    build_tools: List[str] = Field(default_factory=list)
-    package_managers: List[str] = Field(default_factory=list)
-    ci_cd_tools: List[str] = Field(default_factory=list)
-    databases: List[str] = Field(default_factory=list)
-    containers: List[str] = Field(default_factory=list)
-    all_technologies: List[TechStackItem] = Field(default_factory=list)
+    primary_languages: list[str] = Field(default_factory=list)
+    frameworks: list[str] = Field(default_factory=list)
+    build_tools: list[str] = Field(default_factory=list)
+    package_managers: list[str] = Field(default_factory=list)
+    ci_cd_tools: list[str] = Field(default_factory=list)
+    databases: list[str] = Field(default_factory=list)
+    containers: list[str] = Field(default_factory=list)
+    all_technologies: list[TechStackItem] = Field(default_factory=list)
     stack_modernity_score: float = Field(0.0, description="How modern is the stack (0-100)")
 
 
@@ -222,18 +219,18 @@ class ImprovementSuggestion(BaseModel):
     category: str = Field("general", description="Suggestion category")
     effort_estimate: str = Field("medium", description="Implementation effort")
     expected_impact: str = Field("", description="Expected impact on project")
-    related_metrics: List[str] = Field(default_factory=list)
+    related_metrics: list[str] = Field(default_factory=list)
 
 
 class AIInsights(BaseModel):
     """AI-generated project insights."""
     summary: str = Field("", description="AI-generated project summary")
-    strengths: List[str] = Field(default_factory=list)
-    weaknesses: List[str] = Field(default_factory=list)
-    opportunities: List[str] = Field(default_factory=list)
-    threats: List[str] = Field(default_factory=list)
-    risk_factors: List[RiskFactor] = Field(default_factory=list)
-    suggestions: List[ImprovementSuggestion] = Field(default_factory=list)
+    strengths: list[str] = Field(default_factory=list)
+    weaknesses: list[str] = Field(default_factory=list)
+    opportunities: list[str] = Field(default_factory=list)
+    threats: list[str] = Field(default_factory=list)
+    risk_factors: list[RiskFactor] = Field(default_factory=list)
+    suggestions: list[ImprovementSuggestion] = Field(default_factory=list)
     tech_debt_summary: str = Field("")
     market_positioning: str = Field("")
 
@@ -256,7 +253,7 @@ class ScoreBreakdown(BaseModel):
     maintenance_weight: float = Field(0.15)
     potential_score: float = Field(0.0, description="AI-assessed potential (0-100)")
     potential_weight: float = Field(0.10)
-    
+
     @property
     def weighted_total(self) -> float:
         """Calculate weighted total score."""
@@ -279,7 +276,7 @@ class ViabilityScore(BaseModel):
     recommendation_text: str = Field("")
     confidence: float = Field(0.0, description="Assessment confidence (0-1)")
     assessed_at: datetime = Field(default_factory=datetime.now)
-    
+
     @classmethod
     def from_score(cls, score: float, breakdown: ScoreBreakdown) -> "ViabilityScore":
         """Create ViabilityScore from numeric score."""
@@ -311,7 +308,7 @@ class ViabilityScore(BaseModel):
             rec = InvestmentRecommendation.LEGACY
             grade = "F"
             text = "Legacy/Dead - Archive or deprecate"
-        
+
         return cls(
             score=score,
             grade=grade,
@@ -328,19 +325,19 @@ class ViabilityScore(BaseModel):
 
 class ProjectMetrics(BaseModel):
     """Complete project metrics collection."""
-    
+
     # Identification
     project_id: str = Field(..., description="Unique project identifier")
     name: str = Field(..., description="Project name")
     path: str = Field(..., description="Absolute path to project")
-    
+
     # Timestamps
     scan_timestamp: datetime = Field(default_factory=datetime.now)
     scan_duration_ms: float = Field(0.0)
-    
+
     # Status
     status: ProjectStatus = Field(ProjectStatus.UNKNOWN)
-    
+
     # Metrics Collections
     code: CodeMetrics = Field(default_factory=CodeMetrics)
     complexity: ComplexityMetrics = Field(default_factory=ComplexityMetrics)
@@ -349,43 +346,43 @@ class ProjectMetrics(BaseModel):
     dependencies: DependencyMetrics = Field(default_factory=DependencyMetrics)
     security: SecurityMetrics = Field(default_factory=SecurityMetrics)
     tech_stack: TechStackMetrics = Field(default_factory=TechStackMetrics)
-    
+
     # AI Insights (optional, requires AI)
-    ai_insights: Optional[AIInsights] = None
-    
+    ai_insights: AIInsights | None = None
+
     # Viability Assessment
-    viability: Optional[ViabilityScore] = None
-    
+    viability: ViabilityScore | None = None
+
     # Metadata
-    errors: List[str] = Field(default_factory=list)
-    warnings: List[str] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
 
 
 class AuditReport(BaseModel):
     """Complete audit report for a project or collection."""
-    
+
     # Report Metadata
     report_id: str
     generated_at: datetime = Field(default_factory=datetime.now)
     report_version: str = Field("1.0.0")
-    
+
     # Scope
     projects_audited: int = Field(0)
     total_duration_ms: float = Field(0.0)
-    
+
     # Results
-    projects: List[ProjectMetrics] = Field(default_factory=list)
-    
+    projects: list[ProjectMetrics] = Field(default_factory=list)
+
     # Aggregated Insights
     summary: str = Field("")
-    top_recommendations: List[ImprovementSuggestion] = Field(default_factory=list)
-    risk_overview: Dict[str, int] = Field(default_factory=dict)
-    
+    top_recommendations: list[ImprovementSuggestion] = Field(default_factory=list)
+    risk_overview: dict[str, int] = Field(default_factory=dict)
+
     # Comparative Metrics (for multi-project audits)
     avg_viability_score: float = Field(0.0)
-    best_project: Optional[str] = None
-    worst_project: Optional[str] = None
-    trends: Dict[str, Any] = Field(default_factory=dict)
+    best_project: str | None = None
+    worst_project: str | None = None
+    trends: dict[str, Any] = Field(default_factory=dict)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -397,11 +394,11 @@ class DockerStackMetrics(BaseModel):
     stack_name: str
     path: str
     services_count: int = Field(0)
-    services: List[str] = Field(default_factory=list)
+    services: list[str] = Field(default_factory=list)
     has_gpu_support: bool = Field(False)
     volumes_count: int = Field(0)
     networks_count: int = Field(0)
-    exposed_ports: List[int] = Field(default_factory=list)
-    images_used: List[str] = Field(default_factory=list)
+    exposed_ports: list[int] = Field(default_factory=list)
+    images_used: list[str] = Field(default_factory=list)
     health_status: str = Field("unknown")
-    last_updated: Optional[datetime] = None
+    last_updated: datetime | None = None

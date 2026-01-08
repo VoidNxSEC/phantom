@@ -24,8 +24,10 @@ from pydantic import BaseModel, Field
 # ENUMS
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class ProjectStatus(str, Enum):
     """Project lifecycle status."""
+
     ACTIVE = "active"
     MAINTENANCE = "maintenance"
     ARCHIVED = "archived"
@@ -35,17 +37,19 @@ class ProjectStatus(str, Enum):
 
 class InvestmentRecommendation(str, Enum):
     """Investment recommendation categories."""
-    STRATEGIC_ASSET = "strategic_asset"      # 90-100
-    STRONG_PROJECT = "strong_project"        # 80-89
-    SOLID_FOUNDATION = "solid_foundation"    # 70-79
-    NEEDS_ATTENTION = "needs_attention"      # 60-69
-    AT_RISK = "at_risk"                      # 50-59
-    CRITICAL = "critical"                    # 40-49
-    LEGACY = "legacy"                        # 0-39
+
+    STRATEGIC_ASSET = "strategic_asset"  # 90-100
+    STRONG_PROJECT = "strong_project"  # 80-89
+    SOLID_FOUNDATION = "solid_foundation"  # 70-79
+    NEEDS_ATTENTION = "needs_attention"  # 60-69
+    AT_RISK = "at_risk"  # 50-59
+    CRITICAL = "critical"  # 40-49
+    LEGACY = "legacy"  # 0-39
 
 
 class RiskLevel(str, Enum):
     """Risk severity levels."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -54,6 +58,7 @@ class RiskLevel(str, Enum):
 
 class TechCategory(str, Enum):
     """Technology categories."""
+
     LANGUAGE = "language"
     FRAMEWORK = "framework"
     BUILD_TOOL = "build_tool"
@@ -68,8 +73,10 @@ class TechCategory(str, Enum):
 # BASE METRICS
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class HalsteadMetrics(BaseModel):
     """Halstead complexity metrics."""
+
     vocabulary: int = Field(0, description="Program vocabulary (n)")
     length: int = Field(0, description="Program length (N)")
     calculated_length: float = Field(0.0, description="Calculated length")
@@ -82,6 +89,7 @@ class HalsteadMetrics(BaseModel):
 
 class CodeMetrics(BaseModel):
     """Core code metrics."""
+
     total_lines: int = Field(0, description="Total lines of code")
     code_lines: int = Field(0, description="Lines of actual code")
     comment_lines: int = Field(0, description="Lines of comments")
@@ -95,11 +103,20 @@ class CodeMetrics(BaseModel):
 
 class ComplexityMetrics(BaseModel):
     """Code complexity metrics."""
-    cyclomatic_complexity_avg: float = Field(0.0, description="Average cyclomatic complexity")
-    cyclomatic_complexity_max: int = Field(0, description="Maximum cyclomatic complexity")
-    cognitive_complexity_avg: float = Field(0.0, description="Average cognitive complexity")
+
+    cyclomatic_complexity_avg: float = Field(
+        0.0, description="Average cyclomatic complexity"
+    )
+    cyclomatic_complexity_max: int = Field(
+        0, description="Maximum cyclomatic complexity"
+    )
+    cognitive_complexity_avg: float = Field(
+        0.0, description="Average cognitive complexity"
+    )
     halstead: HalsteadMetrics = Field(default_factory=HalsteadMetrics)
-    maintainability_index: float = Field(0.0, description="Maintainability index (0-100)")
+    maintainability_index: float = Field(
+        0.0, description="Maintainability index (0-100)"
+    )
     functions_count: int = Field(0, description="Total number of functions")
     classes_count: int = Field(0, description="Total number of classes")
     avg_function_length: float = Field(0.0, description="Average function length")
@@ -107,6 +124,7 @@ class ComplexityMetrics(BaseModel):
 
 class ActivityMetrics(BaseModel):
     """Git activity metrics."""
+
     is_git_repo: bool = Field(False)
     last_commit_date: datetime | None = None
     days_since_last_commit: int = Field(999, description="Days since last commit")
@@ -124,21 +142,29 @@ class ActivityMetrics(BaseModel):
 
 class QualityMetrics(BaseModel):
     """Code quality metrics."""
+
     documentation_score: float = Field(0.0, description="Documentation quality (0-100)")
     readme_exists: bool = Field(False)
     readme_quality: float = Field(0.0, description="README quality score (0-100)")
     has_changelog: bool = Field(False)
     has_contributing: bool = Field(False)
     has_license: bool = Field(False)
-    test_coverage_estimate: float = Field(0.0, description="Estimated test coverage (0-100)")
-    test_file_ratio: float = Field(0.0, description="Ratio of test files to source files")
-    code_duplication_ratio: float = Field(0.0, description="Code duplication percentage")
+    test_coverage_estimate: float = Field(
+        0.0, description="Estimated test coverage (0-100)"
+    )
+    test_file_ratio: float = Field(
+        0.0, description="Ratio of test files to source files"
+    )
+    code_duplication_ratio: float = Field(
+        0.0, description="Code duplication percentage"
+    )
     linting_configured: bool = Field(False)
     type_checking_configured: bool = Field(False)
 
 
 class DependencyInfo(BaseModel):
     """Dependency information."""
+
     name: str
     version: str | None = None
     latest_version: str | None = None
@@ -152,6 +178,7 @@ class DependencyInfo(BaseModel):
 
 class DependencyMetrics(BaseModel):
     """Dependency analysis metrics."""
+
     total_dependencies: int = Field(0)
     direct_dependencies: int = Field(0)
     dev_dependencies: int = Field(0)
@@ -164,6 +191,7 @@ class DependencyMetrics(BaseModel):
 
 class SecurityMetrics(BaseModel):
     """Security-related metrics."""
+
     security_score: float = Field(100.0, description="Overall security score (0-100)")
     vulnerabilities_critical: int = Field(0)
     vulnerabilities_high: int = Field(0)
@@ -178,6 +206,7 @@ class SecurityMetrics(BaseModel):
 
 class TechStackItem(BaseModel):
     """Technology stack item."""
+
     name: str
     category: TechCategory
     version: str | None = None
@@ -186,6 +215,7 @@ class TechStackItem(BaseModel):
 
 class TechStackMetrics(BaseModel):
     """Technology stack analysis."""
+
     primary_languages: list[str] = Field(default_factory=list)
     frameworks: list[str] = Field(default_factory=list)
     build_tools: list[str] = Field(default_factory=list)
@@ -194,15 +224,19 @@ class TechStackMetrics(BaseModel):
     databases: list[str] = Field(default_factory=list)
     containers: list[str] = Field(default_factory=list)
     all_technologies: list[TechStackItem] = Field(default_factory=list)
-    stack_modernity_score: float = Field(0.0, description="How modern is the stack (0-100)")
+    stack_modernity_score: float = Field(
+        0.0, description="How modern is the stack (0-100)"
+    )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # AI-GENERATED INSIGHTS
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class RiskFactor(BaseModel):
     """Identified risk factor."""
+
     category: str = Field(..., description="Risk category")
     description: str = Field(..., description="Risk description")
     severity: RiskLevel = Field(RiskLevel.MEDIUM)
@@ -213,6 +247,7 @@ class RiskFactor(BaseModel):
 
 class ImprovementSuggestion(BaseModel):
     """AI-generated improvement suggestion."""
+
     title: str
     description: str
     priority: RiskLevel = Field(RiskLevel.MEDIUM)
@@ -224,6 +259,7 @@ class ImprovementSuggestion(BaseModel):
 
 class AIInsights(BaseModel):
     """AI-generated project insights."""
+
     summary: str = Field("", description="AI-generated project summary")
     strengths: list[str] = Field(default_factory=list)
     weaknesses: list[str] = Field(default_factory=list)
@@ -239,17 +275,23 @@ class AIInsights(BaseModel):
 # VIABILITY SCORING
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class ScoreBreakdown(BaseModel):
     """Detailed score breakdown by category."""
+
     activity_score: float = Field(0.0, description="Activity/engagement score (0-100)")
     activity_weight: float = Field(0.25)
     quality_score: float = Field(0.0, description="Code quality score (0-100)")
     quality_weight: float = Field(0.20)
-    complexity_score: float = Field(0.0, description="Manageable complexity score (0-100)")
+    complexity_score: float = Field(
+        0.0, description="Manageable complexity score (0-100)"
+    )
     complexity_weight: float = Field(0.15)
     security_score: float = Field(0.0, description="Security posture score (0-100)")
     security_weight: float = Field(0.15)
-    maintenance_score: float = Field(0.0, description="Maintenance health score (0-100)")
+    maintenance_score: float = Field(
+        0.0, description="Maintenance health score (0-100)"
+    )
     maintenance_weight: float = Field(0.15)
     potential_score: float = Field(0.0, description="AI-assessed potential (0-100)")
     potential_weight: float = Field(0.10)
@@ -258,17 +300,18 @@ class ScoreBreakdown(BaseModel):
     def weighted_total(self) -> float:
         """Calculate weighted total score."""
         return (
-            self.activity_score * self.activity_weight +
-            self.quality_score * self.quality_weight +
-            self.complexity_score * self.complexity_weight +
-            self.security_score * self.security_weight +
-            self.maintenance_score * self.maintenance_weight +
-            self.potential_score * self.potential_weight
+            self.activity_score * self.activity_weight
+            + self.quality_score * self.quality_weight
+            + self.complexity_score * self.complexity_weight
+            + self.security_score * self.security_weight
+            + self.maintenance_score * self.maintenance_weight
+            + self.potential_score * self.potential_weight
         )
 
 
 class ViabilityScore(BaseModel):
     """Complete viability assessment."""
+
     score: float = Field(0.0, description="Overall viability score (0-100)")
     grade: str = Field("F", description="Letter grade (A-F)")
     breakdown: ScoreBreakdown = Field(default_factory=ScoreBreakdown)
@@ -315,13 +358,14 @@ class ViabilityScore(BaseModel):
             breakdown=breakdown,
             recommendation=rec,
             recommendation_text=text,
-            confidence=0.8 if score > 30 else 0.6
+            confidence=0.8 if score > 30 else 0.6,
         )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # COMPLETE PROJECT METRICS
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class ProjectMetrics(BaseModel):
     """Complete project metrics collection."""
@@ -389,8 +433,10 @@ class AuditReport(BaseModel):
 # DOCKER STACK METRICS (for docker-hub integration)
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class DockerStackMetrics(BaseModel):
     """Metrics for Docker Compose stacks."""
+
     stack_name: str
     path: str
     services_count: int = Field(0)

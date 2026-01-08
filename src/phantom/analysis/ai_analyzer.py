@@ -26,12 +26,14 @@ from dataclasses import dataclass, field
 
 try:
     import requests
+
     REQUESTS_AVAILABLE = True
 except ImportError:
     REQUESTS_AVAILABLE = False
 
 try:
     import httpx
+
     HTTPX_AVAILABLE = True
 except ImportError:
     HTTPX_AVAILABLE = False
@@ -50,9 +52,11 @@ logger = logging.getLogger(__name__)
 # CONFIGURATION
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class AIConfig:
     """AI analyzer configuration."""
+
     # Local LlamaCpp
     local_url: str = "http://localhost:8080"
     local_model: str = "default"
@@ -60,7 +64,9 @@ class AIConfig:
 
     # Cloud providers
     enable_fallback: bool = True
-    fallback_order: list[str] = field(default_factory=lambda: ["deepseek", "openai", "anthropic"])
+    fallback_order: list[str] = field(
+        default_factory=lambda: ["deepseek", "openai", "anthropic"]
+    )
 
     # Generation parameters
     max_tokens: int = 2048
@@ -82,6 +88,7 @@ DEFAULT_CONFIG = AIConfig()
 # ══════════════════════════════════════════════════════════════════════════════
 # PROVIDER INTERFACE
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class AIProvider(ABC):
     """Abstract base class for AI providers."""
@@ -138,24 +145,21 @@ class LlamaCppProvider(AIProvider):
             "temperature": 0.3,
             "top_p": 0.9,
             "stop": ["</s>", "###"],
-            "stream": False
+            "stream": False,
         }
 
         try:
             if HTTPX_AVAILABLE:
                 async with httpx.AsyncClient(timeout=self.timeout) as client:
                     response = await client.post(
-                        f"{self.base_url}/completion",
-                        json=payload
+                        f"{self.base_url}/completion", json=payload
                     )
                     if response.status_code == 200:
                         data = response.json()
                         return data.get("content", "")
             elif REQUESTS_AVAILABLE:
                 response = requests.post(
-                    f"{self.base_url}/completion",
-                    json=payload,
-                    timeout=self.timeout
+                    f"{self.base_url}/completion", json=payload, timeout=self.timeout
                 )
                 if response.status_code == 200:
                     data = response.json()
@@ -186,14 +190,14 @@ class DeepSeekProvider(AIProvider):
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
         payload = {
             "model": "deepseek-chat",
             "messages": [{"role": "user", "content": prompt}],
             "max_tokens": max_tokens,
-            "temperature": 0.3
+            "temperature": 0.3,
         }
 
         try:
@@ -202,7 +206,7 @@ class DeepSeekProvider(AIProvider):
                     response = await client.post(
                         f"{self.base_url}/chat/completions",
                         json=payload,
-                        headers=headers
+                        headers=headers,
                     )
                     if response.status_code == 200:
                         data = response.json()
@@ -212,7 +216,7 @@ class DeepSeekProvider(AIProvider):
                     f"{self.base_url}/chat/completions",
                     json=payload,
                     headers=headers,
-                    timeout=60
+                    timeout=60,
                 )
                 if response.status_code == 200:
                     data = response.json()
@@ -243,14 +247,14 @@ class OpenAIProvider(AIProvider):
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
         payload = {
             "model": "gpt-4o-mini",
             "messages": [{"role": "user", "content": prompt}],
             "max_tokens": max_tokens,
-            "temperature": 0.3
+            "temperature": 0.3,
         }
 
         try:
@@ -259,7 +263,7 @@ class OpenAIProvider(AIProvider):
                     response = await client.post(
                         f"{self.base_url}/chat/completions",
                         json=payload,
-                        headers=headers
+                        headers=headers,
                     )
                     if response.status_code == 200:
                         data = response.json()
@@ -269,7 +273,7 @@ class OpenAIProvider(AIProvider):
                     f"{self.base_url}/chat/completions",
                     json=payload,
                     headers=headers,
-                    timeout=60
+                    timeout=60,
                 )
                 if response.status_code == 200:
                     data = response.json()
@@ -301,22 +305,20 @@ class AnthropicProvider(AIProvider):
         headers = {
             "x-api-key": self.api_key,
             "Content-Type": "application/json",
-            "anthropic-version": "2023-06-01"
+            "anthropic-version": "2023-06-01",
         }
 
         payload = {
             "model": "claude-3-haiku-20240307",
             "max_tokens": max_tokens,
-            "messages": [{"role": "user", "content": prompt}]
+            "messages": [{"role": "user", "content": prompt}],
         }
 
         try:
             if HTTPX_AVAILABLE:
                 async with httpx.AsyncClient(timeout=60) as client:
                     response = await client.post(
-                        f"{self.base_url}/messages",
-                        json=payload,
-                        headers=headers
+                        f"{self.base_url}/messages", json=payload, headers=headers
                     )
                     if response.status_code == 200:
                         data = response.json()
@@ -326,7 +328,7 @@ class AnthropicProvider(AIProvider):
                     f"{self.base_url}/messages",
                     json=payload,
                     headers=headers,
-                    timeout=60
+                    timeout=60,
                 )
                 if response.status_code == 200:
                     data = response.json()
@@ -341,13 +343,14 @@ class AnthropicProvider(AIProvider):
 # AI ANALYZER
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class AIAnalyzer:
     """Unified AI analysis interface with local-first approach."""
 
     def __init__(self, config: AIConfig | None = None):
         """
         Initialize AI analyzer.
-        
+
         Args:
             config: AI configuration
         """
@@ -361,8 +364,7 @@ class AIAnalyzer:
         """Initialize all available providers."""
         # Local provider (always first priority)
         self._providers["llamacpp"] = LlamaCppProvider(
-            self.config.local_url,
-            self.config.local_timeout
+            self.config.local_url, self.config.local_timeout
         )
 
         # Cloud providers
@@ -382,11 +384,11 @@ class AIAnalyzer:
     async def generate(self, prompt: str, prefer_local: bool = True) -> str | None:
         """
         Generate AI response with automatic fallback.
-        
+
         Args:
             prompt: Input prompt
             prefer_local: Prefer local inference over cloud
-            
+
         Returns:
             Generated response or None
         """
@@ -427,7 +429,9 @@ class AIAnalyzer:
                         logger.info(f"Generated response using {provider_name}")
                         return response
                 except Exception as e:
-                    logger.warning(f"Provider {provider_name} attempt {attempt + 1} failed: {e}")
+                    logger.warning(
+                        f"Provider {provider_name} attempt {attempt + 1} failed: {e}"
+                    )
                     if attempt < self.config.max_retries - 1:
                         await asyncio.sleep(self.config.retry_delay)
 
@@ -437,10 +441,10 @@ class AIAnalyzer:
     async def analyze_project(self, metrics: ProjectMetrics) -> AIInsights:
         """
         Generate AI insights for a project.
-        
+
         Args:
             metrics: Project metrics
-            
+
         Returns:
             AI-generated insights
         """
@@ -454,7 +458,7 @@ class AIAnalyzer:
                 strengths=[],
                 weaknesses=["AI analysis could not be completed"],
                 opportunities=[],
-                threats=[]
+                threats=[],
             )
 
         return self._parse_analysis_response(response, metrics)
@@ -468,8 +472,8 @@ PATH: {metrics.path}
 
 CODE METRICS:
 - Total lines: {metrics.code.total_lines}
-- Languages: {', '.join(metrics.tech_stack.primary_languages)}
-- Frameworks: {', '.join(metrics.tech_stack.frameworks)}
+- Languages: {", ".join(metrics.tech_stack.primary_languages)}
+- Frameworks: {", ".join(metrics.tech_stack.frameworks)}
 - File count: {metrics.code.file_count}
 
 ACTIVITY:
@@ -524,12 +528,14 @@ TOP_RECOMMENDATIONS:
 3. (recommendation 3)
 """
 
-    def _parse_analysis_response(self, response: str, metrics: ProjectMetrics) -> AIInsights:
+    def _parse_analysis_response(
+        self, response: str, metrics: ProjectMetrics
+    ) -> AIInsights:
         """Parse AI response into structured insights."""
         insights = AIInsights()
 
         try:
-            lines = response.strip().split('\n')
+            lines = response.strip().split("\n")
             current_section = None
 
             for line in lines:
@@ -567,14 +573,20 @@ TOP_RECOMMENDATIONS:
                 elif line[0].isdigit() and "." in line:
                     # Numbered recommendation
                     if current_section == "recommendations":
-                        rec_text = line.split(".", 1)[1].strip() if "." in line else line
-                        insights.suggestions.append(ImprovementSuggestion(
-                            title=rec_text[:50],
-                            description=rec_text,
-                            priority=RiskLevel.MEDIUM,
-                            category="ai_recommendation"
-                        ))
-                elif current_section == "summary" and not line.startswith(("STRENGTHS", "WEAKNESSES")):
+                        rec_text = (
+                            line.split(".", 1)[1].strip() if "." in line else line
+                        )
+                        insights.suggestions.append(
+                            ImprovementSuggestion(
+                                title=rec_text[:50],
+                                description=rec_text,
+                                priority=RiskLevel.MEDIUM,
+                                category="ai_recommendation",
+                            )
+                        )
+                elif current_section == "summary" and not line.startswith(
+                    ("STRENGTHS", "WEAKNESSES")
+                ):
                     # Continue summary on next lines
                     if insights.summary:
                         insights.summary += " " + line
@@ -585,17 +597,19 @@ TOP_RECOMMENDATIONS:
 
         except Exception as e:
             logger.error(f"Error parsing AI response: {e}")
-            insights.summary = f"Analysis generated but parsing failed: {response[:200]}..."
+            insights.summary = (
+                f"Analysis generated but parsing failed: {response[:200]}..."
+            )
 
         return insights
 
     async def assess_technical_debt(self, code_samples: list[str]) -> str:
         """
         AI-powered technical debt assessment.
-        
+
         Args:
             code_samples: List of code snippets to analyze
-            
+
         Returns:
             Technical debt assessment summary
         """
@@ -607,7 +621,7 @@ Identify:
 4. Suggested refactoring
 
 CODE SAMPLES:
-{chr(10).join(f'```{sample}```' for sample in code_samples[:5])}
+{chr(10).join(f"```{sample}```" for sample in code_samples[:5])}
 
 Provide a brief, actionable assessment focusing on the most critical issues.
 """
@@ -615,13 +629,15 @@ Provide a brief, actionable assessment focusing on the most critical issues.
         response = await self.generate(prompt)
         return response or "Technical debt assessment unavailable"
 
-    async def suggest_improvements(self, metrics: ProjectMetrics) -> list[ImprovementSuggestion]:
+    async def suggest_improvements(
+        self, metrics: ProjectMetrics
+    ) -> list[ImprovementSuggestion]:
         """
         Generate prioritized improvement suggestions.
-        
+
         Args:
             metrics: Project metrics
-            
+
         Returns:
             List of improvement suggestions
         """
@@ -633,7 +649,7 @@ PROJECT: {metrics.name}
 - Security: {metrics.security.security_score}/100
 - Activity: {metrics.activity.commits_last_30_days} commits/month
 - Test coverage: ~{metrics.quality.test_coverage_estimate}%
-- Tech stack: {', '.join(metrics.tech_stack.primary_languages)}
+- Tech stack: {", ".join(metrics.tech_stack.primary_languages)}
 
 For each suggestion, provide:
 - Title (brief)
@@ -650,32 +666,44 @@ Format as:
 
         suggestions = []
         if response:
-            lines = response.strip().split('\n')
+            lines = response.strip().split("\n")
             for line in lines:
                 if line and line[0].isdigit():
                     try:
                         # Parse format: 1. [HIGH/LOW] Title: Description
-                        parts = line.split(']', 1)
+                        parts = line.split("]", 1)
                         if len(parts) == 2:
-                            priority_effort = parts[0].split('[')[1].split('/')
+                            priority_effort = parts[0].split("[")[1].split("/")
                             priority = priority_effort[0].lower().strip()
-                            effort = priority_effort[1].lower().strip() if len(priority_effort) > 1 else "medium"
+                            effort = (
+                                priority_effort[1].lower().strip()
+                                if len(priority_effort) > 1
+                                else "medium"
+                            )
 
                             title_desc = parts[1].strip()
-                            if ':' in title_desc:
-                                title, desc = title_desc.split(':', 1)
+                            if ":" in title_desc:
+                                title, desc = title_desc.split(":", 1)
                             else:
                                 title = title_desc[:50]
                                 desc = title_desc
 
-                            priority_map = {"low": RiskLevel.LOW, "medium": RiskLevel.MEDIUM, "high": RiskLevel.HIGH}
+                            priority_map = {
+                                "low": RiskLevel.LOW,
+                                "medium": RiskLevel.MEDIUM,
+                                "high": RiskLevel.HIGH,
+                            }
 
-                            suggestions.append(ImprovementSuggestion(
-                                title=title.strip(),
-                                description=desc.strip(),
-                                priority=priority_map.get(priority, RiskLevel.MEDIUM),
-                                effort_estimate=effort
-                            ))
+                            suggestions.append(
+                                ImprovementSuggestion(
+                                    title=title.strip(),
+                                    description=desc.strip(),
+                                    priority=priority_map.get(
+                                        priority, RiskLevel.MEDIUM
+                                    ),
+                                    effort_estimate=effort,
+                                )
+                            )
                     except Exception as e:
                         logger.debug(f"Error parsing suggestion: {e}")
 
@@ -686,13 +714,14 @@ Format as:
 # CONVENIENCE FUNCTIONS
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 async def quick_analysis(metrics: ProjectMetrics) -> AIInsights:
     """
     Quick AI analysis of a project.
-    
+
     Args:
         metrics: Project metrics
-        
+
     Returns:
         AI insights
     """
@@ -703,10 +732,10 @@ async def quick_analysis(metrics: ProjectMetrics) -> AIInsights:
 def sync_analysis(metrics: ProjectMetrics) -> AIInsights:
     """
     Synchronous wrapper for AI analysis.
-    
+
     Args:
         metrics: Project metrics
-        
+
     Returns:
         AI insights
     """
@@ -716,13 +745,14 @@ def sync_analysis(metrics: ProjectMetrics) -> AIInsights:
 async def check_providers() -> dict[str, bool]:
     """
     Check which AI providers are available.
-    
+
     Returns:
         Dictionary of provider name to availability
     """
     analyzer = AIAnalyzer()
-    return {name: provider.is_available()
-            for name, provider in analyzer._providers.items()}
+    return {
+        name: provider.is_available() for name, provider in analyzer._providers.items()
+    }
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -742,7 +772,9 @@ if __name__ == "__main__":
             print("❌ No AI providers available!")
             print("\nTo enable providers:")
             print("  - Local: Start LlamaCpp server on http://localhost:8080")
-            print("  - Cloud: Set DEEPSEEK_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY")
+            print(
+                "  - Cloud: Set DEEPSEEK_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY"
+            )
             return
 
         print("Available providers:")
@@ -751,7 +783,9 @@ if __name__ == "__main__":
 
         # Quick test
         print("\nTesting generation...")
-        response = await analyzer.generate("Say 'Hello from ProjectPhantom!' in one line.")
+        response = await analyzer.generate(
+            "Say 'Hello from ProjectPhantom!' in one line."
+        )
         if response:
             print(f"✅ Response: {response[:100]}")
         else:

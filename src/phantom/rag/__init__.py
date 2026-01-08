@@ -31,8 +31,10 @@ __all__ = [
 def __getattr__(name):
     if name == "RAGPipeline":
         from phantom.rag.pipeline import RAGPipeline
+
         return RAGPipeline
     if name == "Retriever":
         from phantom.rag.retriever import Retriever
+
         return Retriever
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

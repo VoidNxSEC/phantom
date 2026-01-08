@@ -16,15 +16,19 @@ try:
     from google.auth import default as get_default_credentials
     from google.auth.exceptions import DefaultCredentialsError
     from google.cloud import aiplatform, bigquery, storage
+
     GCP_AVAILABLE = True
 except ImportError:
     GCP_AVAILABLE = False
-    print("⚠️  Google Cloud libraries not installed. Run: pip install google-cloud-aiplatform google-cloud-bigquery google-cloud-storage")
+    print(
+        "⚠️  Google Cloud libraries not installed. Run: pip install google-cloud-aiplatform google-cloud-bigquery google-cloud-storage"
+    )
 
 
 @dataclass
 class GCPConfig:
     """Google Cloud Platform configuration"""
+
     project_id: str
     region: str
     credentials_path: Path | None = None
@@ -89,7 +93,9 @@ class GCPConfigManager:
             region=region,
             credentials_path=credentials_path,
             vertex_location=os.getenv("VERTEX_AI_LOCATION", region),
-            embedding_model=os.getenv("VERTEX_AI_EMBEDDING_MODEL", "textembedding-gecko@003"),
+            embedding_model=os.getenv(
+                "VERTEX_AI_EMBEDDING_MODEL", "textembedding-gecko@003"
+            ),
             bigquery_dataset=os.getenv("GCP_BIGQUERY_DATASET", "phantom_rag"),
             storage_bucket=os.getenv("GCP_STORAGE_BUCKET"),
         )
@@ -117,7 +123,9 @@ class GCPConfigManager:
                 with open(self.config.credentials_path) as f:
                     creds = json.load(f)
                     if "type" not in creds or creds["type"] != "service_account":
-                        raise ValueError("Credentials file must be a service account JSON key")
+                        raise ValueError(
+                            "Credentials file must be a service account JSON key"
+                        )
             except json.JSONDecodeError as e:
                 raise ValueError(f"Invalid credentials JSON: {e}")
 
@@ -126,7 +134,9 @@ class GCPConfigManager:
 
         # Set environment variable for all Google Cloud clients
         if self.config.credentials_path:
-            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(self.config.credentials_path)
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(
+                self.config.credentials_path
+            )
 
         # Test authentication
         try:
@@ -146,7 +156,9 @@ class GCPConfigManager:
             location=self.config.vertex_location,
         )
 
-        print(f"✓ Vertex AI initialized (project={self.config.project_id}, location={self.config.vertex_location})")
+        print(
+            f"✓ Vertex AI initialized (project={self.config.project_id}, location={self.config.vertex_location})"
+        )
 
     def get_bigquery_client(self) -> bigquery.Client:
         """Get BigQuery client"""
@@ -172,13 +184,16 @@ class GCPConfigManager:
             "embedding_model": self.config.embedding_model,
             "bigquery_dataset": self.config.bigquery_dataset,
             "storage_bucket": self.config.storage_bucket,
-            "credentials_path": str(self.config.credentials_path) if self.config.credentials_path else None,
+            "credentials_path": str(self.config.credentials_path)
+            if self.config.credentials_path
+            else None,
         }
 
 
 # ═══════════════════════════════════════════════════════════════════
 # TESTING & VALIDATION
 # ═══════════════════════════════════════════════════════════════════
+
 
 def test_gcp_setup():
     """Test GCP configuration and connectivity"""

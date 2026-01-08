@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SearchResult:
     """Search result with metadata."""
+
     chunk_id: int
     text: str
     score: float
@@ -66,7 +67,7 @@ class FAISSVectorStore(VectorStore):
     def __init__(self, embedding_dim: int, use_gpu: bool = False):
         """
         Initialize FAISS index.
-        
+
         Args:
             embedding_dim: Dimension of embeddings
             use_gpu: Use GPU acceleration if available
@@ -137,12 +138,14 @@ class FAISSVectorStore(VectorStore):
         for score, idx in zip(scores[0], indices[0]):
             if idx < 0:  # FAISS returns -1 for not found
                 continue
-            results.append(SearchResult(
-                chunk_id=int(idx),
-                text=self.texts[idx],
-                score=float(score),
-                metadata=self.metadata[idx],
-            ))
+            results.append(
+                SearchResult(
+                    chunk_id=int(idx),
+                    text=self.texts[idx],
+                    score=float(score),
+                    metadata=self.metadata[idx],
+                )
+            )
 
         return results
 
@@ -246,12 +249,14 @@ class NumpyVectorStore(VectorStore):
 
         results = []
         for idx in top_indices:
-            results.append(SearchResult(
-                chunk_id=int(idx),
-                text=self.texts[idx],
-                score=float(scores[idx]),
-                metadata=self.metadata[idx],
-            ))
+            results.append(
+                SearchResult(
+                    chunk_id=int(idx),
+                    text=self.texts[idx],
+                    score=float(scores[idx]),
+                    metadata=self.metadata[idx],
+                )
+            )
 
         return results
 
@@ -292,7 +297,7 @@ def create_vector_store(
 ) -> VectorStore:
     """
     Create a vector store.
-    
+
     Args:
         embedding_dim: Dimension of embeddings
         backend: "faiss", "numpy", or "auto" (tries FAISS first)

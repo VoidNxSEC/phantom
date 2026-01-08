@@ -16,6 +16,7 @@ from typing import Any
 # Try to import tiktoken for accurate token counting
 try:
     import tiktoken
+
     TIKTOKEN_AVAILABLE = True
 except ImportError:
     TIKTOKEN_AVAILABLE = False
@@ -80,24 +81,25 @@ FEW_SHOT_EXAMPLES = [
     {
         "context": "[Source 1] Python error handling uses try-except blocks. The try block contains code that might raise exceptions, while except blocks handle specific error types.",
         "question": "How do I handle errors in Python?",
-        "answer": "Use try-except blocks for error handling [Source 1]. Place potentially problematic code in the try block and handle specific exceptions in except blocks."
+        "answer": "Use try-except blocks for error handling [Source 1]. Place potentially problematic code in the try block and handle specific exceptions in except blocks.",
     },
     {
         "context": "[Source 1] FastAPI supports async endpoints using async def. [Source 2] Use await with async database calls for better performance.",
         "question": "Should I use async in FastAPI?",
-        "answer": "Yes, FastAPI supports async endpoints [Source 1]. Use async def for routes that involve I/O operations, especially database calls [Source 2], to improve performance."
+        "answer": "Yes, FastAPI supports async endpoints [Source 1]. Use async def for routes that involve I/O operations, especially database calls [Source 2], to improve performance.",
     },
     {
         "context": "[Source 1] NixOS uses declarative configuration in configuration.nix.",
         "question": "How do I deploy a web app?",
-        "answer": "The provided context only covers NixOS configuration [Source 1], but doesn't contain specific information about web app deployment. I would need additional context about deployment strategies, hosting options, and web server configuration."
-    }
+        "answer": "The provided context only covers NixOS configuration [Source 1], but doesn't contain specific information about web app deployment. I would need additional context about deployment strategies, hosting options, and web server configuration.",
+    },
 ]
 
 
 # ═══════════════════════════════════════════════════════════════
 # TOKEN COUNTING
 # ═══════════════════════════════════════════════════════════════
+
 
 class TokenCounter:
     """Accurate token counting using tiktoken"""
@@ -121,9 +123,11 @@ class TokenCounter:
 # DATA STRUCTURES
 # ═══════════════════════════════════════════════════════════════
 
+
 @dataclass
 class Source:
     """Retrieved source document"""
+
     id: int
     text: str
     score: float
@@ -137,6 +141,7 @@ class Source:
 @dataclass
 class Message:
     """Chat message"""
+
     role: str  # "user" | "assistant"
     content: str
 
@@ -150,6 +155,7 @@ class Message:
 # PROMPT TEMPLATE
 # ═══════════════════════════════════════════════════════════════
 
+
 class PromptTemplate:
     """Template with variable substitution"""
 
@@ -159,7 +165,7 @@ class PromptTemplate:
 
     def _extract_variables(self, template: str) -> list[str]:
         """Extract {variable} placeholders"""
-        return re.findall(r'\{(\w+)\}', template)
+        return re.findall(r"\{(\w+)\}", template)
 
     def render(self, **kwargs) -> str:
         """Render template with variables"""
@@ -174,6 +180,7 @@ class PromptTemplate:
 # CONTEXT OPTIMIZATION
 # ═══════════════════════════════════════════════════════════════
 
+
 class ContextOptimizer:
     """Optimize retrieved context for prompt"""
 
@@ -184,7 +191,7 @@ class ContextOptimizer:
     def optimize(self, sources: list[Source]) -> list[Source]:
         """
         Optimize sources to fit token budget
-        
+
         Strategy:
         1. Sort by relevance score
         2. Remove near-duplicates
@@ -217,7 +224,9 @@ class ContextOptimizer:
 
         return selected
 
-    def _dedup_sources(self, sources: list[Source], threshold: float = 0.8) -> list[Source]:
+    def _dedup_sources(
+        self, sources: list[Source], threshold: float = 0.8
+    ) -> list[Source]:
         """Remove near-duplicate sources"""
         unique = []
 
@@ -259,13 +268,14 @@ class ContextOptimizer:
             id=source.id,
             text=truncated.strip() + "...",
             score=source.score,
-            metadata=source.metadata
+            metadata=source.metadata,
         )
 
 
 # ═══════════════════════════════════════════════════════════════
 # PROMPT PIPELINE
 # ═══════════════════════════════════════════════════════════════
+
 
 class PromptPipeline:
     """Main prompt engineering pipeline"""
@@ -274,7 +284,7 @@ class PromptPipeline:
         self,
         system_prompt: str = SYSTEM_PROMPT,
         max_context_tokens: int = DEFAULT_MAX_CONTEXT_TOKENS,
-        max_history_turns: int = DEFAULT_MAX_HISTORY_TURNS
+        max_history_turns: int = DEFAULT_MAX_HISTORY_TURNS,
     ):
         self.system_prompt = system_prompt
         self.max_context_tokens = max_context_tokens
@@ -285,19 +295,16 @@ class PromptPipeline:
         self.token_counter = TokenCounter()
 
     def build_rag_prompt(
-        self,
-        question: str,
-        sources: list[Source],
-        history: list[Message] = None
+        self, question: str, sources: list[Source], history: list[Message] = None
     ) -> str:
         """
         Build complete RAG prompt
-        
+
         Args:
             question: User's current question
             sources: Retrieved context sources
             history: Conversation history
-        
+
         Returns:
             Complete prompt string
         """
@@ -310,9 +317,7 @@ class PromptPipeline:
 
         # Render template
         user_prompt = self.template.render(
-            history=history_text,
-            context=context,
-            question=question
+            history=history_text, context=context, question=question
         )
 
         # Combine system + user
@@ -334,7 +339,7 @@ class PromptPipeline:
             return "[Start of conversation]"
 
         # Keep last N turns
-        recent = messages[-self.max_history_turns * 2:]  # *2 for user+assistant pairs
+        recent = messages[-self.max_history_turns * 2 :]  # *2 for user+assistant pairs
 
         formatted = [msg.format() for msg in recent]
         return "\n".join(formatted)
@@ -351,7 +356,9 @@ class PromptPipeline:
             examples_text += f"Answer: {ex['answer']}\n"
 
         # Insert before the actual query
-        return prompt.replace("Current Question:", examples_text + "\nCurrent Question:")
+        return prompt.replace(
+            "Current Question:", examples_text + "\nCurrent Question:"
+        )
 
     def estimate_tokens(self, prompt: str) -> int:
         """Estimate token count for prompt"""
@@ -362,27 +369,26 @@ class PromptPipeline:
 # CLI FOR TESTING
 # ═══════════════════════════════════════════════════════════════
 
+
 def main():
     """Test prompt pipeline"""
     # Example sources
     sources = [
         Source(1, "Error handling in Python uses try-except blocks.", 0.95, {}),
         Source(2, "FastAPI supports async/await for better performance.", 0.82, {}),
-        Source(3, "Use logging instead of print for production code.", 0.75, {})
+        Source(3, "Use logging instead of print for production code.", 0.75, {}),
     ]
 
     # Example history
     history = [
         Message("user", "Tell me about Python"),
-        Message("assistant", "Python is a versatile programming language.")
+        Message("assistant", "Python is a versatile programming language."),
     ]
 
     # Build prompt
     pipeline = PromptPipeline()
     prompt = pipeline.build_rag_prompt(
-        question="How do I handle errors?",
-        sources=sources,
-        history=history
+        question="How do I handle errors?", sources=sources, history=history
     )
 
     print("=" * 60)

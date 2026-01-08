@@ -25,7 +25,9 @@ console = Console()
 
 @app.command()
 def extract(
-    input_path: Path = typer.Option(..., "-i", "--input", help="Input directory or file"),
+    input_path: Path = typer.Option(
+        ..., "-i", "--input", help="Input directory or file"
+    ),
     output_path: Path = typer.Option(..., "-o", "--output", help="Output file (JSONL)"),
     format: str = typer.Option("jsonl", "-f", "--format", help="Output format"),
     verbose: bool = typer.Option(False, "-v", "--verbose", help="Verbose output"),
@@ -41,7 +43,9 @@ def extract(
 @app.command()
 def analyze(
     file: Path = typer.Argument(..., help="File to analyze"),
-    sentiment: bool = typer.Option(True, "--sentiment", help="Include sentiment analysis"),
+    sentiment: bool = typer.Option(
+        True, "--sentiment", help="Include sentiment analysis"
+    ),
     entities: bool = typer.Option(True, "--entities", help="Include entity extraction"),
 ):
     """Perform comprehensive analysis on a document."""
@@ -83,7 +87,9 @@ app.add_typer(rag_app, name="rag")
 @rag_app.command("query")
 def rag_query(
     question: str = typer.Argument(..., help="Question to ask"),
-    collection: str = typer.Option("default", "-c", "--collection", help="Collection name"),
+    collection: str = typer.Option(
+        "default", "-c", "--collection", help="Collection name"
+    ),
     top_k: int = typer.Option(5, "-k", "--top-k", help="Number of results"),
 ):
     """Query the RAG pipeline."""
@@ -96,7 +102,9 @@ def rag_query(
 @rag_app.command("ingest")
 def rag_ingest(
     directory: Path = typer.Argument(..., help="Directory to ingest"),
-    collection: str = typer.Option("default", "-c", "--collection", help="Collection name"),
+    collection: str = typer.Option(
+        "default", "-c", "--collection", help="Collection name"
+    ),
 ):
     """Ingest documents into RAG index."""
     console.print(f"[cyan]📥 Ingesting:[/] {directory}")
@@ -152,6 +160,7 @@ def api_serve(
     console.print(f"[cyan]🚀 Starting API server on {host}:{port}[/]")
 
     import uvicorn
+
     uvicorn.run(
         "phantom.api.app:create_app",
         host=host,
@@ -165,6 +174,7 @@ def api_serve(
 def version():
     """Show version information."""
     from phantom import __codename__, __version__
+
     console.print(f"[cyan]🔮 Phantom[/] v{__version__} ({__codename__})")
 
 

@@ -49,12 +49,13 @@ class LlamaCppProvider(AIProvider):
             return self._available
 
         try:
-            response = requests.get(
-                f"{self.config.base_url}/health",
-                timeout=5
-            )
+            response = requests.get(f"{self.config.base_url}/health", timeout=5)
             self._available = response.status_code == 200
-            self._status = ProviderStatus.AVAILABLE if self._available else ProviderStatus.UNAVAILABLE
+            self._status = (
+                ProviderStatus.AVAILABLE
+                if self._available
+                else ProviderStatus.UNAVAILABLE
+            )
         except Exception as e:
             logger.debug(f"LlamaCPP not available: {e}")
             self._available = False
@@ -67,7 +68,7 @@ class LlamaCppProvider(AIProvider):
         prompt: str,
         max_tokens: int | None = None,
         temperature: float | None = None,
-        **kwargs
+        **kwargs,
     ) -> GenerationResult:
         """Generate text using local LlamaCPP server."""
         start_time = time.time()

@@ -15,17 +15,22 @@ from phantom.providers.base import AIProvider, ProviderConfig
 def __getattr__(name):
     if name == "LlamaCppProvider":
         from phantom.providers.llamacpp import LlamaCppProvider
+
         return LlamaCppProvider
     if name == "OpenAIProvider":
         from phantom.providers.openai import OpenAIProvider
+
         return OpenAIProvider
     if name == "AnthropicProvider":
         from phantom.providers.anthropic import AnthropicProvider
+
         return AnthropicProvider
     if name == "DeepSeekProvider":
         from phantom.providers.deepseek import DeepSeekProvider
+
         return DeepSeekProvider
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     "AIProvider",
@@ -35,4 +40,3 @@ __all__ = [
     "AnthropicProvider",
     "DeepSeekProvider",
 ]
-

@@ -12,6 +12,7 @@ from typing import Any
 # QUERY CACHE
 # ═══════════════════════════════════════════════════════════════
 
+
 class QueryCache:
     """LRU cache for semantic search queries"""
 
@@ -63,13 +64,14 @@ class QueryCache:
             "size": len(self.cache),
             "maxsize": self.maxsize,
             "ttl_seconds": self.ttl_seconds,
-            "hit_rate": "N/A"  # Would need hit/miss tracking
+            "hit_rate": "N/A",  # Would need hit/miss tracking
         }
 
 
 # ═══════════════════════════════════════════════════════════════
 # CONNECTION POOLING
 # ═══════════════════════════════════════════════════════════════
+
 
 class ConnectionPool:
     """HTTP connection pooling for external APIs"""
@@ -93,6 +95,7 @@ class ConnectionPool:
 # ═══════════════════════════════════════════════════════════════
 # BATCH PROCESSING
 # ═══════════════════════════════════════════════════════════════
+
 
 class BatchProcessor:
     """Batch processing for embeddings and search"""
@@ -121,26 +124,22 @@ class BatchProcessor:
 # PARALLEL SEARCH
 # ═══════════════════════════════════════════════════════════════
 
+
 async def parallel_semantic_search(
-    queries: list[str],
-    search_func,
-    top_k: int = 5
+    queries: list[str], search_func, top_k: int = 5
 ) -> list[list[Any]]:
     """
     Execute multiple semantic searches in parallel
-    
+
     Args:
         queries: List of search queries
         search_func: Search function to call
         top_k: Number of results per query
-    
+
     Returns:
         List of search results for each query
     """
-    tasks = [
-        asyncio.to_thread(search_func, query, top_k)
-        for query in queries
-    ]
+    tasks = [asyncio.to_thread(search_func, query, top_k) for query in queries]
 
     results = await asyncio.gather(*tasks)
     return results
@@ -149,6 +148,7 @@ async def parallel_semantic_search(
 # ═══════════════════════════════════════════════════════════════
 # METRICS
 # ═══════════════════════════════════════════════════════════════
+
 
 class LatencyMetrics:
     """Track query latency metrics"""
@@ -159,15 +159,13 @@ class LatencyMetrics:
 
     def record(self, query_type: str, latency_ms: float):
         """Record query latency"""
-        self.queries.append({
-            "type": query_type,
-            "latency_ms": latency_ms,
-            "timestamp": time.time()
-        })
+        self.queries.append(
+            {"type": query_type, "latency_ms": latency_ms, "timestamp": time.time()}
+        )
 
         # Keep only recent queries
         if len(self.queries) > self.max_history:
-            self.queries = self.queries[-self.max_history:]
+            self.queries = self.queries[-self.max_history :]
 
     def get_stats(self, query_type: str | None = None) -> Dict[str, float]:
         """Get latency statistics"""

@@ -21,6 +21,7 @@ try:
         MarkdownHeaderTextSplitter,
         RecursiveCharacterTextSplitter,
     )
+
     LANGCHAIN_AVAILABLE = True
 except ImportError:
     LANGCHAIN_AVAILABLE = False
@@ -32,25 +33,28 @@ except ImportError:
 # ═══════════════════════════════════════════════════════════════
 
 DEFAULT_CHUNK_SIZE = 1024  # tokens
-DEFAULT_OVERLAP = 128      # tokens
+DEFAULT_OVERLAP = 128  # tokens
 DEFAULT_ENCODING = "cl100k_base"  # GPT-4 tokenizer
 
 
 class ChunkStrategy(str, Enum):
     """Chunking strategy options"""
-    RECURSIVE = "recursive"      # Split by headers, respecting structure
-    SLIDING = "sliding"          # Fixed-size sliding window
-    SEMANTIC = "semantic"        # Semantic boundary detection
-    SIMPLE = "simple"            # Simple token limit splitting
+
+    RECURSIVE = "recursive"  # Split by headers, respecting structure
+    SLIDING = "sliding"  # Fixed-size sliding window
+    SEMANTIC = "semantic"  # Semantic boundary detection
+    SIMPLE = "simple"  # Simple token limit splitting
 
 
 # ═══════════════════════════════════════════════════════════════
 # DATA STRUCTURES
 # ═══════════════════════════════════════════════════════════════
 
+
 @dataclass
 class ChunkMetadata:
     """Metadata for a text chunk"""
+
     source_file: str
     chunk_id: int
     start_offset: int
@@ -65,6 +69,7 @@ class ChunkMetadata:
 @dataclass
 class Chunk:
     """Text chunk with metadata"""
+
     text: str
     metadata: ChunkMetadata
 
@@ -78,6 +83,7 @@ class Chunk:
 # ═══════════════════════════════════════════════════════════════
 # TOKEN COUNTING
 # ═══════════════════════════════════════════════════════════════
+
 
 class TokenCounter:
     """Token counting utility using tiktoken"""
@@ -116,10 +122,11 @@ class TokenCounter:
 # CHUNKING STRATEGIES
 # ═══════════════════════════════════════════════════════════════
 
+
 class RecursiveMarkdownChunker:
     """
     Split markdown by headers while respecting semantic structure
-    
+
     Strategy:
     1. Parse header hierarchy (H1 -> H2 -> H3)
     2. Split at headers if section exceeds max_tokens
@@ -127,7 +134,9 @@ class RecursiveMarkdownChunker:
     4. Add overlap between chunks
     """
 
-    def __init__(self, max_tokens: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_OVERLAP):
+    def __init__(
+        self, max_tokens: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_OVERLAP
+    ):
         self.max_tokens = max_tokens
         self.overlap = overlap
         self.token_counter = TokenCounter()
@@ -138,7 +147,7 @@ class RecursiveMarkdownChunker:
         Returns: [(position, level, text), ...]
         """
         headers = []
-        for match in re.finditer(r'^(#{1,6})\s+(.+)$', text, re.MULTILINE):
+        for match in re.finditer(r"^(#{1,6})\s+(.+)$", text, re.MULTILINE):
             level = len(match.group(1))
             header_text = match.group(2).strip()
             position = match.start()
@@ -151,14 +160,18 @@ class RecursiveMarkdownChunker:
 
         if not headers:
             # No headers, fall back to sliding window
-            return SlidingWindowChunker(self.max_tokens, self.overlap).chunk(text, source_file)
+            return SlidingWindowChunker(self.max_tokens, self.overlap).chunk(
+                text, source_file
+            )
 
         chunks = []
         header_stack = []  # Track current header hierarchy
 
         for i, (pos, level, header_text) in enumerate(headers):
             # Update header stack
-            header_stack = [h for h in header_stack if h[0] < level] + [(level, header_text)]
+            header_stack = [h for h in header_stack if h[0] < level] + [
+                (level, header_text)
+            ]
 
             # Determine section boundaries
             start_pos = pos
@@ -176,7 +189,7 @@ class RecursiveMarkdownChunker:
                     end_offset=end_pos,
                     headers=[h[1] for h in header_stack],
                     token_count=section_tokens,
-                    word_count=len(section_text.split())
+                    word_count=len(section_text.split()),
                 )
                 chunks.append(Chunk(text=section_text, metadata=metadata))
             else:
@@ -186,7 +199,7 @@ class RecursiveMarkdownChunker:
                     source_file,
                     start_pos,
                     [h[1] for h in header_stack],
-                    len(chunks)
+                    len(chunks),
                 )
                 chunks.extend(sub_chunks)
 
@@ -198,14 +211,14 @@ class RecursiveMarkdownChunker:
         source_file: str,
         base_offset: int,
         headers: list[str],
-        start_chunk_id: int
+        start_chunk_id: int,
     ) -> list[Chunk]:
         """Split large section using sliding window"""
         chunks = []
         tokens = self.token_counter.encode(text)
 
         for i in range(0, len(tokens), self.max_tokens - self.overlap):
-            chunk_tokens = tokens[i:i + self.max_tokens]
+            chunk_tokens = tokens[i : i + self.max_tokens]
             chunk_text = self.token_counter.decode(chunk_tokens)
 
             metadata = ChunkMetadata(
@@ -215,7 +228,7 @@ class RecursiveMarkdownChunker:
                 end_offset=base_offset + i + len(chunk_tokens),
                 headers=headers,
                 token_count=len(chunk_tokens),
-                word_count=len(chunk_text.split())
+                word_count=len(chunk_text.split()),
             )
             chunks.append(Chunk(text=chunk_text, metadata=metadata))
 
@@ -229,11 +242,13 @@ class RecursiveMarkdownChunker:
 class SlidingWindowChunker:
     """
     Fixed-size sliding window chunking with overlap
-    
+
     Simple but effective for documents without clear structure
     """
 
-    def __init__(self, max_tokens: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_OVERLAP):
+    def __init__(
+        self, max_tokens: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_OVERLAP
+    ):
         self.max_tokens = max_tokens
         self.overlap = overlap
         self.token_counter = TokenCounter()
@@ -244,7 +259,7 @@ class SlidingWindowChunker:
         tokens = self.token_counter.encode(text)
 
         for i in range(0, len(tokens), self.max_tokens - self.overlap):
-            chunk_tokens = tokens[i:i + self.max_tokens]
+            chunk_tokens = tokens[i : i + self.max_tokens]
             chunk_text = self.token_counter.decode(chunk_tokens)
 
             metadata = ChunkMetadata(
@@ -253,7 +268,7 @@ class SlidingWindowChunker:
                 start_offset=i,
                 end_offset=i + len(chunk_tokens),
                 token_count=len(chunk_tokens),
-                word_count=len(chunk_text.split())
+                word_count=len(chunk_text.split()),
             )
             chunks.append(Chunk(text=chunk_text, metadata=metadata))
 
@@ -276,7 +291,7 @@ class SimpleChunker:
         tokens = self.token_counter.encode(text)
 
         for i in range(0, len(tokens), self.max_tokens):
-            chunk_tokens = tokens[i:i + self.max_tokens]
+            chunk_tokens = tokens[i : i + self.max_tokens]
             chunk_text = self.token_counter.decode(chunk_tokens)
 
             metadata = ChunkMetadata(
@@ -285,7 +300,7 @@ class SimpleChunker:
                 start_offset=i,
                 end_offset=i + len(chunk_tokens),
                 token_count=len(chunk_tokens),
-                word_count=len(chunk_text.split())
+                word_count=len(chunk_text.split()),
             )
             chunks.append(Chunk(text=chunk_text, metadata=metadata))
 
@@ -296,6 +311,7 @@ class SimpleChunker:
 # MAIN CHUNKER INTERFACE
 # ═══════════════════════════════════════════════════════════════
 
+
 class MarkdownChunker:
     """
     Main chunker interface with strategy selection
@@ -305,7 +321,7 @@ class MarkdownChunker:
         self,
         strategy: ChunkStrategy = ChunkStrategy.RECURSIVE,
         max_tokens: int = DEFAULT_CHUNK_SIZE,
-        overlap: int = DEFAULT_OVERLAP
+        overlap: int = DEFAULT_OVERLAP,
     ):
         self.strategy = strategy
         self.max_tokens = max_tokens
@@ -327,7 +343,7 @@ class MarkdownChunker:
 
     def chunk_file(self, filepath: Path) -> list[Chunk]:
         """Chunk markdown file"""
-        with open(filepath, encoding='utf-8') as f:
+        with open(filepath, encoding="utf-8") as f:
             text = f.read()
 
         return self.chunk_text(text, str(filepath))
@@ -341,12 +357,12 @@ class MarkdownChunker:
         avg_tokens = total_tokens / len(chunks)
 
         return {
-            'num_chunks': len(chunks),
-            'total_tokens': total_tokens,
-            'avg_tokens_per_chunk': avg_tokens,
-            'min_tokens': min(c.metadata.token_count for c in chunks),
-            'max_tokens': max(c.metadata.token_count for c in chunks),
-            'strategy': self.strategy.value,
+            "num_chunks": len(chunks),
+            "total_tokens": total_tokens,
+            "avg_tokens_per_chunk": avg_tokens,
+            "min_tokens": min(c.metadata.token_count for c in chunks),
+            "max_tokens": max(c.metadata.token_count for c in chunks),
+            "strategy": self.strategy.value,
         }
 
 
@@ -354,20 +370,25 @@ class MarkdownChunker:
 # CLI FOR TESTING
 # ═══════════════════════════════════════════════════════════════
 
+
 def main():
     """Test chunking on a file"""
     import argparse
 
     parser = argparse.ArgumentParser(description="Test markdown chunking")
-    parser.add_argument('file', help='Markdown file to chunk')
-    parser.add_argument('-s', '--strategy', choices=['recursive', 'sliding', 'simple'],
-                       default='recursive', help='Chunking strategy')
-    parser.add_argument('-t', '--max-tokens', type=int, default=1024,
-                       help='Max tokens per chunk')
-    parser.add_argument('-o', '--overlap', type=int, default=128,
-                       help='Overlap tokens')
-    parser.add_argument('-v', '--verbose', action='store_true',
-                       help='Verbose output')
+    parser.add_argument("file", help="Markdown file to chunk")
+    parser.add_argument(
+        "-s",
+        "--strategy",
+        choices=["recursive", "sliding", "simple"],
+        default="recursive",
+        help="Chunking strategy",
+    )
+    parser.add_argument(
+        "-t", "--max-tokens", type=int, default=1024, help="Max tokens per chunk"
+    )
+    parser.add_argument("-o", "--overlap", type=int, default=128, help="Overlap tokens")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
 
     args = parser.parse_args()
 
@@ -375,7 +396,7 @@ def main():
     chunker = MarkdownChunker(
         strategy=ChunkStrategy(args.strategy),
         max_tokens=args.max_tokens,
-        overlap=args.overlap
+        overlap=args.overlap,
     )
 
     # Chunk file

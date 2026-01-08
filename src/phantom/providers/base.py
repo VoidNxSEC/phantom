@@ -12,6 +12,7 @@ from enum import Enum
 
 class ProviderStatus(Enum):
     """Provider availability status."""
+
     AVAILABLE = "available"
     UNAVAILABLE = "unavailable"
     RATE_LIMITED = "rate_limited"
@@ -21,6 +22,7 @@ class ProviderStatus(Enum):
 @dataclass
 class ProviderConfig:
     """Configuration for an AI provider."""
+
     base_url: str = ""
     api_key: str = ""
     model: str = ""
@@ -36,6 +38,7 @@ class ProviderConfig:
 @dataclass
 class GenerationResult:
     """Result from a generation request."""
+
     text: str
     tokens_used: int = 0
     model: str = ""
@@ -73,17 +76,17 @@ class AIProvider(ABC):
         prompt: str,
         max_tokens: int | None = None,
         temperature: float | None = None,
-        **kwargs
+        **kwargs,
     ) -> GenerationResult:
         """
         Generate text from prompt.
-        
+
         Args:
             prompt: Input prompt
             max_tokens: Maximum tokens to generate
             temperature: Sampling temperature
             **kwargs: Provider-specific options
-            
+
         Returns:
             GenerationResult with generated text
         """
@@ -94,22 +97,19 @@ class AIProvider(ABC):
         prompt: str,
         max_tokens: int | None = None,
         temperature: float | None = None,
-        **kwargs
+        **kwargs,
     ) -> GenerationResult:
         """Async version of generate. Default implementation wraps sync."""
         import asyncio
+
         return await asyncio.to_thread(
             self.generate, prompt, max_tokens, temperature, **kwargs
         )
 
-    async def stream(
-        self,
-        prompt: str,
-        **kwargs
-    ) -> AsyncIterator[str]:
+    async def stream(self, prompt: str, **kwargs) -> AsyncIterator[str]:
         """
         Stream generation tokens.
-        
+
         Default implementation yields full result as single chunk.
         Providers should override for true streaming.
         """
@@ -117,4 +117,6 @@ class AIProvider(ABC):
         yield result.text
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(name={self.name!r}, status={self.status.value})"
+        return (
+            f"{self.__class__.__name__}(name={self.name!r}, status={self.status.value})"
+        )

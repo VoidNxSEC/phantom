@@ -29,19 +29,28 @@ logger = logging.getLogger(__name__)
 # SCORING CONFIGURATION
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class ScoringWeights:
     """Configurable scoring weights for viability assessment."""
-    activity: float = 0.25       # Git activity, contributor engagement
-    quality: float = 0.20        # Code quality, documentation
-    complexity: float = 0.15     # Manageable complexity (inverted)
-    security: float = 0.15       # Security posture
-    maintenance: float = 0.15    # Technical debt, freshness
-    potential: float = 0.10      # AI-assessed future potential
+
+    activity: float = 0.25  # Git activity, contributor engagement
+    quality: float = 0.20  # Code quality, documentation
+    complexity: float = 0.15  # Manageable complexity (inverted)
+    security: float = 0.15  # Security posture
+    maintenance: float = 0.15  # Technical debt, freshness
+    potential: float = 0.10  # AI-assessed future potential
 
     def validate(self) -> bool:
         """Ensure weights sum to 1.0."""
-        total = self.activity + self.quality + self.complexity + self.security + self.maintenance + self.potential
+        total = (
+            self.activity
+            + self.quality
+            + self.complexity
+            + self.security
+            + self.maintenance
+            + self.potential
+        )
         return abs(total - 1.0) < 0.01
 
 
@@ -52,20 +61,36 @@ DEFAULT_WEIGHTS = ScoringWeights()
 WEIGHT_PRESETS = {
     "default": ScoringWeights(),
     "security_focused": ScoringWeights(
-        activity=0.15, quality=0.15, complexity=0.10,
-        security=0.35, maintenance=0.15, potential=0.10
+        activity=0.15,
+        quality=0.15,
+        complexity=0.10,
+        security=0.35,
+        maintenance=0.15,
+        potential=0.10,
     ),
     "startup": ScoringWeights(
-        activity=0.20, quality=0.15, complexity=0.10,
-        security=0.10, maintenance=0.15, potential=0.30
+        activity=0.20,
+        quality=0.15,
+        complexity=0.10,
+        security=0.10,
+        maintenance=0.15,
+        potential=0.30,
     ),
     "enterprise": ScoringWeights(
-        activity=0.20, quality=0.25, complexity=0.15,
-        security=0.20, maintenance=0.15, potential=0.05
+        activity=0.20,
+        quality=0.25,
+        complexity=0.15,
+        security=0.20,
+        maintenance=0.15,
+        potential=0.05,
     ),
     "maintenance_mode": ScoringWeights(
-        activity=0.10, quality=0.20, complexity=0.20,
-        security=0.20, maintenance=0.25, potential=0.05
+        activity=0.10,
+        quality=0.20,
+        complexity=0.20,
+        security=0.20,
+        maintenance=0.25,
+        potential=0.05,
     ),
 }
 
@@ -74,13 +99,14 @@ WEIGHT_PRESETS = {
 # SCORING FUNCTIONS
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class ViabilityScorer:
     """Enterprise-level project viability scoring system."""
 
     def __init__(self, weights: ScoringWeights | None = None, preset: str = "default"):
         """
         Initialize scorer with weights.
-        
+
         Args:
             weights: Custom scoring weights
             preset: Named preset ("default", "security_focused", "startup", "enterprise")
@@ -97,9 +123,12 @@ class ViabilityScorer:
     def _normalize_weights(self) -> None:
         """Normalize weights to sum to 1.0."""
         total = (
-            self.weights.activity + self.weights.quality +
-            self.weights.complexity + self.weights.security +
-            self.weights.maintenance + self.weights.potential
+            self.weights.activity
+            + self.weights.quality
+            + self.weights.complexity
+            + self.weights.security
+            + self.weights.maintenance
+            + self.weights.potential
         )
         if total > 0:
             self.weights.activity /= total
@@ -112,10 +141,10 @@ class ViabilityScorer:
     def calculate_score(self, metrics: ProjectMetrics) -> ViabilityScore:
         """
         Calculate comprehensive viability score with detailed breakdown.
-        
+
         Args:
             metrics: Complete project metrics
-            
+
         Returns:
             ViabilityScore with breakdown and recommendation
         """
@@ -137,14 +166,16 @@ class ViabilityScorer:
         final_score = breakdown.weighted_total
         result = ViabilityScore.from_score(final_score, breakdown)
 
-        logger.info(f"Project {metrics.name}: Viability Score = {final_score:.1f} ({result.grade})")
+        logger.info(
+            f"Project {metrics.name}: Viability Score = {final_score:.1f} ({result.grade})"
+        )
 
         return result
 
     def _score_activity(self, metrics: ProjectMetrics) -> float:
         """
         Score project activity and engagement (0-100).
-        
+
         Factors:
         - Recency of commits
         - Commit frequency
@@ -201,7 +232,7 @@ class ViabilityScorer:
     def _score_quality(self, metrics: ProjectMetrics) -> float:
         """
         Score code quality (0-100).
-        
+
         Factors:
         - Documentation coverage
         - README quality
@@ -255,7 +286,7 @@ class ViabilityScorer:
         """
         Score manageable complexity (0-100).
         Higher score = more manageable complexity.
-        
+
         Factors:
         - Cyclomatic complexity
         - Cognitive complexity
@@ -314,7 +345,7 @@ class ViabilityScorer:
     def _score_security(self, metrics: ProjectMetrics) -> float:
         """
         Score security posture (0-100).
-        
+
         Factors:
         - Known vulnerabilities
         - Dependency security
@@ -351,7 +382,7 @@ class ViabilityScorer:
     def _score_maintenance(self, metrics: ProjectMetrics) -> float:
         """
         Score maintenance health (0-100).
-        
+
         Factors:
         - Dependency freshness
         - Technical debt indicators
@@ -395,7 +426,7 @@ class ViabilityScorer:
     def _score_potential(self, metrics: ProjectMetrics) -> float:
         """
         Score future potential (0-100).
-        
+
         Factors:
         - Hot topic alignment
         - Tech stack trend
@@ -406,9 +437,25 @@ class ViabilityScorer:
 
         # Hot topics bonus
         hot_topics = {
-            "rust", "nix", "nixos", "ai", "llm", "agent", "ml", "wasm",
-            "security", "encryption", "tauri", "svelte", "react", "nextjs",
-            "kubernetes", "docker", "typescript", "go", "python"
+            "rust",
+            "nix",
+            "nixos",
+            "ai",
+            "llm",
+            "agent",
+            "ml",
+            "wasm",
+            "security",
+            "encryption",
+            "tauri",
+            "svelte",
+            "react",
+            "nextjs",
+            "kubernetes",
+            "docker",
+            "typescript",
+            "go",
+            "python",
         }
 
         all_tech = set()
@@ -435,14 +482,16 @@ class ViabilityScorer:
 
         return max(0, min(100, score))
 
-    def generate_recommendation(self, score: ViabilityScore, metrics: ProjectMetrics) -> str:
+    def generate_recommendation(
+        self, score: ViabilityScore, metrics: ProjectMetrics
+    ) -> str:
         """
         Generate actionable investment recommendation.
-        
+
         Args:
             score: Calculated viability score
             metrics: Project metrics
-            
+
         Returns:
             Detailed recommendation text
         """
@@ -455,12 +504,24 @@ class ViabilityScorer:
 
         # Score breakdown
         parts.append("## Score Breakdown\n")
-        parts.append(f"- Activity: {breakdown.activity_score:.1f}/100 (weight: {breakdown.activity_weight:.0%})")
-        parts.append(f"- Quality: {breakdown.quality_score:.1f}/100 (weight: {breakdown.quality_weight:.0%})")
-        parts.append(f"- Complexity: {breakdown.complexity_score:.1f}/100 (weight: {breakdown.complexity_weight:.0%})")
-        parts.append(f"- Security: {breakdown.security_score:.1f}/100 (weight: {breakdown.security_weight:.0%})")
-        parts.append(f"- Maintenance: {breakdown.maintenance_score:.1f}/100 (weight: {breakdown.maintenance_weight:.0%})")
-        parts.append(f"- Potential: {breakdown.potential_score:.1f}/100 (weight: {breakdown.potential_weight:.0%})")
+        parts.append(
+            f"- Activity: {breakdown.activity_score:.1f}/100 (weight: {breakdown.activity_weight:.0%})"
+        )
+        parts.append(
+            f"- Quality: {breakdown.quality_score:.1f}/100 (weight: {breakdown.quality_weight:.0%})"
+        )
+        parts.append(
+            f"- Complexity: {breakdown.complexity_score:.1f}/100 (weight: {breakdown.complexity_weight:.0%})"
+        )
+        parts.append(
+            f"- Security: {breakdown.security_score:.1f}/100 (weight: {breakdown.security_weight:.0%})"
+        )
+        parts.append(
+            f"- Maintenance: {breakdown.maintenance_score:.1f}/100 (weight: {breakdown.maintenance_weight:.0%})"
+        )
+        parts.append(
+            f"- Potential: {breakdown.potential_score:.1f}/100 (weight: {breakdown.potential_weight:.0%})"
+        )
 
         # Key insights
         parts.append("\n## Key Insights\n")
@@ -484,11 +545,15 @@ class ViabilityScorer:
         # Weaknesses
         weaknesses = []
         if breakdown.activity_score < 40:
-            weaknesses.append(f"Low activity ({metrics.activity.days_since_last_commit} days since last commit)")
+            weaknesses.append(
+                f"Low activity ({metrics.activity.days_since_last_commit} days since last commit)"
+            )
         if breakdown.quality_score < 40:
             weaknesses.append("Documentation and testing need improvement")
         if breakdown.security_score < 50:
-            weaknesses.append(f"Security concerns ({metrics.security.vulnerabilities_critical} critical vulns)")
+            weaknesses.append(
+                f"Security concerns ({metrics.security.vulnerabilities_critical} critical vulns)"
+            )
         if breakdown.complexity_score < 40:
             weaknesses.append("High complexity may impede maintenance")
         if breakdown.maintenance_score < 40:
@@ -508,7 +573,9 @@ class ViabilityScorer:
 
         return "\n".join(parts)
 
-    def _generate_actions(self, score: ViabilityScore, metrics: ProjectMetrics) -> list[str]:
+    def _generate_actions(
+        self, score: ViabilityScore, metrics: ProjectMetrics
+    ) -> list[str]:
         """Generate prioritized action items."""
         actions = []
         breakdown = score.breakdown
@@ -516,18 +583,26 @@ class ViabilityScorer:
         # Security is always priority if low
         if breakdown.security_score < 60:
             if metrics.security.vulnerabilities_critical > 0:
-                actions.append("**URGENT**: Address critical security vulnerabilities immediately")
+                actions.append(
+                    "**URGENT**: Address critical security vulnerabilities immediately"
+                )
             if metrics.security.secrets_detected > 0:
-                actions.append("**URGENT**: Remove hardcoded secrets and rotate credentials")
+                actions.append(
+                    "**URGENT**: Remove hardcoded secrets and rotate credentials"
+                )
             if metrics.dependencies.vulnerable_dependencies > 0:
                 actions.append("Update dependencies with known vulnerabilities")
 
         # Activity
         if breakdown.activity_score < 50:
             if metrics.activity.days_since_last_commit > 180:
-                actions.append("Evaluate if project is still needed; consider archiving if not")
+                actions.append(
+                    "Evaluate if project is still needed; consider archiving if not"
+                )
             else:
-                actions.append("Increase development cadence or define maintenance schedule")
+                actions.append(
+                    "Increase development cadence or define maintenance schedule"
+                )
 
         # Quality
         if breakdown.quality_score < 50:
@@ -551,7 +626,9 @@ class ViabilityScorer:
 
         # Potential
         if breakdown.potential_score < 50:
-            actions.append("Consider modernizing tech stack for better future maintainability")
+            actions.append(
+                "Consider modernizing tech stack for better future maintainability"
+            )
 
         # Default if no specific issues
         if not actions:
@@ -563,10 +640,10 @@ class ViabilityScorer:
     def generate_risk_factors(self, metrics: ProjectMetrics) -> list[RiskFactor]:
         """
         Identify and score risk factors.
-        
+
         Args:
             metrics: Project metrics
-            
+
         Returns:
             List of identified risk factors
         """
@@ -574,79 +651,95 @@ class ViabilityScorer:
 
         # Security risks
         if metrics.security.vulnerabilities_critical > 0:
-            risks.append(RiskFactor(
-                category="Security",
-                description=f"{metrics.security.vulnerabilities_critical} critical vulnerabilities",
-                severity=RiskLevel.CRITICAL,
-                impact="Potential security breach or exploitation",
-                mitigation="Immediately update affected dependencies",
-                score_impact=-15.0
-            ))
+            risks.append(
+                RiskFactor(
+                    category="Security",
+                    description=f"{metrics.security.vulnerabilities_critical} critical vulnerabilities",
+                    severity=RiskLevel.CRITICAL,
+                    impact="Potential security breach or exploitation",
+                    mitigation="Immediately update affected dependencies",
+                    score_impact=-15.0,
+                )
+            )
 
         if metrics.security.secrets_detected > 0:
-            risks.append(RiskFactor(
-                category="Security",
-                description=f"Detected {metrics.security.secrets_detected} potential secrets in code",
-                severity=RiskLevel.HIGH,
-                impact="Credential exposure risk",
-                mitigation="Remove secrets, use environment variables or secrets manager",
-                score_impact=-10.0
-            ))
+            risks.append(
+                RiskFactor(
+                    category="Security",
+                    description=f"Detected {metrics.security.secrets_detected} potential secrets in code",
+                    severity=RiskLevel.HIGH,
+                    impact="Credential exposure risk",
+                    mitigation="Remove secrets, use environment variables or secrets manager",
+                    score_impact=-10.0,
+                )
+            )
 
         # Activity risks
         if metrics.activity.days_since_last_commit > 365:
-            risks.append(RiskFactor(
-                category="Maintenance",
-                description=f"No activity for {metrics.activity.days_since_last_commit} days",
-                severity=RiskLevel.HIGH,
-                impact="Project may be abandoned or unmaintainable",
-                mitigation="Assess project necessity; archive or revive",
-                score_impact=-20.0
-            ))
+            risks.append(
+                RiskFactor(
+                    category="Maintenance",
+                    description=f"No activity for {metrics.activity.days_since_last_commit} days",
+                    severity=RiskLevel.HIGH,
+                    impact="Project may be abandoned or unmaintainable",
+                    mitigation="Assess project necessity; archive or revive",
+                    score_impact=-20.0,
+                )
+            )
 
         # Dependency risks
-        outdated_ratio = metrics.dependencies.outdated_dependencies / max(1, metrics.dependencies.total_dependencies)
+        outdated_ratio = metrics.dependencies.outdated_dependencies / max(
+            1, metrics.dependencies.total_dependencies
+        )
         if outdated_ratio > 0.5:
-            risks.append(RiskFactor(
-                category="Dependencies",
-                description="Over 50% of dependencies are outdated",
-                severity=RiskLevel.MEDIUM,
-                impact="Missing security patches and features",
-                mitigation="Schedule dependency update sprint",
-                score_impact=-10.0
-            ))
+            risks.append(
+                RiskFactor(
+                    category="Dependencies",
+                    description="Over 50% of dependencies are outdated",
+                    severity=RiskLevel.MEDIUM,
+                    impact="Missing security patches and features",
+                    mitigation="Schedule dependency update sprint",
+                    score_impact=-10.0,
+                )
+            )
 
         # Complexity risks
         if metrics.complexity.cyclomatic_complexity_max > 50:
-            risks.append(RiskFactor(
-                category="Complexity",
-                description=f"Extremely complex code (CC max: {metrics.complexity.cyclomatic_complexity_max})",
-                severity=RiskLevel.MEDIUM,
-                impact="High bug risk and maintenance burden",
-                mitigation="Refactor complex functions; add comprehensive tests",
-                score_impact=-8.0
-            ))
+            risks.append(
+                RiskFactor(
+                    category="Complexity",
+                    description=f"Extremely complex code (CC max: {metrics.complexity.cyclomatic_complexity_max})",
+                    severity=RiskLevel.MEDIUM,
+                    impact="High bug risk and maintenance burden",
+                    mitigation="Refactor complex functions; add comprehensive tests",
+                    score_impact=-8.0,
+                )
+            )
 
         # Single point of failure (single contributor)
         if metrics.activity.total_contributors == 1:
-            risks.append(RiskFactor(
-                category="Bus Factor",
-                description="Single contributor project",
-                severity=RiskLevel.MEDIUM,
-                impact="Knowledge concentration; project at risk if contributor leaves",
-                mitigation="Document architecture; onboard additional contributors",
-                score_impact=-5.0
-            ))
+            risks.append(
+                RiskFactor(
+                    category="Bus Factor",
+                    description="Single contributor project",
+                    severity=RiskLevel.MEDIUM,
+                    impact="Knowledge concentration; project at risk if contributor leaves",
+                    mitigation="Document architecture; onboard additional contributors",
+                    score_impact=-5.0,
+                )
+            )
 
         return risks
 
-    def generate_suggestions(self, metrics: ProjectMetrics) -> list[ImprovementSuggestion]:
+    def generate_suggestions(
+        self, metrics: ProjectMetrics
+    ) -> list[ImprovementSuggestion]:
         """
         Generate prioritized improvement suggestions.
-        
+
         Args:
             metrics: Project metrics
-            
+
         Returns:
             List of improvement suggestions
         """
@@ -654,63 +747,73 @@ class ViabilityScorer:
 
         # Documentation suggestions
         if not metrics.quality.readme_exists:
-            suggestions.append(ImprovementSuggestion(
-                title="Create README",
-                description="Add a comprehensive README with installation, usage, and contribution guidelines",
-                priority=RiskLevel.HIGH,
-                category="documentation",
-                effort_estimate="low",
-                expected_impact="Improved onboarding and discoverability",
-                related_metrics=["quality_score", "documentation_score"]
-            ))
+            suggestions.append(
+                ImprovementSuggestion(
+                    title="Create README",
+                    description="Add a comprehensive README with installation, usage, and contribution guidelines",
+                    priority=RiskLevel.HIGH,
+                    category="documentation",
+                    effort_estimate="low",
+                    expected_impact="Improved onboarding and discoverability",
+                    related_metrics=["quality_score", "documentation_score"],
+                )
+            )
 
         # Testing suggestions
         if metrics.quality.test_coverage_estimate < 40:
-            suggestions.append(ImprovementSuggestion(
-                title="Increase Test Coverage",
-                description=f"Current estimated coverage is {metrics.quality.test_coverage_estimate:.0f}%. Target 60%+",
-                priority=RiskLevel.MEDIUM,
-                category="testing",
-                effort_estimate="medium",
-                expected_impact="Reduced bug rate and safer refactoring",
-                related_metrics=["quality_score", "complexity_score"]
-            ))
+            suggestions.append(
+                ImprovementSuggestion(
+                    title="Increase Test Coverage",
+                    description=f"Current estimated coverage is {metrics.quality.test_coverage_estimate:.0f}%. Target 60%+",
+                    priority=RiskLevel.MEDIUM,
+                    category="testing",
+                    effort_estimate="medium",
+                    expected_impact="Reduced bug rate and safer refactoring",
+                    related_metrics=["quality_score", "complexity_score"],
+                )
+            )
 
         # Security suggestions
         if not metrics.security.has_dependabot:
-            suggestions.append(ImprovementSuggestion(
-                title="Enable Dependabot",
-                description="Set up Dependabot or similar for automatic dependency updates",
-                priority=RiskLevel.MEDIUM,
-                category="security",
-                effort_estimate="low",
-                expected_impact="Automated security patch delivery",
-                related_metrics=["security_score", "maintenance_score"]
-            ))
+            suggestions.append(
+                ImprovementSuggestion(
+                    title="Enable Dependabot",
+                    description="Set up Dependabot or similar for automatic dependency updates",
+                    priority=RiskLevel.MEDIUM,
+                    category="security",
+                    effort_estimate="low",
+                    expected_impact="Automated security patch delivery",
+                    related_metrics=["security_score", "maintenance_score"],
+                )
+            )
 
         # CI/CD suggestions
         if not metrics.quality.linting_configured:
-            suggestions.append(ImprovementSuggestion(
-                title="Set Up CI/CD Pipeline",
-                description="Implement automated linting, testing, and build verification",
-                priority=RiskLevel.MEDIUM,
-                category="automation",
-                effort_estimate="medium",
-                expected_impact="Consistent code quality and faster iteration",
-                related_metrics=["quality_score"]
-            ))
+            suggestions.append(
+                ImprovementSuggestion(
+                    title="Set Up CI/CD Pipeline",
+                    description="Implement automated linting, testing, and build verification",
+                    priority=RiskLevel.MEDIUM,
+                    category="automation",
+                    effort_estimate="medium",
+                    expected_impact="Consistent code quality and faster iteration",
+                    related_metrics=["quality_score"],
+                )
+            )
 
         # Modernization suggestions
         if metrics.tech_stack.stack_modernity_score < 40:
-            suggestions.append(ImprovementSuggestion(
-                title="Tech Stack Modernization",
-                description="Consider updating to more recent framework/language versions",
-                priority=RiskLevel.LOW,
-                category="modernization",
-                effort_estimate="high",
-                expected_impact="Better performance, security, and developer experience",
-                related_metrics=["potential_score", "maintenance_score"]
-            ))
+            suggestions.append(
+                ImprovementSuggestion(
+                    title="Tech Stack Modernization",
+                    description="Consider updating to more recent framework/language versions",
+                    priority=RiskLevel.LOW,
+                    category="modernization",
+                    effort_estimate="high",
+                    expected_impact="Better performance, security, and developer experience",
+                    related_metrics=["potential_score", "maintenance_score"],
+                )
+            )
 
         return suggestions
 
@@ -719,14 +822,15 @@ class ViabilityScorer:
 # CONVENIENCE FUNCTIONS
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 def quick_score(metrics: ProjectMetrics, preset: str = "default") -> float:
     """
     Quick viability score calculation.
-    
+
     Args:
         metrics: Project metrics
         preset: Weight preset name
-        
+
     Returns:
         Viability score (0-100)
     """
@@ -737,11 +841,11 @@ def quick_score(metrics: ProjectMetrics, preset: str = "default") -> float:
 def full_assessment(metrics: ProjectMetrics, preset: str = "default") -> dict[str, Any]:
     """
     Complete viability assessment with all details.
-    
+
     Args:
         metrics: Project metrics
         preset: Weight preset name
-        
+
     Returns:
         Complete assessment dictionary
     """
@@ -756,5 +860,5 @@ def full_assessment(metrics: ProjectMetrics, preset: str = "default") -> dict[st
         "breakdown": score.breakdown.model_dump(),
         "recommendation_text": scorer.generate_recommendation(score, metrics),
         "risk_factors": [r.model_dump() for r in scorer.generate_risk_factors(metrics)],
-        "suggestions": [s.model_dump() for s in scorer.generate_suggestions(metrics)]
+        "suggestions": [s.model_dump() for s in scorer.generate_suggestions(metrics)],
     }

@@ -2,7 +2,6 @@
 Phantom API - FastAPI REST endpoints.
 """
 
-
 from fastapi import FastAPI, HTTPException, UploadFile
 from pydantic import BaseModel
 
@@ -45,6 +44,7 @@ def create_app() -> FastAPI:
     async def extract(request: ExtractRequest):
         """Extract insights from markdown content."""
         import time
+
         start = time.time()
 
         # TODO: Implement using CortexProcessor
@@ -97,6 +97,7 @@ app = create_app()
 def serve():
     """Entry point for phantom-api script."""
     import uvicorn
+
     uvicorn.run(app, host="127.0.0.1", port=8000)
 
 

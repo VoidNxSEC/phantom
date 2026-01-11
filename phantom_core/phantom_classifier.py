@@ -445,7 +445,7 @@ class PhantomClassifier:
         
         # Compute SHA256 and fallback BLAKE2b
         with open(filepath, 'rb') as f:
-            for chunk in iter(lambda: f.read(65536), b'''):
+            for chunk in iter(lambda: f.read(65536), b''):
                 sha256_hash.update(chunk)
                 if not blake3_hex:
                     blake3_hash.update(chunk)
@@ -816,7 +816,7 @@ class PhantomClassifier:
 ║  Duration:         {stats['duration_seconds']:>10}s                                 ║
 ║  Throughput:       {stats['files_per_second']:>10} files/sec                       ║
 ╚══════════════════════════════════════════════════════════════════╝\033[0m
-")
+""")
         
         # Classification breakdown
         print("\n\033[0;36m📊 Classification Breakdown:\033[0m")

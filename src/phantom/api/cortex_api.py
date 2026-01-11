@@ -7,6 +7,7 @@ Exposes Cortex and Spectre engines via HTTP endpoints.
 import logging
 import os
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -17,8 +18,9 @@ from pydantic import BaseModel
 
 # Import Core Engines
 try:
-    from cortex import MarkdownInsights, MarkdownProcessor
-    from spectre import DocumentAnalysis, SpectreAnalyzer
+    from phantom.analysis.spectre import DocumentAnalysis, SpectreAnalyzer
+    from phantom.core.cortex import CortexProcessor as MarkdownProcessor
+    from phantom.core.cortex import DocumentInsights as MarkdownInsights
 except ImportError as e:
     print(f"CRITICAL: Failed to import core engines: {e}")
     sys.exit(1)

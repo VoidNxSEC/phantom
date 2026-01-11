@@ -135,7 +135,7 @@ class FAISSVectorStore(VectorStore):
         )
 
         results = []
-        for score, idx in zip(scores[0], indices[0]):
+        for score, idx in zip(scores[0], indices[0], strict=False):
             if idx < 0:  # FAISS returns -1 for not found
                 continue
             results.append(
@@ -212,7 +212,7 @@ class NumpyVectorStore(VectorStore):
         if len(embeddings.shape) == 1:
             embeddings = embeddings.reshape(1, -1)
 
-        for i, emb in enumerate(embeddings):
+        for _i, emb in enumerate(embeddings):
             # Normalize
             norm = np.linalg.norm(emb)
             if norm > 0:

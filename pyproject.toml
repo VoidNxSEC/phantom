@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "phantom"
 version = "2.0.0"
 description = "AI-Powered Document Intelligence & Classification Pipeline"
-readme = "docs/README.md"
+readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
 authors = [

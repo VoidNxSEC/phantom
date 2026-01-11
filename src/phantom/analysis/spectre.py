@@ -271,7 +271,7 @@ class SentimentLexicons:
         "deployment": 0.35,
         "mainnet": 0.5,
         "testnet": 0.3,
-        "upgrade": 0.4,
+
         # Negative/stagnation
         "outdated": -0.5,
         "obsolete": -0.6,
@@ -965,7 +965,7 @@ class TaxonomyManager:
     def match_terms(self, text: str) -> list[TopicMatch]:
         """Find all taxonomy terms in text"""
         matches = []
-        text_lower = text.lower()
+        text.lower()
 
         for term, pattern in self.term_patterns.items():
             found = pattern.findall(text)
@@ -1278,7 +1278,7 @@ class KeywordExtractor:
 
         # Calculate term frequency
         tf = Counter(words)
-        total_terms = len(words)
+        len(words)
 
         # Calculate TF-IDF-like scores
         scores = {}
@@ -1417,7 +1417,7 @@ class EntityExtractor:
         self, entities: list[Entity], text: str, window: int = 100
     ) -> None:
         """Find entity co-occurrences within text window"""
-        text_lower = text.lower()
+        text.lower()
 
         for entity in entities:
             # Find positions of this entity

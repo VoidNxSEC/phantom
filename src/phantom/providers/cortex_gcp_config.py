@@ -240,7 +240,7 @@ def test_gcp_setup():
 
         if manager.config.storage_bucket:
             try:
-                bucket = storage_client.get_bucket(manager.config.storage_bucket)
+                storage_client.get_bucket(manager.config.storage_bucket)
                 print(f"✓ Bucket '{manager.config.storage_bucket}' exists")
             except Exception:
                 print(f"⚠️  Bucket '{manager.config.storage_bucket}' not found")

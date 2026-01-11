@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 CORTEX v2.0 - Component Tests
 
@@ -7,16 +6,18 @@ Tests for chunking and embeddings functionality
 """
 
 import sys
-from pathlib import Path
-from typing import List
 import time
+import warnings
+from pathlib import Path
+
+# Suppress warnings
+warnings.filterwarnings("ignore")
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from phantom.rag.cortex_chunker import MarkdownChunker, ChunkStrategy, Chunk
-from phantom.rag.cortex_embeddings import EmbeddingManager, SearchResult
-
+from phantom.rag.cortex_chunker import ChunkStrategy, MarkdownChunker
+from phantom.rag.cortex_embeddings import EmbeddingManager
 
 # ═══════════════════════════════════════════════════════════════
 # TEST DATA
@@ -167,7 +168,7 @@ def test_chunk_metadata():
     chunker = MarkdownChunker(strategy=ChunkStrategy.RECURSIVE, max_tokens=200)
     chunks = chunker.chunk_text(TEST_DOCUMENT, source_file="test.md")
 
-    print(f"\n🧪 Testing metadata preservation...")
+    print("\n🧪 Testing metadata preservation...")
 
     for i, chunk in enumerate(chunks[:3]):  # Test first 3 chunks
         print(f"\n   Chunk {i + 1}:")
@@ -183,7 +184,7 @@ def test_chunk_metadata():
         assert chunk.metadata.token_count > 0
         assert chunk.metadata.word_count > 0
 
-    print(f"\n   ✅ All metadata tests passed!")
+    print("\n   ✅ All metadata tests passed!")
     return True
 
 
@@ -206,7 +207,7 @@ def test_embedding_generation():
         "Python is a high-level programming language",
     ]
 
-    print(f"\n🧪 Testing embedding generation...")
+    print("\n🧪 Testing embedding generation...")
     print(f"   Texts to embed: {len(texts)}")
 
     manager = EmbeddingManager(model_name="all-MiniLM-L6-v2", device="cpu")
@@ -260,7 +261,7 @@ def test_semantic_search(manager: EmbeddingManager):
         assert all(r.score >= 0 and r.score <= 1 for r in results), "Invalid scores"
         assert results[0].score >= results[-1].score, "Results not sorted by score"
 
-    print(f"\n   ✅ All search tests passed!")
+    print("\n   ✅ All search tests passed!")
     return True
 
 
@@ -284,7 +285,7 @@ def test_similarity_ranking():
     results = manager.search(query, top_k=4)
 
     print(f"\n🧪 Query: '{query}'")
-    print(f"\n   Expected order: Error handling topics first\n")
+    print("\n   Expected order: Error handling topics first\n")
 
     for i, result in enumerate(results, 1):
         relevance = "🟢" if i <= 2 else "🟡" if i == 3 else "🔴"
@@ -294,7 +295,7 @@ def test_similarity_ranking():
 
     # Validation: Top result should be most relevant
     assert "error" in results[0].text.lower() or "exception" in results[0].text.lower()
-    print(f"\n   ✅ Ranking test passed!")
+    print("\n   ✅ Ranking test passed!")
 
     return True
 
@@ -310,16 +311,16 @@ def test_chunking_plus_embeddings():
     print("INTEGRATION TEST: Chunking + Embeddings")
     print("=" * 70)
 
-    print(f"\n🧪 Testing full pipeline...")
+    print("\n🧪 Testing full pipeline...")
 
     # Step 1: Chunk document
-    print(f"\n   Step 1: Chunking document...")
+    print("\n   Step 1: Chunking document...")
     chunker = MarkdownChunker(strategy=ChunkStrategy.RECURSIVE, max_tokens=150)
     chunks = chunker.chunk_text(TEST_DOCUMENT, source_file="test.md")
     print(f"   ✓ Created {len(chunks)} chunks")
 
     # Step 2: Generate embeddings
-    print(f"\n   Step 2: Generating embeddings...")
+    print("\n   Step 2: Generating embeddings...")
     manager = EmbeddingManager(model_name="all-MiniLM-L6-v2")
 
     chunk_texts = [chunk.text for chunk in chunks]
@@ -336,7 +337,7 @@ def test_chunking_plus_embeddings():
     print(f"   ✓ Embedded {len(manager.vector_store)} chunks")
 
     # Step 3: Semantic search
-    print(f"\n   Step 3: Testing semantic search...")
+    print("\n   Step 3: Testing semantic search...")
     queries = ["try-except syntax", "resource cleanup", "custom exceptions"]
 
     for query in queries:
@@ -348,7 +349,7 @@ def test_chunking_plus_embeddings():
 
         assert len(results) > 0
 
-    print(f"\n   ✅ Integration test passed!")
+    print("\n   ✅ Integration test passed!")
     return True
 
 

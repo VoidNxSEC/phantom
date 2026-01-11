@@ -42,6 +42,7 @@ from phantom.pipeline import (
     DAGPipeline,
     DataSanitizer,
     FileClassifier,
+    PhantomPipeline,
 )
 
 __all__ = [
@@ -58,6 +59,7 @@ __all__ = [
     "ViabilityScorer",
     # Pipeline
     "DAGPipeline",
+    "PhantomPipeline",
     "FileClassifier",
     "DataSanitizer",
 ]

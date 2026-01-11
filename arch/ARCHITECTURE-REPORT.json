@@ -1,39 +1,39 @@
 {
   "metadata": {
     "version": "2.0.0",
-    "generated": "2025-12-14T19:05:18Z",
-    "location": "/home/kernelcore/dev/Projects/phantom",
+    "generated": "2026-01-10T16:44:17Z",
+    "location": "/home/kernelcore/dev/low-level/phantom/scripts/..",
     "hostname": "nx"
   },
   "git": {
     "branch": "main",
-    "commit": "3562fc2",
-    "commit_long": "3562fc2f1c6bb28e1db3f8de99040247f402a372",
-    "commit_date": "2025-12-14 16:51:48",
-    "total_commits": 12,
+    "commit": "ad8c8e7",
+    "commit_long": "ad8c8e7f4257e631605b30784d2e229a47896574",
+    "commit_date": "2026-01-08 20:59:10",
+    "total_commits": 35,
     "contributors": 2,
     "last_tag": "none",
-    "repo_age_days": 0
+    "repo_age_days": 1
   },
   "statistics": {
     "files": {
-      "total": 2567,
-      "nix": 11,
-      "sh": 18,
-      "md": 2472,
-      "yaml": 0
+      "total": 177,
+      "nix": 12,
+      "sh": 20,
+      "md": 69,
+      "yaml": 1
     },
     "lines": {
-      "nix": 1283,
-      "sh": 6062,
-      "md": 1736521
+      "nix": 1874,
+      "sh": 6404,
+      "md": 22909
     },
-    "directories": 128,
+    "directories": 120,
     "sizes": {
       "modules": "N/A",
-      "docs": "164.0K",
-      "scripts": "N/A",
-      "total": "3.1G"
+      "docs": "168K",
+      "scripts": "148K",
+      "total": "5,6G"
     }
   },
   "modules": {

@@ -349,7 +349,7 @@ class CryptoEngine:
                 timeout=60,
             )
             xxhash_hex = result.stdout.split()[0] if result.returncode == 0 else ""
-        except:
+        except Exception:
             xxhash_hex = ""
 
         # BLAKE3 via b3sum if available
@@ -361,7 +361,7 @@ class CryptoEngine:
                 timeout=60,
             )
             blake3_hex = result.stdout.strip() if result.returncode == 0 else None
-        except:
+        except Exception:
             blake3_hex = None
 
         # Stream hash computation
@@ -697,7 +697,7 @@ class ClassificationEngine:
             for magic, (mime, classification) in cls.MAGIC_SIGNATURES.items():
                 if header.startswith(magic):
                     return mime, classification
-        except:
+        except Exception:
             pass
         return None, None
 
@@ -730,10 +730,10 @@ class ClassificationEngine:
             # Try decoding
             try:
                 content = raw.decode("utf-8")
-            except:
+            except Exception:
                 try:
                     content = raw.decode("latin-1")
-                except:
+                except Exception:
                     return findings
 
             lines = content.split("\n")
@@ -838,7 +838,7 @@ class SanitizationEngine:
                 timeout=60,
             )
             return result.returncode == 0
-        except:
+        except Exception:
             # Fallback: just copy
             shutil.copy2(filepath, output_path)
             return False
@@ -853,7 +853,7 @@ class SanitizationEngine:
                 timeout=60,
             )
             return result.returncode == 0
-        except:
+        except Exception:
             shutil.copy2(filepath, output_path)
             return False
 
@@ -883,7 +883,7 @@ class SanitizationEngine:
                 f.write(content)
 
             return True
-        except:
+        except Exception:
             shutil.copy2(filepath, output_path)
             return False
 
@@ -1122,9 +1122,9 @@ class PhantomPipeline:
 
         cursor.execute(
             """
-            INSERT OR REPLACE INTO file_records 
+            INSERT OR REPLACE INTO file_records
             (record_id, original_path, original_name, pseudonym, classification,
-             sensitivity, mime_type, extension, size, sha256, blake3, 
+             sensitivity, mime_type, extension, size, sha256, blake3,
              processed_at, destination_path, metadata)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,

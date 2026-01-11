@@ -15,12 +15,13 @@ def test_imports():
     """Test that all required imports work"""
     print("🔍 Testing imports...")
     try:
-        from pydantic import BaseModel, Field, ValidationError
-        from rich.console import Console
-        from rich.progress import Progress
-        import requests
-        import psutil
-        from phantom.core import cortex
+        import psutil  # noqa: F401
+        import requests  # noqa: F401
+        from pydantic import BaseModel, Field, ValidationError  # noqa: F401
+        from rich.console import Console  # noqa: F401
+        from rich.progress import Progress  # noqa: F401
+
+        from phantom.core import cortex  # noqa: F401
 
         print("✅ All imports successful!")
         return True
@@ -36,7 +37,7 @@ def test_pydantic_models():
         from phantom.core import cortex
 
         # Test Theme model
-        theme = cortex.Theme(
+        _ = cortex.Theme(
             title="Test Theme",
             description="A test theme description",
             confidence=cortex.ExtractionLevel.HIGH,
@@ -44,7 +45,7 @@ def test_pydantic_models():
         )
 
         # Test Pattern model
-        pattern = cortex.Pattern(
+        _ = cortex.Pattern(
             pattern_type="test",
             description="Test pattern",
             examples=["example1", "example2"],
@@ -52,7 +53,7 @@ def test_pydantic_models():
         )
 
         # Test Learning model
-        learning = cortex.Learning(
+        _ = cortex.Learning(
             title="Test Learning",
             description="Test learning description",
             category="technical",
@@ -60,7 +61,7 @@ def test_pydantic_models():
         )
 
         # Test Concept model
-        concept = cortex.Concept(
+        _ = cortex.Concept(
             name="Test Concept",
             definition="Test definition",
             related_concepts=["concept1"],
@@ -68,7 +69,7 @@ def test_pydantic_models():
         )
 
         # Test Recommendation model
-        recommendation = cortex.Recommendation(
+        _ = cortex.Recommendation(
             title="Test Recommendation",
             description="Test recommendation description",
             priority=cortex.ExtractionLevel.HIGH,
@@ -159,8 +160,9 @@ def test_system_monitor():
     """Test system monitoring"""
     print("\n🔍 Testing SystemMonitor...")
     try:
-        from phantom.core import cortex
         from rich.console import Console
+
+        from phantom.core import cortex
 
         console = Console()
         monitor = cortex.SystemMonitor(console)

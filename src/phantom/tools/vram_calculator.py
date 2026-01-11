@@ -186,7 +186,7 @@ def get_gpu_vram() -> float | None:
         if result.returncode == 0:
             vram_mb = int(result.stdout.strip().split("\n")[0])
             return vram_mb / 1024  # Convert to GB
-    except:
+    except Exception:
         pass
 
     return None

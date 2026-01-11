@@ -13,7 +13,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
-from metrics_schema import (
+from phantom.core.metrics_schema import (
     ImprovementSuggestion,
     ProjectMetrics,
     RiskFactor,

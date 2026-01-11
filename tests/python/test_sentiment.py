@@ -1,4 +1,5 @@
 import pytest
+
 from phantom.analysis.sentiment_analysis import SentimentEngine
 
 
@@ -25,11 +26,6 @@ def test_sentiment_neutral(engine):
 
 
 def test_metrics_perfect(engine):
-    dataset = [
-        {"text": "Great job", "label": "positive"},
-        {"text": "Terrible", "label": "negative"},
-        {"text": "Okay", "label": "neutral"},
-    ]
     # Note: VADER might classify 'Okay' as positive, so we adjust expectation or input
     # 'Okay' is often positive. 'Average' is neutral?
     # Let's use clear examples

@@ -458,7 +458,6 @@ class ProjectAuditor:
         max_cc = 0
         function_count = 0
         class_count = 0
-        function_lengths: list[int] = []
 
         for file in self._iter_files(path):
             ext = file.suffix.lower()
@@ -717,7 +716,7 @@ class ProjectAuditor:
                 content = (path / "pyproject.toml").read_text()
                 if "mypy" in content or "pyright" in content:
                     metrics.type_checking_configured = True
-            except:
+            except Exception:
                 pass
 
         # Overall documentation score
@@ -774,7 +773,7 @@ class ProjectAuditor:
                 score += 5
 
             return min(100, score)
-        except:
+        except Exception:
             return 0
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -829,7 +828,7 @@ class ProjectAuditor:
                                     name=framework, category=TechCategory.FRAMEWORK
                                 )
                             )
-            except:
+            except Exception:
                 pass
 
         # Parse Cargo.toml for Rust frameworks
@@ -852,7 +851,7 @@ class ProjectAuditor:
                         detected.append(
                             TechStackItem(name=name, category=TechCategory.FRAMEWORK)
                         )
-            except:
+            except Exception:
                 pass
 
         # Deduplicate and categorize
@@ -920,7 +919,7 @@ class ProjectAuditor:
                                 version=version.replace("^", "").replace("~", ""),
                             )
                         )
-            except:
+            except Exception:
                 pass
 
         # Cargo dependencies
@@ -938,7 +937,7 @@ class ProjectAuditor:
                     ]
                 )
                 metrics.total_dependencies = max(metrics.total_dependencies, dep_count)
-            except:
+            except Exception:
                 pass
 
         # Python dependencies
@@ -954,7 +953,7 @@ class ProjectAuditor:
                     metrics.total_dependencies = max(
                         metrics.total_dependencies, len(deps)
                     )
-                except:
+                except Exception:
                     pass
 
         # Simple freshness heuristic (would need API calls for real check)
@@ -998,7 +997,7 @@ class ProjectAuditor:
                 for pattern in secret_patterns:
                     matches = re.findall(pattern, content, re.IGNORECASE)
                     secrets_found += len(matches)
-            except:
+            except Exception:
                 pass
 
         metrics.secrets_detected = secrets_found

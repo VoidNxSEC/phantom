@@ -38,7 +38,7 @@ try:
 except ImportError:
     HTTPX_AVAILABLE = False
 
-from metrics_schema import (
+from phantom.core.metrics_schema import (
     AIInsights,
     ImprovementSuggestion,
     ProjectMetrics,
@@ -129,7 +129,7 @@ class LlamaCppProvider(AIProvider):
                 self._available = response.status_code == 200
             else:
                 self._available = False
-        except:
+        except Exception:
             self._available = False
 
         logger.debug(f"LlamaCpp availability: {self._available}")

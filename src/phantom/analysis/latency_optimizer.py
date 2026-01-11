@@ -4,6 +4,7 @@ CORTEX - Latency Optimization & Caching
 Performance optimizations for faster query processing
 """
 
+import asyncio
 import hashlib
 import time
 from typing import Any
@@ -19,7 +20,7 @@ class QueryCache:
     def __init__(self, maxsize: int = 1000, ttl_seconds: int = 3600):
         self.maxsize = maxsize
         self.ttl_seconds = ttl_seconds
-        self.cache: Dict[str, tuple[Any, float]] = {}
+        self.cache: dict[str, tuple[Any, float]] = {}
 
     def _make_key(self, query: str, top_k: int) -> str:
         """Generate cache key"""
@@ -58,7 +59,7 @@ class QueryCache:
         """Clear all cache"""
         self.cache.clear()
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """Get cache statistics"""
         return {
             "size": len(self.cache),
@@ -167,7 +168,7 @@ class LatencyMetrics:
         if len(self.queries) > self.max_history:
             self.queries = self.queries[-self.max_history :]
 
-    def get_stats(self, query_type: str | None = None) -> Dict[str, float]:
+    def get_stats(self, query_type: str | None = None) -> dict[str, float]:
         """Get latency statistics"""
         queries = self.queries
 

@@ -196,7 +196,7 @@ class FAISSVectorStore:
         distances, indices = self.index.search(query_embedding.astype("float32"), top_k)
 
         results = []
-        for dist, idx in zip(distances[0], indices[0]):
+        for dist, idx in zip(distances[0], indices[0], strict=False):
             if idx < len(self.texts):  # Valid index
                 # Convert L2 distance to similarity score (inverse)
                 score = 1.0 / (1.0 + dist)

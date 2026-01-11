@@ -16,10 +16,25 @@
       url = "github:ipetkov/crane";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    advisory-db = {
+      url = "github:rustsec/advisory-db";
+      flake = false;
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils, rust-overlay, crane, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      rust-overlay,
+      crane,
+      advisory-db,
+      ...
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         VERSION = "2.0.0";
 
@@ -33,7 +48,10 @@
         # RUST TOOLCHAIN
         # ═══════════════════════════════════════════════════════════════
         rustToolchain = pkgs.rust-bin.stable.latest.default.override {
-          extensions = [ "rust-analyzer" "rust-src" ];
+          extensions = [
+            "rust-analyzer"
+            "rust-src"
+          ];
           targets = [ "x86_64-unknown-linux-gnu" ];
         };
 
@@ -43,80 +61,128 @@
         # ═══════════════════════════════════════════════════════════════
         # PYTHON ENVIRONMENT
         # ═══════════════════════════════════════════════════════════════
-        pythonEnv = pkgs.python313.withPackages (ps: with ps; [
-          # Core Data Processing
-          pandas numpy pyarrow polars
+        pythonEnv = pkgs.python313.withPackages (
+          ps: with ps; [
+            # Core Data Processing
+            pandas
+            numpy
+            pyarrow
+            polars
 
-          # File Analysis
-          python-magic chardet filetype
+            # File Analysis
+            python-magic
+            chardet
+            filetype
 
-          # Hashing & Cryptography
-          cryptography pynacl
+            # Hashing & Cryptography
+            cryptography
+            pynacl
 
-          # NLP & Classification
-          nltk scikit-learn
+            # NLP & Classification
+            nltk
+            scikit-learn
 
-          # Metadata & Forensics
-          exifread pdfminer-six python-docx openpyxl
+            # Metadata & Forensics
+            exifread
+            pdfminer-six
+            python-docx
+            openpyxl
 
-          # Serialization & Reporting
-          pyyaml toml jinja2 rich tqdm
+            # Serialization & Reporting
+            pyyaml
+            toml
+            jinja2
+            rich
+            tqdm
 
-          # HTTP & Networking
-          requests
+            # HTTP & Networking
+            requests
 
-          # System Monitoring
-          psutil
+            # System Monitoring
+            psutil
 
-          # Async & Parallelism
-          aiofiles multiprocess
+            # Async & Parallelism
+            aiofiles
+            multiprocess
 
-          # Validation
-          jsonschema pydantic
+            # Validation
+            jsonschema
+            pydantic
 
-          # CORTEX v2.0: Embeddings & Chunking
-          sentence-transformers transformers torch tiktoken
-          langchain chromadb
+            # CORTEX v2.0: Embeddings & Chunking
+            sentence-transformers
+            transformers
+            torch
+            tiktoken
+            langchain
+            chromadb
 
-          # API & Web Server
-          fastapi uvicorn python-multipart pytest
+            # API & Web Server
+            fastapi
+            uvicorn
+            python-multipart
+            pytest
 
-          # Dev tools
-          pytest pytest-cov pytest-asyncio ruff mypy
-        ]);
+            # Dev tools
+            pytest
+            pytest-cov
+            pytest-asyncio
+            ruff
+            mypy
+          ]
+        );
 
         # ═══════════════════════════════════════════════════════════════
         # SYSTEM TOOLS
         # ═══════════════════════════════════════════════════════════════
         systemTools = with pkgs; [
           # Data Manipulation
-          jq yq-go miller gron htmlq
+          jq
+          yq-go
+          miller
+          gron
+          htmlq
 
           # File Analysis
-          file exiftool binwalk hexyl
+          file
+          exiftool
+          binwalk
+          hexyl
 
           # Hashing & Integrity
-          b3sum xxHash rhash
+          b3sum
+          xxHash
+          rhash
 
           # Search & Discovery
-          ripgrep fd fzf tree
+          ripgrep
+          fd
+          fzf
+          tree
 
           # Compression & Archive
-          p7zip unzip gzip xz zstd
+          p7zip
+          unzip
+          gzip
+          xz
+          zstd
 
           # Security & Forensics
-          foremost sleuthkit
+          foremost
+          sleuthkit
 
           # Monitoring
-          pv parallel
+          pv
+          parallel
+          just
         ];
 
         # ═══════════════════════════════════════════════════════════════
-        # RUST BUILD CONFIGURATION (IntelAgent)
+        # RUST BUILD CONFIGURATION (Cortex Desktop)
         # ═══════════════════════════════════════════════════════════════
 
         # Source filtering - only include relevant files
-        src = craneLib.cleanCargoSource ./intelagent;
+        src = craneLib.cleanCargoSource ./cortex-desktop/src-tauri;
 
         # Common arguments for all Crane builds
         commonArgs = {
@@ -132,6 +198,7 @@
             openssl
             gtk4
             libadwaita
+            webkitgtk_4_1
           ];
 
           # Environment variables
@@ -139,19 +206,59 @@
         };
 
         # Build dependencies only (cached separately)
-        cargoArtifacts = craneLib.buildDepsOnly (commonArgs // {
-          pname = "intelagent-deps";
-        });
+        cargoArtifacts = craneLib.buildDepsOnly (
+          commonArgs
+          // {
+            pname = "cortex-desktop-deps";
+          }
+        );
 
         # Build the actual workspace
-        intelagent = craneLib.buildPackage (commonArgs // {
-          inherit cargoArtifacts;
-          pname = "intelagent";
-          version = VERSION;
+        cortexDesktop = craneLib.buildPackage (
+          commonArgs
+          // {
+            inherit cargoArtifacts;
+            pname = "cortex-desktop";
+            version = VERSION;
 
-          # Don't run tests in build (we do that separately)
-          doCheck = false;
-        });
+            # Don't run tests in build (we do that separately)
+            doCheck = false;
+          }
+        );
+
+        # ═══════════════════════════════════════════════════════════════
+        # RUST BUILD CONFIGURATION (IntelAgent)
+        # ═══════════════════════════════════════════════════════════════
+
+        # IntelAgent source
+        intelagentSrc = craneLib.cleanCargoSource ./intelagent;
+
+        # IntelAgent common arguments
+        intelagentCommonArgs = {
+          src = intelagentSrc;
+          nativeBuildInputs = with pkgs; [ pkg-config ];
+          buildInputs = with pkgs; [ openssl sqlite ];
+        };
+
+        # Build IntelAgent dependencies
+        intelagentCargoArtifacts = craneLib.buildDepsOnly (
+          intelagentCommonArgs
+          // {
+            pname = "intelagent-deps";
+          }
+        );
+
+        # Build IntelAgent workspace
+        intelagent = craneLib.buildPackage (
+          intelagentCommonArgs
+          // {
+            inherit (intelagentCommonArgs) src;
+            cargoArtifacts = intelagentCargoArtifacts;
+            pname = "intelagent";
+            version = VERSION;
+            doCheck = false;
+          }
+        );
 
         # ═══════════════════════════════════════════════════════════════
         # PYTHON SCRIPTS (from original flake)
@@ -187,6 +294,7 @@
             echo -e "\033[0;31m✗ INTEGRITY FAILURE: $FILE\033[0m"
             echo "  Expected: $EXPECTED"
             echo "  Got:      $ACTUAL"
+            echo -e "\033[0;31m✗ INTEGRITY FAILURE: $FILE\033[0m"
             exit 1
           fi
         '';
@@ -256,7 +364,8 @@
         # PACKAGES
         # ═══════════════════════════════════════════════════════════════
         packages = {
-          default = intelagent;
+          default = cortexDesktop;
+          cortexDesktop = cortexDesktop;
           intelagent = intelagent;
           phantom = phantomCore;
           phantom-verify = phantomVerify;
@@ -269,58 +378,106 @@
         # ═══════════════════════════════════════════════════════════════
         checks = {
           # Rust tests
-          intelagent-tests = craneLib.cargoNextest (commonArgs // {
-            inherit cargoArtifacts;
-            pname = "intelagent-tests";
-            cargoNextestExtraArgs = "--all-features --workspace";
-          });
+          cortex-desktop-tests = craneLib.cargoNextest (
+            commonArgs
+            // {
+              inherit cargoArtifacts;
+              pname = "cortex-desktop-tests";
+              cargoNextestExtraArgs = "--all-features --workspace";
+            }
+          );
 
           # Clippy lints
-          intelagent-clippy = craneLib.cargoClippy (commonArgs // {
-            inherit cargoArtifacts;
-            pname = "intelagent-clippy";
-            cargoClippyExtraArgs = "--all-features --workspace -- --deny warnings";
-          });
+          cortex-desktop-clippy = craneLib.cargoClippy (
+            commonArgs
+            // {
+              inherit cargoArtifacts;
+              pname = "cortex-desktop-clippy";
+              cargoClippyExtraArgs = "--all-features --workspace -- --deny warnings";
+            }
+          );
 
           # Format check
-          intelagent-fmt = craneLib.cargoFmt {
+          cortex-desktop-fmt = craneLib.cargoFmt {
             inherit src;
-            pname = "intelagent-fmt";
+            pname = "cortex-desktop-fmt";
           };
 
           # Security audit
+          cortex-desktop-audit = craneLib.cargoAudit {
+            inherit src advisory-db;
+            pname = "cortex-desktop-audit";
+          };
+
+          # IntelAgent Rust tests
+          intelagent-tests = craneLib.cargoNextest (
+            intelagentCommonArgs
+            // {
+              cargoArtifacts = intelagentCargoArtifacts;
+              pname = "intelagent-tests";
+              cargoNextestExtraArgs = "--all-features --workspace";
+            }
+          );
+
+          # IntelAgent Clippy
+          intelagent-clippy = craneLib.cargoClippy (
+            intelagentCommonArgs
+            // {
+              cargoArtifacts = intelagentCargoArtifacts;
+              pname = "intelagent-clippy";
+              cargoClippyExtraArgs = "--all-features --workspace -- --deny warnings";
+            }
+          );
+
+          # IntelAgent Format check
+          intelagent-fmt = craneLib.cargoFmt {
+            src = intelagentSrc;
+            pname = "intelagent-fmt";
+          };
+
+          # IntelAgent Security audit
           intelagent-audit = craneLib.cargoAudit {
-            inherit src;
+            src = intelagentSrc;
+            inherit advisory-db;
             pname = "intelagent-audit";
           };
 
           # Python tests
-          python-tests = pkgs.runCommand "python-tests" {
-            buildInputs = [ pythonEnv ];
-          } ''
-            cd ${./.}
-            export PYTHONPATH="${./.}/src:$PYTHONPATH"
-            ${pythonEnv}/bin/pytest tests/ -v || true
-            touch $out
-          '';
+          python-tests =
+            pkgs.runCommand "python-tests"
+              {
+                buildInputs = [ pythonEnv ];
+              }
+              ''
+                cd ${./.}
+                export PYTHONPATH="${./.}/src:$PYTHONPATH"
+                ${pythonEnv}/bin/pytest tests/ -v || true
+                touch $out
+              '';
 
           # Python linting
-          python-lint = pkgs.runCommand "python-lint" {
-            buildInputs = [ pythonEnv ];
-          } ''
-            cd ${./.}
-            ${pythonEnv}/bin/ruff check src/ || true
-            touch $out
-          '';
+          python-lint =
+            pkgs.runCommand "python-lint"
+              {
+                buildInputs = [ pythonEnv ];
+              }
+              ''
+                cd ${./.}
+                ${pythonEnv}/bin/ruff check src/ || true
+                touch $out
+              '';
 
           # Python formatting
-          python-fmt = pkgs.runCommand "python-fmt" {
-            buildInputs = [ pythonEnv ];
-          } ''
-            cd ${./.}
-            ${pythonEnv}/bin/ruff format --check src/ || true
-            touch $out
-          '';
+          python-fmt =
+            pkgs.runCommand "python-fmt"
+              {
+                buildInputs = [ pythonEnv ];
+              }
+              ''
+                cd ${./.}
+                ${pythonEnv}/bin/ruff format --check src/ || true
+                touch $out
+              '';
         };
 
         # ═══════════════════════════════════════════════════════════════
@@ -355,7 +512,8 @@
             phantomVerify
             phantomHash
             phantomScan
-          ] ++ systemTools;
+          ]
+          ++ systemTools;
 
           shellHook = ''
             export PHANTOM_VERSION="${VERSION}"
@@ -418,11 +576,11 @@
         apps = {
           default = {
             type = "app";
-            program = "${intelagent}/bin/intelagent";
+            program = "${cortexDesktop}/bin/cortex-desktop";
           };
-          intelagent = {
+          cortexDesktop = {
             type = "app";
-            program = "${intelagent}/bin/intelagent";
+            program = "${cortexDesktop}/bin/cortex-desktop";
           };
           phantom = {
             type = "app";
@@ -430,7 +588,8 @@
           };
         };
       }
-    ) // {
+    )
+    // {
       # ═══════════════════════════════════════════════════════════════
       # NIXOS MODULES (system-wide)
       # ═══════════════════════════════════════════════════════════════

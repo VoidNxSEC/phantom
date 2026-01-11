@@ -1,7 +1,8 @@
-from fastapi.testclient import TestClient
-from phantom.api.cortex_api import app
-import pytest
 from unittest.mock import MagicMock, patch
+
+from fastapi.testclient import TestClient
+
+from phantom.api.cortex_api import app
 
 client = TestClient(app)
 

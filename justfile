@@ -186,7 +186,7 @@ validate:
 # Calculate VRAM requirements
 vram MODEL="30" QUANT="Q4_K_M" CTX="4096":
     @echo "💾 Calculating VRAM for {{MODEL}}B model..."
-    python src/phantom/tools/vram_calculator.py --model-size {{MODEL}} --quantization {{QUANT}} --context-size {{CTX}}
+    python src/phantom/tools/vram_calculator.py --model-size "{{MODEL}}" --quantization "{{QUANT}}" --context-size "{{CTX}}"
 
 # Interactive VRAM calculator
 vram-interactive:

@@ -237,7 +237,10 @@
         intelagentCommonArgs = {
           src = intelagentSrc;
           nativeBuildInputs = with pkgs; [ pkg-config ];
-          buildInputs = with pkgs; [ openssl sqlite ];
+          buildInputs = with pkgs; [
+            openssl
+            sqlite
+          ];
         };
 
         # Build IntelAgent dependencies
@@ -358,6 +361,12 @@
           echo -e "\n\033[0;32m✓ Scan complete\033[0m"
         '';
 
+        phantomApi = pkgs.writeScriptBin "phantom-api" ''
+          #!${pkgs.bash}/bin/bash
+          export PYTHONPATH=$PYTHONPATH:${./.}/src
+          exec ${pythonEnv}/bin/python3 ${./.}/src/phantom/api/cortex_api.py "$@"
+        '';
+
       in
       {
         # ═══════════════════════════════════════════════════════════════
@@ -371,6 +380,7 @@
           phantom-verify = phantomVerify;
           phantom-hash = phantomHash;
           phantom-scan = phantomScan;
+          phantom-api = phantomApi;
         };
 
         # ═══════════════════════════════════════════════════════════════
@@ -512,6 +522,7 @@
             phantomVerify
             phantomHash
             phantomScan
+            phantomApi
           ]
           ++ systemTools;
 

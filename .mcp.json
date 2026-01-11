@@ -3,7 +3,7 @@
     "securellm-mcp": {
       "command": "node",
       "args": [
-        "/home/kernelcore/dev/low-level//securellm-mcp/build/src/index.js"
+        "/home/kernelcore/dev/low-level/securellm-mcp/build/src/index.js"
       ],
       "env": {
         "PROJECT_ROOT": "/home/kernelcore/dev/low-level/phantom",

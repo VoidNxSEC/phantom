@@ -162,7 +162,7 @@ run *ARGS:
 # Start API server
 serve PORT="8000":
     @echo "🌐 Starting Phantom API on port {{PORT}}..."
-    phantom-api serve --port {{PORT}}
+    phantom-api --port {{PORT}}
 
 # Start desktop app
 desktop:
@@ -215,16 +215,14 @@ docs-arch:
     @echo "✅ Diagrams generated"
 
 # Serve documentation locally (if using MkDocs/Sphinx)
+# Serve documentation locally
 docs-serve:
-    @echo "📚 Serving documentation..."
-    @echo "⚠️  Documentation server not yet configured"
-    @echo "TODO: Add MkDocs or Sphinx setup"
+    @echo "📚 Documentation is available in the 'docs/' directory."
+    @echo "💡 You can view it by opening docs/index.md (if it exists) or browsing the folder."
 
-# Generate API documentation
+# Generate API documentation (Placeholder)
 docs-api:
-    @echo "📚 Generating API docs..."
-    @echo "⚠️  API docs generation not yet configured"
-    @echo "TODO: Add Sphinx autodoc or similar"
+    @echo "📚 API Documentation generation is not yet configured."
 
 # ═══════════════════════════════════════════════════════════════
 # CLEANING
@@ -298,8 +296,9 @@ search PATTERN:
 
 # Update Python dependencies
 deps-update:
-    @echo "📦 Checking for dependency updates..."
-    @echo "⚠️  Nix manages dependencies. Run 'just update' to update flake.lock"
+    @echo "📦 Updating flake dependencies..."
+    nix flake update
+    @echo "✅ Dependencies updated."
 
 # Security audit
 audit:

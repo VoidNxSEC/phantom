@@ -181,8 +181,22 @@
         # RUST BUILD CONFIGURATION (Cortex Desktop)
         # ═══════════════════════════════════════════════════════════════
 
-        # Source filtering - only include relevant files
-        src = craneLib.cleanCargoSource ./cortex-desktop/src-tauri;
+        # Source filtering - include Tauri-specific files
+        src = pkgs.lib.cleanSourceWith {
+          src = ./cortex-desktop/src-tauri;
+          filter = path: type:
+            let
+              baseName = baseNameOf path;
+            in
+            # Include all Cargo standard files
+            (craneLib.filterCargoSources path type)
+            # Include all JSON files (tauri.conf.json, capabilities/*.json)
+            || (pkgs.lib.hasSuffix ".json" baseName)
+            # Include all image files (icons)
+            || (pkgs.lib.hasSuffix ".png" baseName)
+            || (pkgs.lib.hasSuffix ".ico" baseName)
+            || (pkgs.lib.hasSuffix ".icns" baseName);
+        };
 
         # Common arguments for all Crane builds
         commonArgs = {

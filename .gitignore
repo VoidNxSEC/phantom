@@ -102,6 +102,8 @@ documents_raw/
 *.mkv
 *.avi
 *.mp3
+# But allow Tauri application icons
+!cortex-desktop/src-tauri/icons/*.png
 *.wav
 
 # Archives

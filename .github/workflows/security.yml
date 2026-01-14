@@ -36,15 +36,18 @@ jobs:
           pip install pip-audit safety bandit
 
       - name: Run pip-audit
-        run: pip-audit || true
+        run: pip-audit
+        continue-on-error: true
 
       - name: Run safety check
-        run: safety check --full-report || true
+        run: safety check --full-report
+        continue-on-error: true
 
       - name: Run bandit (SAST)
         run: |
-          bandit -r src/phantom -f json -o bandit-report.json || true
-          bandit -r src/phantom -f txt || true
+          bandit -r src/phantom -f json -o bandit-report.json
+          bandit -r src/phantom -f txt
+        continue-on-error: true
 
       - name: Upload bandit report
         uses: actions/upload-artifact@v4
@@ -71,7 +74,7 @@ jobs:
 
       - name: Run cargo audit
         working-directory: intelagent
-        run: cargo audit || true
+        run: cargo audit
         continue-on-error: true
 
   # ═══════════════════════════════════════════════════════════════
@@ -107,9 +110,17 @@ jobs:
 
       - name: Scan for secrets
         run: |
-          detect-secrets scan --all-files --exclude-files '\.lock$' > secrets-report.json || true
+          detect-secrets scan --all-files --exclude-files '\.lock$' > secrets-report.json
           cat secrets-report.json
+        continue-on-error: true
 
       - name: Check for high entropy strings
         run: |
-          detect-secrets scan --all-files --exclude-files '\.lock$' 2>&1 | grep -i "potential" || echo "No secrets detected"
+          detect-secrets scan --all-files --exclude-files '\.lock$' 2>&1 | grep -i "potential" || echo "✓ No secrets detected"
+
+      - name: Upload secrets report
+        uses: actions/upload-artifact@v4
+        with:
+          name: secrets-scan-report
+          path: secrets-report.json
+        if: always()

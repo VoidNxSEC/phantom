@@ -1,0 +1,59 @@
+50 derivations with active advisories
+
+------------------------------------------------------------------------
+Diff-1.0.2
+
+/nix/store/16hs6bjmh8rln3j2mrzc4bg98lp7nyqb-Diff-1.0.2.drv
+CVE                                                CVSSv3
+https://nvd.nist.gov/vuln/detail/CVE-2024-13278    9.1
+
+------------------------------------------------------------------------
+async-2.2.5
+
+/nix/store/43ldljgj4l42jhfaz7jbq4kfxpmbvl6c-async-2.2.5.drv
+CVE                                                CVSSv3
+https://nvd.nist.gov/vuln/detail/CVE-2021-43138    7.8
+
+------------------------------------------------------------------------
+async-2.2.5-r3.cabal
+
+/nix/store/b9i1xviyq2slhnxa4q8nig557gsqbcxv-async-2.2.5-r3.cabal.drv
+CVE                                                CVSSv3
+https://nvd.nist.gov/vuln/detail/CVE-2021-43138    7.8
+
+------------------------------------------------------------------------
+audiofile-0.3.6
+
+/nix/store/zngvpmpx14rk5v7n8r6dby19r2g0diq9-audiofile-0.3.6.drv
+CVE                                                CVSSv3
+https://nvd.nist.gov/vuln/detail/CVE-2020-18781    5.5
+
+------------------------------------------------------------------------
+avahi-0.8
+
+/nix/store/j6kcqzzh5lp9hpc095h5r0fi7z5l4fgy-avahi-0.8.drv
+CVE                                                CVSSv3
+https://nvd.nist.gov/vuln/detail/CVE-2021-26720    7.8
+
+------------------------------------------------------------------------
+binutils-2.44
+
+/nix/store/i9i6dyciyvwp0aa9sw557lq94ddvw004-binutils-2.44.drv
+CVE                                                CVSSv3
+https://nvd.nist.gov/vuln/detail/CVE-2025-3198     3.3
+https://nvd.nist.gov/vuln/detail/CVE-2025-8224     3.3
+https://nvd.nist.gov/vuln/detail/CVE-2025-8225     3.3
+https://nvd.nist.gov/vuln/detail/CVE-2025-1153     3.1
+
+------------------------------------------------------------------------
+cereal-0.5.8.3
+
+/nix/store/bqk4f4sclhclqms34gfsqiscql0bfpdm-cereal-0.5.8.3.drv
+CVE                                                CVSSv3
+https://nvd.nist.gov/vuln/detail/CVE-2020-11105    9.8
+https://nvd.nist.gov/vuln/detail/CVE-2020-11104    5.3
+
+------------------------------------------------------------------------
+cups-2.4.16
+
+/nix/store/4hvhbwf0wrv187ymx6qjjbzjqy0gh4mm-cups-2.4.16.drv

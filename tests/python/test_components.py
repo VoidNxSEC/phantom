@@ -156,8 +156,6 @@ def test_chunking_strategies():
             f"{name.capitalize():<15} {data['chunks']:<10} {data['tokens']:<10} {data['time_ms']:<10.1f}"
         )
 
-    return True
-
 
 def test_chunk_metadata():
     """Test chunk metadata preservation"""
@@ -185,7 +183,6 @@ def test_chunk_metadata():
         assert chunk.metadata.word_count > 0
 
     print("\n   ✅ All metadata tests passed!")
-    return True
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -227,14 +224,27 @@ def test_embedding_generation():
     assert len(manager.vector_store) == len(texts)
     assert manager.generator.embedding_dim == 384  # MiniLM dimension
 
-    return manager
+    # Validation passed - embeddings are working
 
 
-def test_semantic_search(manager: EmbeddingManager):
+def test_semantic_search():
     """Test semantic search functionality"""
     print(f"\n{'=' * 70}")
     print("SEMANTIC SEARCH TESTS")
     print("=" * 70)
+
+    # Create sample texts
+    texts = [
+        "Error handling in Python uses try-except blocks",
+        "FastAPI supports async/await for better performance",
+        "Use context managers for resource cleanup",
+        "Python is a high-level programming language",
+    ]
+
+    print("\n🧪 Setting up embedding manager...")
+    manager = EmbeddingManager(model_name="all-MiniLM-L6-v2", device="cpu")
+    manager.add_texts(texts)
+    print(f"   ✓ Embedded {len(manager.vector_store)} texts")
 
     queries = [
         "How to handle exceptions?",
@@ -262,7 +272,6 @@ def test_semantic_search(manager: EmbeddingManager):
         assert results[0].score >= results[-1].score, "Results not sorted by score"
 
     print("\n   ✅ All search tests passed!")
-    return True
 
 
 def test_similarity_ranking():
@@ -296,8 +305,6 @@ def test_similarity_ranking():
     # Validation: Top result should be most relevant
     assert "error" in results[0].text.lower() or "exception" in results[0].text.lower()
     print("\n   ✅ Ranking test passed!")
-
-    return True
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -350,7 +357,6 @@ def test_chunking_plus_embeddings():
         assert len(results) > 0
 
     print("\n   ✅ Integration test passed!")
-    return True
 
 
 # ═══════════════════════════════════════════════════════════════

@@ -24,10 +24,9 @@ def test_imports():
         from phantom.core import cortex  # noqa: F401
 
         print("✅ All imports successful!")
-        return True
     except ImportError as e:
         print(f"❌ Import failed: {e}")
-        return False
+        raise
 
 
 def test_pydantic_models():
@@ -78,14 +77,13 @@ def test_pydantic_models():
         )
 
         print("✅ All Pydantic models validated!")
-        return True
 
     except Exception as e:
         print(f"❌ Pydantic validation failed: {e}")
         import traceback
 
         traceback.print_exc()
-        return False
+        raise
 
 
 def test_prompt_builder():
@@ -102,11 +100,10 @@ def test_prompt_builder():
         assert "JSON" in prompt
 
         print("✅ PromptBuilder works!")
-        return True
 
     except Exception as e:
         print(f"❌ PromptBuilder test failed: {e}")
-        return False
+        raise
 
 
 def test_json_parsing():
@@ -146,14 +143,13 @@ def test_json_parsing():
         assert len(data2["themes"]) == 1
 
         print("✅ JSON parsing works!")
-        return True
 
     except Exception as e:
         print(f"❌ JSON parsing test failed: {e}")
         import traceback
 
         traceback.print_exc()
-        return False
+        raise
 
 
 def test_system_monitor():
@@ -188,11 +184,10 @@ def test_system_monitor():
             print("   VRAM: Not available (no NVIDIA GPU detected)")
 
         print("✅ SystemMonitor works!")
-        return True
 
     except Exception as e:
         print(f"❌ SystemMonitor test failed: {e}")
-        return False
+        raise
 
 
 def main():

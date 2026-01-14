@@ -184,6 +184,7 @@
         # Source filtering - include Tauri-specific files
         src = pkgs.lib.cleanSourceWith {
           src = ./cortex-desktop/src-tauri;
+          name = "cortex-desktop-source";
           filter = path: type:
             let
               baseName = baseNameOf path;

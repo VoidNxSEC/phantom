@@ -271,7 +271,6 @@ class SentimentLexicons:
         "deployment": 0.35,
         "mainnet": 0.5,
         "testnet": 0.3,
-
         # Negative/stagnation
         "outdated": -0.5,
         "obsolete": -0.6,

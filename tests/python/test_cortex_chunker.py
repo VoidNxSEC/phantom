@@ -1,9 +1,9 @@
-
 import pytest
 
 from phantom.rag.cortex_chunker import Chunk, ChunkStrategy, MarkdownChunker
 
 pytestmark = pytest.mark.unit
+
 
 @pytest.fixture
 def sample_markdown():

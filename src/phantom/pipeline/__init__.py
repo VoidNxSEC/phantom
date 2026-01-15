@@ -8,7 +8,6 @@ Classes:
 """
 
 
-
 def __getattr__(name):
     if name == "DAGPipeline":
         from phantom.pipeline.phantom_dag import PhantomPipeline as DAGPipeline

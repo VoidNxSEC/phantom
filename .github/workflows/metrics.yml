@@ -1,0 +1,97 @@
+name: Code Metrics & Complexity Analysis
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # Demonstrates code quality obsession - quantifiable engineering excellence
+  code-metrics:
+    name: Generate Code Metrics
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Analysis Tools
+        run: |
+          pip install radon xenon lizard pylint
+          npm install -g cloc
+
+      - name: Calculate SLOC
+        run: |
+          cloc src/ tests/ --json --out=metrics-sloc.json
+          cloc src/ tests/ --md --out=metrics-sloc.md
+
+      - name: Cyclomatic Complexity (Radon)
+        run: |
+          radon cc src/phantom -a -s -j > metrics-complexity.json
+          radon cc src/phantom -a -s
+
+      - name: Maintainability Index
+        run: |
+          radon mi src/phantom -s -j > metrics-maintainability.json
+          radon mi src/phantom -s
+
+      - name: Code Duplication (Lizard)
+        run: |
+          lizard src/phantom -l python --csv > metrics-lizard.csv
+          lizard src/phantom -l python
+
+      - name: Halstead Metrics
+        run: |
+          radon hal src/phantom -f > metrics-halstead.txt
+          cat metrics-halstead.txt
+
+      - name: Generate Metrics Badge Data
+        run: |
+          LINES=$(jq -r '.SUM.code' metrics-sloc.json)
+          echo "BADGE_SLOC=${LINES}" >> $GITHUB_ENV
+
+          COMPLEXITY=$(jq -r 'to_entries | map(.value[].complexity) | add / length | floor' metrics-complexity.json)
+          echo "BADGE_COMPLEXITY=${COMPLEXITY}" >> $GITHUB_ENV
+
+      - name: Create Metrics Summary
+        run: |
+          cat << 'EOF' > metrics-summary.md
+          ## 📊 Code Quality Metrics
+
+          | Metric | Value | Status |
+          |--------|-------|--------|
+          | Lines of Code | ${{ env.BADGE_SLOC }} | ![](https://img.shields.io/badge/SLOC-${{ env.BADGE_SLOC }}-blue) |
+          | Avg Complexity | ${{ env.BADGE_COMPLEXITY }} | ![](https://img.shields.io/badge/Complexity-${{ env.BADGE_COMPLEXITY }}-green) |
+          | Test Coverage | See Codecov | [![codecov](https://codecov.io/gh/${{ github.repository }}/branch/main/graph/badge.svg)](https://codecov.io/gh/${{ github.repository }}) |
+
+          EOF
+
+      - name: Upload Metrics Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-metrics
+          path: |
+            metrics-*.json
+            metrics-*.md
+            metrics-*.csv
+            metrics-*.txt
+          retention-days: 90
+
+      - name: Comment PR with Metrics
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('metrics-summary.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+        continue-on-error: true

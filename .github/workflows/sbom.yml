@@ -1,0 +1,93 @@
+name: SBOM & Supply Chain Security
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/pyproject.toml'
+      - '**/Cargo.toml'
+      - '**/package.json'
+      - '**/flake.lock'
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  # Demonstrates supply chain security awareness for enterprise roles
+  generate-sbom:
+    name: Generate Software Bill of Materials
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate Python SBOM (CycloneDX)
+        run: |
+          pip install cyclonedx-bom
+          cyclonedx-py --format json --output sbom-python.json src/
+
+      - name: Generate Nix SBOM
+        run: |
+          nix flake metadata --json > sbom-nix-flake.json
+
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Generate Comprehensive SBOM
+        run: |
+          syft packages dir:. -o cyclonedx-json=sbom-full.json
+          syft packages dir:. -o spdx-json=sbom-spdx.json
+
+      - name: Upload SBOM Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-reports
+          path: |
+            sbom-*.json
+          retention-days: 90
+
+      - name: Dependency Vulnerability Scan (Grype)
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+          grype sbom:sbom-full.json -o json --file grype-vulnerabilities.json
+          grype sbom:sbom-full.json -o table
+        continue-on-error: true
+
+      - name: Upload Vulnerability Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulnerability-scan
+          path: grype-vulnerabilities.json
+
+  # OpenSSF Scorecard - demonstrates security posture awareness
+  scorecard:
+    name: OpenSSF Scorecard
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      id-token: write
+      contents: read
+      actions: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run OpenSSF Scorecard
+        uses: ossf/scorecard-action@v2
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload SARIF to GitHub
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif

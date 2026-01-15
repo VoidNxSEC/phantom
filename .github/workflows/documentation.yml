@@ -1,0 +1,83 @@
+name: Documentation & Architecture Validation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - '**.md'
+      - 'src/**/*.py'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # Demonstrates documentation-first culture for senior roles
+  validate-docs:
+    name: Validate Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Tools
+        run: |
+          pip install pydocstyle interrogate
+          npm install -g markdownlint-cli markdown-link-check
+
+      - name: Check Docstring Coverage
+        run: |
+          interrogate src/phantom -v --fail-under=70 --generate-badge docs/docstring-coverage.svg
+          interrogate src/phantom -v > docs/docstring-report.txt
+
+      - name: Validate Docstring Style
+        run: |
+          pydocstyle src/phantom --count > docstyle-report.txt || true
+          cat docstyle-report.txt
+
+      - name: Lint Markdown Files
+        run: |
+          markdownlint '**/*.md' --ignore node_modules --ignore .venv || true
+
+      - name: Check Markdown Links
+        run: |
+          markdown-link-check README.md --config .github/markdown-link-check.json || true
+
+      - name: Generate API Documentation
+        run: |
+          pip install pdoc3
+          pdoc --html --output-dir docs/api src/phantom --force
+
+      - name: Upload Documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: docs/
+
+  architecture-diagram:
+    name: Generate Architecture Diagrams
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Diagram Tools
+        run: |
+          pip install diagrams graphviz pydeps
+
+      - name: Generate Dependency Graph
+        run: |
+          pydeps src/phantom --max-bacon=2 --cluster --rankdir TB -o docs/dependency-graph.svg
+
+      - name: Render Mermaid Diagrams
+        uses: pocketjoso/mermaid-build@v1
+        with:
+          files: 'docs/**/*.mmd'
+          output: 'docs/rendered'
+
+      - name: Upload Diagrams
+        uses: actions/upload-artifact@v4
+        with:
+          name: architecture-diagrams
+          path: docs/

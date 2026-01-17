@@ -57,7 +57,7 @@ impl ValidationResult {
 
 /// Objective validation that must pass before task completion
 #[async_trait]
-pub trait QualityGate: Send + Sync {
+pub trait QualityGate: Send + Sync + std::fmt::Debug {
     /// Validate task result
     async fn validate(&self, result: &TaskResult) -> ValidationResult;
 
@@ -69,9 +69,19 @@ pub trait QualityGate: Send + Sync {
 
     /// Unique identifier for this gate
     fn id(&self) -> String;
+
+    /// Clone support for trait objects
+    fn clone_box(&self) -> Box<dyn QualityGate>;
+}
+
+impl Clone for Box<dyn QualityGate> {
+    fn clone(&self) -> Box<dyn QualityGate> {
+        self.clone_box()
+    }
 }
 
 /// Built-in quality gate: Minimum quality score
+#[derive(Debug, Clone)]
 pub struct MinQualityScoreGate {
     pub threshold: f64,
 }
@@ -110,9 +120,14 @@ impl QualityGate for MinQualityScoreGate {
     fn id(&self) -> String {
         "min_quality_score".to_string()
     }
+
+    fn clone_box(&self) -> Box<dyn QualityGate> {
+        Box::new(self.clone())
+    }
 }
 
 /// Built-in quality gate: Must provide validation evidence
+#[derive(Debug, Clone)]
 pub struct ValidationEvidenceGate;
 
 #[async_trait]
@@ -146,6 +161,10 @@ impl QualityGate for ValidationEvidenceGate {
 
     fn id(&self) -> String {
         "validation_evidence".to_string()
+    }
+
+    fn clone_box(&self) -> Box<dyn QualityGate> {
+        Box::new(self.clone())
     }
 }
 

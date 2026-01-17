@@ -118,7 +118,8 @@ pub struct Task {
     pub context_needed: Vec<ContextQuery>,
 
     /// Quality gates that must pass
-    pub quality_gates: Vec<QualityGate>,
+    #[serde(skip)]
+    pub quality_gates: Vec<Box<dyn QualityGate>>,
 
     /// Optional deadline
     pub deadline: Option<DateTime<Utc>>,
@@ -155,7 +156,7 @@ impl Task {
                 required_models: vec![],
             },
             context_needed: vec![],
-            quality_gates: vec![],
+            quality_gates: Vec::new(),
             deadline: None,
             metadata: HashMap::new(),
         }
@@ -174,7 +175,7 @@ impl Task {
     }
 
     /// Builder method: Add quality gate
-    pub fn with_quality_gate(mut self, gate: QualityGate) -> Self {
+    pub fn with_quality_gate(mut self, gate: Box<dyn QualityGate>) -> Self {
         self.quality_gates.push(gate);
         self
     }

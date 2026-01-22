@@ -27,7 +27,7 @@
   let currentTab = $state<"chat" | "workbench" | "library" | "settings">(
     "chat",
   );
-  let apiUrl = $state("http://localhost:8000");
+  let apiUrl = $state("http://localhost:8081");
   let provider = $state("local");
   let model = $state("qwen-30b");
   let temperature = $state(0.7);
@@ -522,10 +522,13 @@
 
           <div class="flex-1 flex flex-col gap-4 overflow-hidden">
             <div class="flex-1">
-              <label class="block text-sm text-gray-400 mb-2"
+              <label
+                for="workbench-template"
+                class="block text-sm text-gray-400 mb-2"
                 >Template (use {"{variable}"} syntax)</label
               >
               <textarea
+                id="workbench-template"
                 bind:value={workbenchTemplate}
                 placeholder="Context: {'{context}'}&#10;&#10;Question: {'{question}'}&#10;&#10;Answer:"
                 class="w-full h-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 font-mono text-sm resize-none focus:outline-none focus:border-cyan-500"
@@ -534,7 +537,7 @@
 
             {#if Object.keys(workbenchVars).length > 0}
               <div class="space-y-2">
-                <label class="block text-sm text-gray-400">Variables</label>
+                <span class="block text-sm text-gray-400">Variables</span>
                 {#each Object.entries(workbenchVars) as [key, _]}
                   <div class="flex gap-2 items-center">
                     <span class="w-28 text-sm text-cyan-400 font-mono"
@@ -592,15 +595,15 @@
 
             <div class="flex-1 overflow-auto space-y-4">
               <div>
-                <label class="block text-sm text-gray-400 mb-2">Rendered</label>
+                <span class="block text-sm text-gray-400 mb-2">Rendered</span>
                 <pre
                   class="bg-gray-900 rounded-xl p-4 text-sm font-mono whitespace-pre-wrap overflow-auto max-h-40">{workbenchResult.rendered}</pre>
               </div>
 
               {#if llmResponse}
                 <div>
-                  <label class="block text-sm text-gray-400 mb-2"
-                    >LLM Response</label
+                  <span class="block text-sm text-gray-400 mb-2"
+                    >LLM Response</span
                   >
                   <div
                     class="bg-gray-900 rounded-xl p-4 text-sm whitespace-pre-wrap"
@@ -691,10 +694,13 @@
 
         <div class="max-w-xl space-y-6">
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-2"
+            <label
+              for="api-url"
+              class="block text-sm font-medium text-gray-400 mb-2"
               >API URL</label
             >
             <input
+              id="api-url"
               type="text"
               bind:value={apiUrl}
               onchange={saveSettings}
@@ -703,10 +709,13 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-2"
+            <label
+              for="provider"
+              class="block text-sm font-medium text-gray-400 mb-2"
               >Provider</label
             >
             <select
+              id="provider"
               bind:value={provider}
               onchange={saveSettings}
               class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500"
@@ -718,10 +727,12 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-2"
-              >Model</label
+            <label
+              for="model"
+              class="block text-sm font-medium text-gray-400 mb-2">Model</label
             >
             <select
+              id="model"
               bind:value={model}
               onchange={saveSettings}
               class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500"
@@ -737,12 +748,15 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-2"
+            <label
+              for="temperature"
+              class="block text-sm font-medium text-gray-400 mb-2"
               >Temperature: <span class="text-cyan-400"
                 >{temperature.toFixed(1)}</span
               ></label
             >
             <input
+              id="temperature"
               type="range"
               min="0"
               max="2"
@@ -754,10 +768,13 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-2"
+            <label
+              for="max-tokens"
+              class="block text-sm font-medium text-gray-400 mb-2"
               >Max Tokens</label
             >
             <input
+              id="max-tokens"
               type="number"
               bind:value={maxTokens}
               onchange={saveSettings}
@@ -766,10 +783,12 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-2"
-              >Upload Documents</label
+            <span class="block text-sm font-medium text-gray-400 mb-2"
+              >Upload Documents</span
             >
             <div
+              role="region"
+              aria-label="File upload drop zone"
               ondrop={handleDrop}
               ondragover={(e) => {
                 e.preventDefault();

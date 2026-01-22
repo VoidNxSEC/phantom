@@ -10,6 +10,7 @@ import shutil
 import sys
 import tempfile
 import uuid
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -75,7 +76,8 @@ class AnalyzeResponse(BaseModel):
 
 def save_upload_file(upload_file: UploadFile) -> Path:
     try:
-        suffix = Path(upload_file.filename).suffix
+        filename = upload_file.filename or "upload"
+        suffix = Path(filename).suffix
         with tempfile.NamedTemporaryFile(
             delete=False, suffix=suffix, dir=TEMP_DIR
         ) as tmp:
@@ -86,7 +88,7 @@ def save_upload_file(upload_file: UploadFile) -> Path:
         upload_file.file.close()
 
 
-def cleanup_file(path: Path):
+def cleanup_file(path: Path) -> None:
     if path.exists():
         try:
             os.remove(path)
@@ -193,6 +195,55 @@ async def analyze_document(
 
     except Exception as e:
         logger.error(f"Error analyzing {file.filename}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ═══════════════════════════════════════════════════════════════
+# JUDGE ENDPOINT (AI-OS-Agent Integration)
+# ═══════════════════════════════════════════════════════════════
+
+from phantom.api.judge_api import (
+    PhantomGateBundle,
+    PhantomGateResponse,
+    get_judgment_engine,
+)
+
+
+@app.post("/judge", response_model=PhantomGateResponse)
+async def judge_bundle(bundle: PhantomGateBundle):
+    """
+    Julgar bundle de métricas do AI-OS-Agent
+
+    Recebe:
+    - Métricas do sistema (CPU, RAM, thermal, disk, network)
+    - Alertas detectados
+    - Logs recentes (journald)
+
+    Retorna:
+    - Severidade geral (info/warning/critical)
+    - Insights sobre o estado do sistema
+    - ADRs relevantes consultadas
+    - Recomendações de ações
+    """
+    logger.info(
+        f"Received bundle from {bundle.hostname}: "
+        f"{len(bundle.alerts)} alerts, {len(bundle.logs)} logs"
+    )
+
+    try:
+        engine = get_judgment_engine()
+        result = engine.judge(bundle)
+
+        logger.info(
+            f"Judgment complete: severity={result.severity}, "
+            f"insights={len(result.insights)}, "
+            f"adrs={len(result.relevant_adrs)}"
+        )
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Error judging bundle: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

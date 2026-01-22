@@ -1,6 +1,13 @@
 <script lang="ts">
     import "../app.css";
     import { onMount } from "svelte";
+    import type { Snippet } from "svelte";
+
+    // Props
+    interface Props {
+        children?: Snippet;
+    }
+    let { children }: Props = $props();
 
     // Theme management
     let isDark = $state(true);
@@ -66,5 +73,5 @@
     </button>
 
     <!-- Main Content -->
-    <slot />
+    {@render children?.()}
 </div>

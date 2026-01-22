@@ -167,7 +167,15 @@ serve PORT="8000":
 # Start desktop app
 desktop:
     @echo "🖥️  Starting Cortex Desktop..."
-    cd cortex-desktop && npm run tauri dev
+    @cd cortex-desktop && npm run tauri dev
+
+ui:
+    @echo "🖥️  Starting Cortex Desktop..."
+    @cd cortex-desktop && npm run tauri dev
+
+ui-build:
+    @echo "🏗️  Building Cortex Desktop (static)..."
+    @cd cortex-desktop && npm run build
 
 # Run CORTEX demo
 demo:

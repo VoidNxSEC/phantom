@@ -58,7 +58,7 @@ class AIConfig:
     """AI analyzer configuration."""
 
     # Local LlamaCpp
-    local_url: str = "http://localhost:8080"
+    local_url: str = "http://localhost:8081"
     local_model: str = "default"
     local_timeout: int = 120
 
@@ -110,7 +110,7 @@ class AIProvider(ABC):
 class LlamaCppProvider(AIProvider):
     """Local LlamaCpp server provider."""
 
-    def __init__(self, base_url: str = "http://localhost:8080", timeout: int = 120):
+    def __init__(self, base_url: str = "http://localhost:8081", timeout: int = 120):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self._available: bool | None = None
@@ -771,7 +771,7 @@ if __name__ == "__main__":
         if not providers:
             print("❌ No AI providers available!")
             print("\nTo enable providers:")
-            print("  - Local: Start LlamaCpp server on http://localhost:8080")
+            print("  - Local: Start LlamaCpp server on http://localhost:8081")
             print(
                 "  - Cloud: Set DEEPSEEK_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY"
             )

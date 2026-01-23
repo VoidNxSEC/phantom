@@ -1,29 +1,53 @@
+/* Hyprland-Inspired Theme - Catppuccin Mocha Palette */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Custom scrollbar */
-@layer utilities {
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
+@layer base {
+  body {
+    @apply bg-[#181825] text-[#cdd6f4] font-mono;
+    margin: 0;
+    padding: 0;
   }
-  
-  .scrollbar-thin::-webkit-scrollbar-track {
-    @apply bg-gray-800/20;
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
   }
-  
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    @apply bg-gray-700/50 rounded-full hover:bg-gray-600/70;
+
+  ::-webkit-scrollbar-track {
+    @apply bg-[#1e1e2e];
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-[#585b70] rounded;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-[#6c7086];
   }
 }
 
-/* Glassmorphism */
 @layer components {
-  .glass {
-    @apply bg-white/10 backdrop-blur-md border border-white/20;
+
+  /* Hyprland window style */
+  .hypr-window {
+    @apply bg-[#1e1e2e] border border-[#313244] rounded shadow-lg;
   }
-  
-  .glass-dark {
-    @apply bg-gray-900/50 backdrop-blur-md border border-gray-700/50;
+
+  /* Gaps between elements */
+  .hypr-gap {
+    @apply gap-2;
+  }
+
+  /* Focused border accent */
+  .hypr-focus {
+    @apply border-[#cba6f7];
+  }
+
+  /* Status indicator */
+  .hypr-status {
+    @apply text-xs font-mono text-[#585b70] uppercase tracking-wider;
   }
 }

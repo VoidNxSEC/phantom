@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { processDocument, type ProcessDocumentResponse } from "$lib/api";
 
   // Types
   interface Message {
@@ -24,9 +25,9 @@
   }
 
   // State
-  let currentTab = $state<"chat" | "workbench" | "library" | "settings">(
-    "chat",
-  );
+  let currentTab = $state<
+    "chat" | "process" | "workbench" | "library" | "settings"
+  >("chat");
   let apiUrl = $state("http://localhost:8081");
   let provider = $state("local");
   let model = $state("qwen-30b");
@@ -56,6 +57,14 @@
   // File upload
   let uploadedFiles = $state<{ name: string; status: string }[]>([]);
   let isDragging = $state(false);
+
+  // Document Processing
+  let selectedFile = $state<File | null>(null);
+  let chunkStrategy = $state<"recursive" | "sliding" | "simple">("recursive");
+  let chunkSize = $state(1024);
+  let isProcessing = $state(false);
+  let processResult = $state<ProcessDocumentResponse | null>(null);
+  let processError = $state("");
 
   // Init
   onMount(() => {
@@ -282,27 +291,61 @@
     }
   }
 
+  // Document Processing
+  function handleFileSelect(e: Event) {
+    const input = e.target as HTMLInputElement;
+    if (input.files?.[0]) {
+      selectedFile = input.files[0];
+      processResult = null;
+      processError = "";
+    }
+  }
+
+  async function handleProcess() {
+    if (!selectedFile) {
+      processError = "Please select a file first";
+      return;
+    }
+
+    isProcessing = true;
+    processError = "";
+    processResult = null;
+
+    try {
+      const response = await processDocument({
+        file: selectedFile,
+        chunkStrategy,
+        chunkSize,
+      });
+      processResult = response;
+    } catch (e: any) {
+      processError = e.message || "Processing failed";
+    } finally {
+      isProcessing = false;
+    }
+  }
+
   // Helper for nav button classes
   function navClass(tab: string): string {
     const base =
-      "w-12 h-12 rounded-xl flex items-center justify-center transition-all";
+      "w-10 h-10 rounded flex items-center justify-center transition-all border";
     return currentTab === tab
-      ? `${base} bg-cyan-500/20 text-cyan-400`
-      : `${base} text-gray-500 hover:bg-gray-800`;
+      ? `${base} border-[#f5c2e7] bg-[#f5c2e7]/10 text-[#f5c2e7]`
+      : `${base} border-transparent text-[#585b70] hover:border-[#313244] hover:bg-[#313244]/50`;
   }
 </script>
 
 <div
-  class="h-screen flex bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-white overflow-hidden"
+  class="h-screen flex bg-[#11111b] text-[#cdd6f4] overflow-hidden font-mono"
 >
   <!-- Sidebar -->
   <nav
-    class="w-20 bg-black/30 backdrop-blur-xl border-r border-gray-800 flex flex-col items-center py-6 gap-2"
+    class="w-16 bg-[#181825] border-r border-[#313244] flex flex-col items-center py-4 gap-1"
   >
     <div
-      class="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center mb-6 shadow-lg shadow-cyan-500/30"
+      class="w-10 h-10 rounded bg-[#cba6f7] flex items-center justify-center mb-4 border border-[#cba6f7]/30"
     >
-      <span class="text-xl font-bold">C</span>
+      <span class="text-sm font-bold text-[#11111b]">C</span>
     </div>
 
     <button
@@ -321,6 +364,26 @@
           stroke-linejoin="round"
           stroke-width="2"
           d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+        ></path>
+      </svg>
+    </button>
+
+    <button
+      onclick={() => (currentTab = "process")}
+      class={navClass("process")}
+      title="Document Processing"
+    >
+      <svg
+        class="w-6 h-6"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
         ></path>
       </svg>
     </button>
@@ -393,11 +456,11 @@
 
     <div class="flex-1"></div>
     <div
-      class="w-3 h-3 rounded-full {apiStatus === 'online'
-        ? 'bg-green-500'
+      class="w-2 h-2 rounded-full {apiStatus === 'online'
+        ? 'bg-[#a6e3a1]'
         : apiStatus === 'offline'
-          ? 'bg-red-500'
-          : 'bg-yellow-500 animate-pulse'}"
+          ? 'bg-[#f38ba8]'
+          : 'bg-[#f9e2af] animate-pulse'}"
       title="API: {apiStatus}"
     ></div>
   </nav>
@@ -492,6 +555,158 @@
             class="px-6 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl font-medium disabled:opacity-50"
             >Send</button
           >
+        </div>
+      </div>
+    {/if}
+
+    <!-- PROCESS TAB -->
+    {#if currentTab === "process"}
+      <div class="flex-1 flex flex-col p-6 overflow-hidden gap-4">
+        <header>
+          <h1 class="text-xl font-mono font-bold text-[#cba6f7]">
+            Document Processing
+          </h1>
+          <p class="text-xs text-[#585b70] mt-1">CORTEX extraction pipeline</p>
+        </header>
+
+        <div class="flex-1 flex flex-col overflow-hidden gap-4">
+          <!-- Upload Section -->
+          <div
+            class="bg-[#1e1e2e] border border-[#313244] rounded p-4 space-y-3"
+          >
+            <div>
+              <label
+                for="file-input"
+                class="block text-xs font-mono text-[#585b70] mb-2 uppercase"
+              >
+                Document
+              </label>
+              <input
+                id="file-input"
+                type="file"
+                accept=".md,.txt"
+                onchange={handleFileSelect}
+                class="block w-full text-sm text-[#cdd6f4] file:mr-3 file:py-2 file:px-4 file:rounded file:border file:border-[#f5c2e7] file:text-xs file:font-mono file:bg-transparent file:text-[#f5c2e7] hover:file:bg-[#f5c2e7]/10 bg-[#181825] rounded border border-[#313244] cursor-pointer"
+              />
+              {#if selectedFile}
+                <p class="mt-2 text-xs text-[#a6adc8] font-mono">
+                  → {selectedFile.name}
+                </p>
+              {/if}
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label
+                  for="chunk-strategy"
+                  class="block text-xs font-mono text-[#585b70] mb-2 uppercase"
+                >
+                  Strategy
+                </label>
+                <select
+                  id="chunk-strategy"
+                  bind:value={chunkStrategy}
+                  class="w-full bg-[#181825] border border-[#313244] rounded px-3 py-2 text-sm font-mono text-[#cdd6f4] focus:outline-none focus:border-[#cba6f7]"
+                >
+                  <option value="recursive">recursive</option>
+                  <option value="sliding">sliding</option>
+                  <option value="simple">simple</option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  for="chunk-size"
+                  class="block text-xs font-mono text-[#585b70] mb-2 uppercase"
+                >
+                  Tokens
+                </label>
+                <input
+                  id="chunk-size"
+                  type="number"
+                  min="256"
+                  max="2048"
+                  step="128"
+                  bind:value={chunkSize}
+                  class="w-full bg-[#181825] border border-[#313244] rounded px-3 py-2 text-sm font-mono text-[#cdd6f4] focus:outline-none focus:border-[#cba6f7]"
+                />
+              </div>
+            </div>
+
+            <button
+              onclick={handleProcess}
+              disabled={!selectedFile || isProcessing}
+              class="w-full py-2 border border-[#f5c2e7] bg-transparent text-[#f5c2e7] hover:bg-[#f5c2e7]/10 rounded font-mono text-sm disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              {isProcessing ? "processing..." : "execute"}
+            </button>
+          </div>
+
+          <!-- Results Section -->
+          {#if processError}
+            <div class="p-3 bg-[#1e1e2e] border border-[#f38ba8] rounded">
+              <p class="text-[#f38ba8] text-sm font-mono">✗ {processError}</p>
+            </div>
+          {/if}
+
+          {#if processResult}
+            <div
+              class="flex-1 overflow-auto bg-[#1e1e2e] border border-[#313244] rounded p-4 space-y-3"
+            >
+              <div
+                class="flex justify-between items-start border-b border-[#313244] pb-2"
+              >
+                <div>
+                  <h2 class="text-sm font-mono font-bold text-[#cba6f7]">
+                    results
+                  </h2>
+                  <span class="text-xs text-[#585b70] font-mono"
+                    >{processResult.filename}</span
+                  >
+                </div>
+                <span class="text-xs text-[#a6adc8] font-mono">
+                  {processResult.processing_time.toFixed(2)}s
+                </span>
+              </div>
+
+              {#if processResult.insights?.themes}
+                <div class="space-y-2">
+                  {#each processResult.insights.themes as theme, i}
+                    <div
+                      class="bg-[#181825] border-l-2 border-[#f5c2e7] p-3 rounded-r"
+                    >
+                      <div class="flex justify-between items-start">
+                        <h4 class="font-mono text-sm text-[#cdd6f4]">
+                          {theme.title}
+                        </h4>
+                        <span
+                          class="px-2 py-0.5 text-xs font-mono rounded border {theme.confidence ===
+                          'high'
+                            ? 'border-[#a6e3a1] text-[#a6e3a1]'
+                            : theme.confidence === 'medium'
+                              ? 'border-[#f9e2af] text-[#f9e2af]'
+                              : 'border-[#585b70] text-[#585b70]'}"
+                        >
+                          {theme.confidence}
+                        </span>
+                      </div>
+                      <p class="mt-2 text-xs text-[#a6adc8]">
+                        {theme.description}
+                      </p>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          {/if}
+
+          {#if isProcessing}
+            <div class="flex items-center justify-center p-8">
+              <span class="text-[#cba6f7] font-mono text-sm animate-pulse"
+                >processing...</span
+              >
+            </div>
+          {/if}
         </div>
       </div>
     {/if}

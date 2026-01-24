@@ -87,6 +87,25 @@ def create_app() -> FastAPI:
             "sources": [],
         }
 
+    # Integration with AI-Agent-OS
+    from phantom.api.judge_api import (
+        PhantomGateBundle,
+        PhantomGateResponse,
+        get_judgment_engine,
+    )
+
+    @app.post("/judge", response_model=PhantomGateResponse)
+    async def judge_bundle(bundle: PhantomGateBundle):
+        """
+        Judge system metrics bundle from AI-OS-Agent.
+        Analyzes metrics, logs, and alerts to provide insights and recommendations.
+        """
+        try:
+            engine = get_judgment_engine()
+            return engine.judge(bundle)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
     return app
 
 

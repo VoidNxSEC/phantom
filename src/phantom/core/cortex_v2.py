@@ -22,14 +22,14 @@ from cortex_embeddings import EmbeddingManager, SearchResult
 # Import v1 components
 try:
     from cortex import (
-        Concept,
-        Learning,
+        # Concept,
+        # Learning,
         LlamaCppClient,
-        MarkdownInsights,
-        Pattern,
+        # MarkdownInsights,
+        # Pattern,
         PromptBuilder,
-        Recommendation,
-        Theme,
+        # Recommendation,
+        # Theme,
     )
 
     CORTEX_V1_AVAILABLE = True

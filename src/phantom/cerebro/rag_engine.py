@@ -8,7 +8,7 @@ Usa embeddings + FAISS para busca semântica.
 
 import logging
 from pathlib import Path
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from phantom.cerebro.knowledge_loader import ADRDocument, ADRKnowledgeLoader
 from phantom.rag.vectors import FAISSVectorStore, SearchResult
@@ -51,7 +51,7 @@ class CerebroRAG:
         # Components
         self.loader = ADRKnowledgeLoader(knowledge_base_path)
         self.documents: list[ADRDocument] = []
-        self.encoder: "SentenceTransformer | None" = None
+        self.encoder: SentenceTransformer | None = None
         self.vector_store: FAISSVectorStore | None = None
 
         logger.info(

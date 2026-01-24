@@ -1,6 +1,11 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { processDocument, type ProcessDocumentResponse } from "$lib/api";
+  import {
+    processDocument,
+    type ProcessDocumentResponse,
+    searchVectors,
+    indexDocument,
+  } from "$lib/api";
 
   // Types
   interface Message {
@@ -26,7 +31,7 @@
 
   // State
   let currentTab = $state<
-    "chat" | "process" | "workbench" | "library" | "settings"
+    "chat" | "process" | "search" | "workbench" | "library" | "settings"
   >("chat");
   let apiUrl = $state("http://localhost:8081");
   let provider = $state("local");
@@ -65,6 +70,12 @@
   let isProcessing = $state(false);
   let processResult = $state<ProcessDocumentResponse | null>(null);
   let processError = $state("");
+
+  // Vector Search
+  let searchQuery = $state("");
+  let searchResults = $state<any>(null);
+  let isSearching = $state(false);
+  let searchError = $state("");
 
   // Init
   onMount(() => {
@@ -325,6 +336,27 @@
     }
   }
 
+  // Vector Search
+  async function handleSearch() {
+    if (!searchQuery.trim()) {
+      searchError = "Please enter a search query";
+      return;
+    }
+
+    isSearching = true;
+    searchError = "";
+    searchResults = null;
+
+    try {
+      const response = await searchVectors({ query: searchQuery, topK: 5 });
+      searchResults = response;
+    } catch (e: any) {
+      searchError = e.message || "Search failed";
+    } finally {
+      isSearching = false;
+    }
+  }
+
   // Helper for nav button classes
   function navClass(tab: string): string {
     const base =
@@ -384,6 +416,26 @@
           stroke-linejoin="round"
           stroke-width="2"
           d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+        ></path>
+      </svg>
+    </button>
+
+    <button
+      onclick={() => (currentTab = "search")}
+      class={navClass("search")}
+      title="Vector Search"
+    >
+      <svg
+        class="w-6 h-6"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
         ></path>
       </svg>
     </button>
@@ -704,6 +756,95 @@
             <div class="flex items-center justify-center p-8">
               <span class="text-[#cba6f7] font-mono text-sm animate-pulse"
                 >processing...</span
+              >
+            </div>
+          {/if}
+        </div>
+      </div>
+    {/if}
+
+    <!-- SEARCH TAB -->
+    {#if currentTab === "search"}
+      <div class="flex-1 flex flex-col p-6 overflow-hidden gap-4">
+        <header>
+          <h1 class="text-xl font-mono font-bold text-[#cba6f7]">
+            Vector Search
+          </h1>
+          <p class="text-xs text-[#585b70] mt-1">FAISS semantic search</p>
+        </header>
+
+        <div class="flex-1 flex flex-col overflow-hidden gap-4">
+          <!-- Search Input -->
+          <div class="bg-[#1e1e2e] border border-[#313244] rounded p-4">
+            <label
+              for="search-query"
+              class="block text-xs font-mono text-[#585b70] mb-2 uppercase"
+            >
+              Query
+            </label>
+            <div class="flex gap-2">
+              <input
+                id="search-query"
+                type="text"
+                bind:value={searchQuery}
+                onkeydown={(e) => e.key === "Enter" && handleSearch()}
+                placeholder="Enter semantic search query..."
+                class="flex-1 bg-[#181825] border border-[#313244] rounded px-3 py-2 text-sm font-mono text-[#cdd6f4] focus:outline-none focus:border-[#cba6f7]"
+              />
+              <button
+                onclick={handleSearch}
+                disabled={!searchQuery.trim() || isSearching}
+                class="px-4 py-2 border border-[#f5c2e7] bg-transparent text-[#f5c2e7] hover:bg-[#f5c2e7]/10 rounded font-mono text-sm disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                {isSearching ? "searching..." : "search"}
+              </button>
+            </div>
+          </div>
+
+          <!-- Results -->
+          {#if searchError}
+            <div class="p-3 bg-[#1e1e2e] border border-[#f38ba8] rounded">
+              <p class="text-[#f38ba8] text-sm font-mono">✗ {searchError}</p>
+            </div>
+          {/if}
+
+          {#if searchResults}
+            <div
+              class="flex-1 overflow-auto bg-[#1e1e2e] border border-[#313244] rounded p-4 space-y-3"
+            >
+              <div class="border-b border-[#313244] pb-2">
+                <h2 class="text-sm font-mono font-bold text-[#cba6f7]">
+                  {searchResults.total_results} results
+                </h2>
+                <span class="text-xs text-[#585b70] font-mono"
+                  >query: "{searchResults.query}"</span
+                >
+              </div>
+
+              <div class="space-y-2">
+                {#each searchResults.results as result, i}
+                  <div
+                    class="bg-[#181825] border-l-2 border-[#89b4fa] p-3 rounded-r"
+                  >
+                    <div class="flex justify-between items-start mb-2">
+                      <span class="text-xs font-mono text-[#585b70]"
+                        >result {i + 1}</span
+                      >
+                      <span class="text-xs font-mono text-[#a6adc8]">
+                        score: {result.score.toFixed(3)}
+                      </span>
+                    </div>
+                    <p class="text-sm text-[#cdd6f4]">{result.text}</p>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
+
+          {#if isSearching}
+            <div class="flex items-center justify-center p-8">
+              <span class="text-[#cba6f7] font-mono text-sm animate-pulse"
+                >searching vectors...</span
               >
             </div>
           {/if}
@@ -1048,9 +1189,4 @@
   </main>
 </div>
 
-<style>
-  :global(body) {
-    margin: 0;
-    font-family: "Inter", system-ui, sans-serif;
-  }
-</style>
+

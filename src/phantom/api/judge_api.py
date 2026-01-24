@@ -108,23 +108,37 @@ class JudgmentEngine:
             self._init_cerebro_rag()
 
     def _init_cerebro_rag(self) -> None:
-        """Inicializar Cerebro RAG (lazy)"""
+        """Inicializar Vector Store (lazy)"""
         try:
-            from phantom.cerebro import CerebroRAG
+            from phantom.rag.cortex_embeddings import EmbeddingGenerator
+            from phantom.rag.vectors import create_vector_store
 
-            cache_path = "/tmp/cerebro-faiss-index"
-            kb_path = self.knowledge_base_path or ""
-            self.cerebro_rag = CerebroRAG(  # type: ignore[assignment]
-                knowledge_base_path=kb_path,
-                index_cache_path=cache_path,
-            )
+            # Inicializar gerador de embeddings e vector store
+            self.embedding_gen = EmbeddingGenerator()
+            self.vector_store = create_vector_store(embedding_dim=384, backend="auto")
 
-            # Lazy initialization - será inicializado no primeiro query
-            logger.info("Cerebro RAG configured (lazy initialization)")
+            # Carregar dados do Knowledge Base se disponível
+            if self.knowledge_base_path and Path(self.knowledge_base_path).exists():
+                with open(self.knowledge_base_path) as f:
+                    kb_data = json.load(f)
+                    decisions = kb_data.get("decisions", [])
+                    if decisions:
+                        texts = [
+                            f"{d['title']} {d.get('summary', '')}" for d in decisions
+                        ]
+                        metadata = [
+                            {"id": d["id"], "title": d["title"]} for d in decisions
+                        ]
+
+                        logger.info(f"Indexing {len(texts)} ADRs...")
+                        embeddings = self.embedding_gen.encode(texts)
+                        self.vector_store.add(embeddings, texts, metadata)
+
+            logger.info("RAG Engine initialized")
 
         except Exception as e:
-            logger.warning(f"Failed to initialize Cerebro RAG: {e}")
-            self.cerebro_rag = None
+            logger.warning(f"Failed to initialize RAG: {e}")
+            self.vector_store = None
 
     def judge(self, bundle: PhantomGateBundle) -> PhantomGateResponse:
         """Julgar bundle e retornar análise"""
@@ -165,44 +179,29 @@ class JudgmentEngine:
             severity = "critical"
             insights.append(f"{len(critical_alerts)} alertas críticos detectados")
 
-        # 3. Consultar knowledge base via Cerebro RAG
-        if self.cerebro_rag and bundle.alerts:
+        # 3. Consultar knowledge base via RAG
+        if getattr(self, "vector_store", None) and bundle.alerts:
             # Montar query semântica baseada nos alertas
             alert_messages = [a.message for a in bundle.alerts]
-            alert_categories = [a.category for a in bundle.alerts]
-
-            query_parts = [
-                f"System alerts: {', '.join(alert_messages)}",
-                f"Categories: {', '.join(alert_categories)}",
-                f"CPU usage: {bundle.metrics.cpu.usage_percent:.1f}%",
-                f"Memory usage: {bundle.metrics.memory.usage_percent:.1f}%",
-                f"Temperature: {bundle.metrics.thermal.max_temp_celsius:.1f}°C",
-            ]
-
-            query_text = " | ".join(query_parts)
+            query_text = f"System alerts: {', '.join(alert_messages)}"
 
             try:
-                # Query RAG com Cerebro
-                rag_results = self.cerebro_rag.query(
-                    query_text=query_text,
-                    top_k=5,
-                    min_score=0.5,
-                )
+                # Gerar embedding da query
+                query_emb = self.embedding_gen.encode_single(query_text)
 
-                for result in rag_results:
-                    relevant_adrs.append(result["id"])
-                    notes.append(
-                        f"🧠 Cerebro ({result['score']:.2f}): "
-                        f"{result['id']} - {result['title']}"
-                    )
+                # Buscar no Vector Store
+                results = self.vector_store.search(query_emb, top_k=3)
 
-                    # Adicionar recomendações das ADRs
-                    metadata = result.get("metadata", {})
-                    # TODO: Extrair recommendations das ADRs
+                for result in results:
+                    if result.score > 0.3:  # Threshold
+                        meta = result.metadata
+                        relevant_adrs.append(meta.get("id", "UNKNOWN"))
+                        notes.append(
+                            f"🧠 RAG Match ({result.score:.2f}): {meta.get('title', 'Untitled')}"
+                        )
 
             except Exception as e:
-                logger.error(f"Cerebro RAG query failed: {e}")
-                # Fallback: continuar sem RAG
+                logger.error(f"RAG query failed: {e}")
 
         # 4. Salvar bundle
         bundle_file = save_bundle(bundle)

@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
 JUDGE API - Endpoint para julgar bundles do AI-OS-Agent
+
+Integrado com Neutron Compliance Framework:
+- SENTINEL: Validação de compliance para recomendações
+- ORACLE: Explainability para ADRs recomendados
 """
 
 import json
@@ -10,6 +14,18 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger("judge_api")
+
+# Importar Neutron integration
+try:
+    from phantom.neutron.sentinel_integration import PhantomSentinel
+    from phantom.neutron.oracle_explainer import OracleExplainer
+    NEUTRON_INTEGRATION_AVAILABLE = True
+    logger.info("Neutron integration loaded successfully")
+except ImportError as e:
+    logger.warning(f"Neutron integration not available: {e}")
+    NEUTRON_INTEGRATION_AVAILABLE = False
+    PhantomSentinel = None  # type: ignore
+    OracleExplainer = None  # type: ignore
 
 # ═══════════════════════════════════════════════════════════════
 # MODELS
@@ -102,10 +118,15 @@ class JudgmentEngine:
     def __init__(self, knowledge_base_path: str | None = None):
         self.knowledge_base_path = knowledge_base_path
         self.cerebro_rag = None
+        self.sentinel = None
+        self.oracle = None
 
         # Tentar inicializar Cerebro RAG
         if knowledge_base_path:
             self._init_cerebro_rag()
+
+        # Inicializar Neutron components
+        self._init_neutron_components()
 
     def _init_cerebro_rag(self) -> None:
         """Inicializar Vector Store (lazy)"""
@@ -139,6 +160,26 @@ class JudgmentEngine:
         except Exception as e:
             logger.warning(f"Failed to initialize RAG: {e}")
             self.vector_store = None
+
+    def _init_neutron_components(self) -> None:
+        """Inicializar SENTINEL e ORACLE"""
+        if not NEUTRON_INTEGRATION_AVAILABLE:
+            logger.warning("Neutron integration not available - compliance checks disabled")
+            return
+
+        try:
+            # Inicializar SENTINEL para compliance validation
+            self.sentinel = PhantomSentinel()  # type: ignore
+            logger.info("SENTINEL compliance engine initialized")
+
+            # Inicializar ORACLE para explainability
+            self.oracle = OracleExplainer()  # type: ignore
+            logger.info("ORACLE explainer initialized")
+
+        except Exception as e:
+            logger.error(f"Failed to initialize Neutron components: {e}")
+            self.sentinel = None
+            self.oracle = None
 
     def judge(self, bundle: PhantomGateBundle) -> PhantomGateResponse:
         """Julgar bundle e retornar análise"""
@@ -180,6 +221,7 @@ class JudgmentEngine:
             insights.append(f"{len(critical_alerts)} alertas críticos detectados")
 
         # 3. Consultar knowledge base via RAG
+        adr_results = []  # Para ORACLE processing
         if getattr(self, "vector_store", None) and bundle.alerts:
             # Montar query semântica baseada nos alertas
             alert_messages = [a.message for a in bundle.alerts]
@@ -195,13 +237,95 @@ class JudgmentEngine:
                 for result in results:
                     if result.score > 0.3:  # Threshold
                         meta = result.metadata
-                        relevant_adrs.append(meta.get("id", "UNKNOWN"))
+                        adr_id = meta.get("id", "UNKNOWN")
+                        adr_title = meta.get("title", "Untitled")
+
+                        relevant_adrs.append(adr_id)
                         notes.append(
-                            f"🧠 RAG Match ({result.score:.2f}): {meta.get('title', 'Untitled')}"
+                            f"🧠 RAG Match ({result.score:.2f}): {adr_title}"
                         )
+
+                        # Guardar para ORACLE
+                        adr_results.append({
+                            "id": adr_id,
+                            "title": adr_title,
+                            "score": float(result.score),
+                            "text": result.text
+                        })
 
             except Exception as e:
                 logger.error(f"RAG query failed: {e}")
+
+        # 3.5. Gerar explicações com ORACLE
+        if self.oracle and adr_results:
+            try:
+                metrics_dict = {
+                    "cpu": {
+                        "usage_percent": bundle.metrics.cpu.usage_percent
+                    },
+                    "memory": {
+                        "usage_percent": bundle.metrics.memory.usage_percent
+                    },
+                    "thermal": {
+                        "max_temp_celsius": bundle.metrics.thermal.max_temp_celsius,
+                        "avg_temp_celsius": bundle.metrics.thermal.avg_temp_celsius
+                    }
+                }
+
+                alerts_dict = [
+                    {
+                        "severity": a.severity,
+                        "category": a.category,
+                        "message": a.message
+                    }
+                    for a in bundle.alerts
+                ]
+
+                explanations = self.oracle.explain_multiple(
+                    adr_results, metrics_dict, alerts_dict
+                )
+
+                for exp in explanations:
+                    notes.append(
+                        f"⚡ ORACLE Explanation ({exp.confidence:.2f}): "
+                        f"{exp.explanation[:150]}..."
+                    )
+
+                    # Adicionar recommendation com explicação
+                    rec_text = f"Aplicar {exp.adr_id}: {exp.adr_title}"
+
+                    # Validar com SENTINEL antes de adicionar
+                    if self.sentinel:
+                        try:
+                            validated = self.sentinel.validate(
+                                recommendation=rec_text,
+                                adr_id=exp.adr_id,
+                                explanation=exp.explanation,
+                                model_name="phantom-cerebro-rag"
+                            )
+
+                            if validated.validation_result.passed:
+                                recommendations.append(rec_text)
+                                notes.append(
+                                    f"✅ SENTINEL: Compliance validated for {exp.adr_id}"
+                                )
+                            else:
+                                notes.append(
+                                    f"⚠️ SENTINEL: Compliance check failed for {exp.adr_id}: "
+                                    f"{validated.validation_result.details}"
+                                )
+
+                        except Exception as e:
+                            logger.error(f"SENTINEL validation failed: {e}")
+                            # Add anyway com warning
+                            recommendations.append(rec_text)
+                            notes.append(f"⚠️ SENTINEL: Validation error - {str(e)}")
+                    else:
+                        # Sem SENTINEL, adiciona direto
+                        recommendations.append(rec_text)
+
+            except Exception as e:
+                logger.error(f"ORACLE/SENTINEL processing failed: {e}")
 
         # 4. Salvar bundle
         bundle_file = save_bundle(bundle)

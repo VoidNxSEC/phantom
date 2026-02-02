@@ -1,2 +1,2 @@
-pub mod privacy;
 pub mod audit;
+pub mod privacy;

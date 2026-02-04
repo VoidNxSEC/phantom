@@ -17,86 +17,15 @@
 
 _Production-grade document intelligence, RAG pipeline, and AI classification system_
 
-## 🏆 Project Health Dashboard
-
-### Build & Quality
-
-[![CI](https://github.com/marcosfpina/phantom/actions/workflows/ci.yml/badge.svg)](https://github.com/marcosfpina/phantom/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/marcosfpina/phantom/actions/workflows/codeql.yml/badge.svg)](https://github.com/marcosfpina/phantom/actions/workflows/codeql.yml)
-[![Codecov](https://codecov.io/gh/marcosfpina/phantom/branch/main/graph/badge.svg)](https://codecov.io/gh/marcosfpina/phantom)
-[![Quality Gate](https://img.shields.io/badge/quality-A+-brightgreen.svg)](https://github.com/marcosfpina/phantom)
-
-### Security & Compliance
-
-[![Security](https://github.com/marcosfpina/phantom/actions/workflows/security.yml/badge.svg)](https://github.com/marcosfpina/phantom/actions/workflows/security.yml)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/marcosfpina/phantom/badge)](https://securityscorecards.dev/viewer/?uri=github.com/marcosfpina/phantom)
-[![SBOM](https://img.shields.io/badge/SBOM-CycloneDX-blue.svg)](https://github.com/marcosfpina/phantom/actions/workflows/sbom.yml)
-[![Dependencies](https://img.shields.io/librariesio/github/marcosfpina/phantom.svg)](https://libraries.io/github/marcosfpina/phantom)
-
-### Tech Stack
-
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
-[![Rust](https://img.shields.io/badge/rust-1.75+-orange.svg?logo=rust&logoColor=white)](https://www.rust-lang.org/)
-[![TypeScript](https://img.shields.io/badge/typescript-5.0+-blue.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![NixOS](https://img.shields.io/badge/NixOS-5277C3.svg?logo=nixos&logoColor=white)](https://nixos.org/)
-
-### Standards & Practices
-
+[![CI](https://github.com/kernelcore/phantom/actions/workflows/ci.yml/badge.svg)](https://github.com/kernelcore/phantom/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Type: Checked](https://img.shields.io/badge/mypy-checked-blue.svg)](http://mypy-lang.org/)
-[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-fe5196.svg?logo=conventionalcommits)](https://conventionalcommits.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![NixOS](https://img.shields.io/badge/NixOS-5277C3.svg)](https://nixos.org/)
 
-### Activity
-
-[![Last Commit](https://img.shields.io/github/last-commit/marcosfpina/phantom)](https://github.com/marcosfpina/phantom/commits/main)
-[![Contributors](https://img.shields.io/github/contributors/marcosfpina/phantom)](https://github.com/marcosfpina/phantom/graphs/contributors)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-
-[Features](#features) | [Quick Start](#quick-start) | [Documentation](#module-reference) | [Contributing](CONTRIBUTING.md)
+[Features](#features) | [Quick Start](#quick-start) | [Architecture](#architecture) | [Contributing](CONTRIBUTING.md)
 
 </div>
-
----
-
-## 📊 By The Numbers
-
-### Codebase Metrics
-
-| Metric                    | Value   | Percentile              |
-| ------------------------- | ------- | ----------------------- |
-| **Total SLOC**            | ~12,500 | Top 15% (ML frameworks) |
-| **Python Modules**        | 33      | Well-modularized        |
-| **Test Coverage**         | 78%     | Production-ready        |
-| **Cyclomatic Complexity** | 4.2 avg | Maintainable (< 10)     |
-| **Maintainability Index** | 87/100  | Excellent               |
-| **Documentation**         | 72%     | Above industry standard |
-
-### Performance Benchmarks
-
-| Operation                   | Throughput         | Latency (P95) | Hardware        |
-| --------------------------- | ------------------ | ------------- | --------------- |
-| **Document Chunking**       | 2,000 docs/min     | 45ms          | CPU-bound       |
-| **LLM Classification**      | 28 docs/min        | 2.8s          | GPU-accelerated |
-| **Vector Embedding**        | 333 docs/min       | 180ms         | Mixed           |
-| **FAISS Search (10k docs)** | 60,000 queries/min | 1ms           | Optimized index |
-| **End-to-End Pipeline**     | 24 docs/min        | 2.5s          | Full stack      |
-
-### Resource Efficiency
-
-- **Memory Footprint**: 2GB base + 500MB/worker thread
-- **VRAM Usage**: ~4GB (llama.cpp 7B model + embeddings)
-- **Storage**: 100MB per 10k documents (compressed FAISS)
-- **CPU Utilization**: 85% parallel efficiency (8-core)
-
-### Security Posture
-
-- ✅ **SAST** - CodeQL, Bandit (weekly scans)
-- ✅ **Dependency Audit** - pip-audit, safety, cargo-audit
-- ✅ **Secret Scanning** - detect-secrets (pre-commit + CI)
-- ✅ **SBOM** - CycloneDX + SPDX formats
-- ✅ **Vulnerability Management** - Grype, Trivy
-- 📊 **OpenSSF Scorecard** - 7.8/10
 
 ---
 
@@ -133,8 +62,6 @@ graph TB
 
     subgraph "External Services"
         LLAMA[llama.cpp Server<br/>Local Inference]
-        OPENAI[OpenAI API<br/>Cloud LLM]
-        DEEPSEEK[DeepSeek API<br/>Alternative]
     end
 
     CLI --> CORTEX
@@ -149,8 +76,6 @@ graph TB
     RAG --> FAISS
 
     CLASSIFIER --> LLAMA
-    CLASSIFIER --> OPENAI
-    CLASSIFIER --> DEEPSEEK
 
     EMBEDDER --> FAISS
     CHUNKER --> PIPELINE
@@ -331,9 +256,9 @@ Phantom is a **living ML framework** that transforms unstructured documents into
         │  PIPELINE   │ │  PROVIDERS  │
         ├─────────────┤ ├─────────────┤
         │  DAG Exec   │ │ llama.cpp   │
-        │ Classifier  │ │   OpenAI    │
-        │ Sanitizer   │ │  DeepSeek   │
-        └──────┬──────┘ └─────────────┘
+        │ Classifier  │ │ (local)     │
+        │ Sanitizer   │ └─────────────┘
+        └──────┬──────┘
                │
         ┌──────┴──────┬──────────┐
         │             │          │
@@ -385,32 +310,24 @@ Phantom is a **living ML framework** that transforms unstructured documents into
 ### NixOS (Recommended)
 
 ```bash
-# Clone repository
-git clone https://github.com/marcosfpina/phantom.git
+git clone https://github.com/kernelcore/phantom.git
 cd phantom
 
-# Enter development shell (auto-installs all dependencies)
-nix develop
+nix develop          # enters reproducible dev shell
 
-# Process a document
-phantom process input.md -o output.json
-
-# Start API server
-phantom-api serve
+phantom version      # verify install
+phantom-api          # start REST API on :8000
+phantom --help       # full CLI reference
 ```
 
 ### Standard Python
 
 ```bash
-# Create virtual environment
 python3.11 -m venv venv
 source venv/bin/activate
+pip install -e ".[dev]"
 
-# Install
-pip install -e .
-
-# Run
-phantom process --help
+phantom version
 ```
 
 ---
@@ -420,25 +337,24 @@ phantom process --help
 ### CLI
 
 ```bash
-# Process single document with full pipeline
-phantom process document.md \
-  --output insights.json \
-  --enable-vectors \
-  --workers 8
+# Extract insights from a document
+phantom extract -i ./docs -o output.jsonl
 
-# Batch process directory
-phantom batch-process ./documents/ \
-  --output-dir ./insights/ \
-  --chunk-size 1024 \
-  --chunk-overlap 128
+# Analyze a single file
+phantom analyze report.md --sentiment --entities
 
-# Semantic search
-phantom search "What are the main security patterns?" \
-  --index ./phantom_index \
-  --top-k 5
+# Classify files in a directory
+phantom classify ./input --dry-run
 
-# Start interactive REPL
-phantom repl --index ./phantom_index
+# Scan for sensitive data
+phantom scan ./project
+
+# RAG pipeline
+phantom rag query "What are the security patterns?"
+phantom rag ingest ./knowledge
+
+# Start API server
+phantom api serve --host 127.0.0.1 --port 8000 --reload
 ```
 
 ### Python API
@@ -478,17 +394,26 @@ processor.save_index("./phantom_index")
 
 ```bash
 # Start server
-uvicorn phantom.api.app:app --host 0.0.0.0 --port 8000
+phantom api serve
 
-# Process document
-curl -X POST http://localhost:8000/process \
-  -F "file=@document.md" \
-  -F "enable_vectors=true"
+# Health check
+curl http://localhost:8000/health
 
-# Search
-curl -X POST http://localhost:8000/search \
+# Extract insights
+curl -X POST http://localhost:8000/extract \
   -H "Content-Type: application/json" \
-  -d '{"query": "security patterns", "top_k": 5}'
+  -d '{"content": "# My Document\n\nContent here.", "filename": "doc.md"}'
+
+# Upload file
+curl -X POST http://localhost:8000/upload -F "file=@report.md"
+
+# RAG query
+curl "http://localhost:8000/rag/query?question=What+is+Phantom?"
+
+# Judge bundle (AI-OS-Agent integration)
+curl -X POST http://localhost:8000/judge \
+  -H "Content-Type: application/json" \
+  -d '{"timestamp": "2026-02-04T00:00:00Z", "hostname": "host", "metrics": {}, "alerts": [], "logs": []}'
 ```
 
 ---
@@ -544,9 +469,10 @@ curl -X POST http://localhost:8000/search \
 
 ### `phantom.providers`
 
-**LlamaCppProvider** - llama.cpp integration (TURBO)
-**OpenAIProvider** - OpenAI API
-**DeepSeekProvider** - DeepSeek API
+**LlamaCppProvider** - llama.cpp local inference (TURBO)
+
+> Cloud providers (OpenAI, Anthropic, DeepSeek) are planned.
+> Extend `AIProvider` base class to add custom backends.
 
 ---
 
@@ -571,31 +497,18 @@ export PHANTOM_BATCH_SIZE=10
 
 # Embeddings
 export PHANTOM_EMBEDDING_MODEL="all-MiniLM-L6-v2"
-export PHANTOM_VECTOR_BACKEND="faiss"  # or "chromadb"
+export PHANTOM_VECTOR_BACKEND="faiss"
 ```
 
-### NixOS Configuration
+### NixOS Development
 
-```nix
-# flake.nix integration
-{
-  inputs.phantom.url = "github:marcosfpina/phantom";
+```bash
+# All dependencies are declared in flake.nix
+cd phantom && nix develop   # enters the dev shell
 
-  outputs = { self, nixpkgs, phantom }: {
-    nixosConfigurations.myhost = nixpkgs.lib.nixosSystem {
-      modules = [
-        phantom.nixosModules.default
-        {
-          services.phantom = {
-            enable = true;
-            api.port = 8000;
-            workers = 8;
-          };
-        }
-      ];
-    };
-  };
-}
+# Build the package
+nix build .#phantom
+nix run .#phantom -- --help
 ```
 
 ---
@@ -608,17 +521,22 @@ export PHANTOM_VECTOR_BACKEND="faiss"  # or "chromadb"
 phantom/
 ├── src/phantom/
 │   ├── core/          # CORTEX engine, embeddings, chunking
-│   ├── rag/           # Vector stores, search
-│   ├── analysis/      # Sentiment, entities, topics
-│   ├── pipeline/      # DAG, classification, sanitization
-│   ├── providers/     # LLM integrations
-│   ├── api/           # FastAPI REST server
-│   ├── cli/           # Typer CLI interface
-│   └── tools/         # Utilities (VRAM calc, workbench)
-├── tests/             # Pytest test suite
+│   ├── rag/           # Vector stores (FAISS), search
+│   ├── analysis/      # Sentiment, SPECTRE, viability
+│   ├── pipeline/      # DAG orchestration, classification, sanitization
+│   ├── providers/     # LLM providers (llama.cpp)
+│   ├── cerebro/       # RAG engine + knowledge integration
+│   ├── neutron/       # Compliance guardrails (SENTINEL)
+│   ├── api/           # FastAPI REST server + Judge API
+│   └── cli/           # Typer CLI interface
+├── tests/
+│   ├── unit/          # Unit tests
+│   ├── integration/   # API + CLI integration tests
+│   └── e2e/           # End-to-end pipeline tests
+├── .archive/          # Dead code + experimental (audited)
+├── intelagent/        # Rust agent (part of ai-agent-os ecosystem)
 ├── docs/              # Documentation
-├── nix/               # Nix modules and overlays
-└── flake.nix          # Reproducible environment
+└── flake.nix          # Reproducible Nix environment
 ```
 
 ### Running Tests
@@ -649,36 +567,22 @@ mypy src/
 
 ---
 
-## Performance
-
-### Benchmarks (RTX 4090, Ryzen 9 7950X)
-
-| Task                | Documents | Avg Time/Doc | Throughput    |
-| ------------------- | --------- | ------------ | ------------- |
-| Semantic Chunking   | 100       | 0.05s        | 2000 docs/min |
-| LLM Classification  | 100       | 2.1s         | 28 docs/min   |
-| Vector Embedding    | 100       | 0.3s         | 333 docs/min  |
-| FAISS Indexing      | 10,000    | 0.001s       | 60k docs/min  |
-| End-to-End Pipeline | 100       | 2.5s         | 24 docs/min   |
-
-### Resource Usage
-
-- **VRAM**: ~4GB (llama.cpp + embedding model)
-- **RAM**: ~2GB base + 500MB per worker
-- **Disk**: ~100MB per 10k documents (FAISS index)
-
----
-
 ## Roadmap
 
-- [ ] **Multimodal Support**: Image and PDF processing
-- [ ] **Streaming API**: Server-Sent Events for real-time updates
-- [ ] **Distributed Processing**: Celery/Ray integration
-- [ ] **Advanced RAG**: Query rewriting, hypothetical documents
-- [ ] **Fine-tuning Tools**: LoRA training for custom classifiers
-- [ ] **Desktop App**: Tauri-based GUI (in progress)
-- [ ] **Cloud Deployment**: Docker + Kubernetes manifests
-- [ ] **Plugin System**: Custom analyzers and processors
+### Current (Phase 0–4)
+- [x] Critical import fixes and dead code cleanup
+- [x] Dependency audit and version pinning
+- [x] Test structure: unit / integration / e2e
+- [x] CI/CD pipeline (lint, test, security scan, release)
+- [ ] Coverage target: 70% across all modules
+
+### Upcoming
+- [ ] Cloud providers (OpenAI, Anthropic, DeepSeek)
+- [ ] Full CLI command implementations (extract, analyze, classify)
+- [ ] RAG query and ingestion pipeline
+- [ ] Desktop app (GTK4 — archived, revisit later)
+- [ ] Docker + NixOS module packaging
+- [ ] Prometheus metrics endpoint (`/metrics`)
 
 ---
 
@@ -721,15 +625,9 @@ MIT License - see [LICENSE](LICENSE) for details.
 ## Support
 
 - **Documentation**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/marcosfpina/phantom/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/marcosfpina/phantom/discussions)
+- **Security**: [SECURITY.md](SECURITY.md)
+- **Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ---
 
-Built with **NixOS** | Powered by **llama.cpp TURBO** | Licensed under **MIT**
-
-```
-Last updated: 2026-02-02
-Version: 2.0.0 (PHANTOM)
-Codename: CORTEX-UNIFIED
-```
+Phantom v2.0 | NixOS + llama.cpp | MIT License

@@ -2,218 +2,24 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Release version (e.g., v1.0.0)'
-        required: true
-        type: string
-
-permissions:
-  contents: write
-  packages: write
+    tags: ["v*"]
 
 jobs:
-  create-release:
-    name: Create Release
+  publish:
     runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-      version: ${{ steps.get_version.outputs.version }}
+    environment: release
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          fetch-depth: 0
-
-      - name: Get version
-        id: get_version
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ github.event.inputs.version }}"
-          else
-            VERSION=${GITHUB_REF#refs/tags/}
-          fi
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-
-      - name: Generate changelog
-        id: changelog
-        run: |
-          # Simple changelog from commits since last tag
-          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-          if [ -z "$PREV_TAG" ]; then
-            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
-          else
-            CHANGELOG=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
-          fi
-
-          # Save to file for multiline handling
-          echo "$CHANGELOG" > changelog.txt
-
-      - name: Create GitHub Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
+          python-version: "3.11"
+      - name: Install build tools
+        run: pip install --upgrade pip build twine
+      - name: Build package
+        run: python -m build
+      - name: Verify package
+        run: twine check dist/*
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          tag_name: ${{ steps.get_version.outputs.version }}
-          name: Release ${{ steps.get_version.outputs.version }}
-          body_path: changelog.txt
-          draft: false
-          prerelease: false
-
-  build-intelagent:
-    name: Build IntelAgent
-    needs: create-release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Nix
-        uses: cachix/install-nix-action@v24
-        with:
-          extra_nix_config: |
-            experimental-features = nix-command flakes
-
-      - name: Setup Cachix
-        uses: cachix/cachix-action@v13
-        with:
-          name: phantom
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-
-      - name: Build IntelAgent
-        run: |
-          nix build .#intelagent --print-build-logs
-
-          # Copy binary to workspace
-          mkdir -p release
-          cp -L result/bin/* release/ || true
-          ls -la release/
-
-      - name: Create tarball
-        run: |
-          cd release
-          tar czf intelagent-${{ needs.create-release.outputs.version }}-x86_64-linux.tar.gz *
-          cd ..
-
-      - name: Upload Release Asset
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ needs.create-release.outputs.version }}
-          files: |
-            release/intelagent-${{ needs.create-release.outputs.version }}-x86_64-linux.tar.gz
-
-  build-phantom-python:
-    name: Build Phantom Python Package
-    needs: create-release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Nix
-        uses: cachix/install-nix-action@v24
-        with:
-          extra_nix_config: |
-            experimental-features = nix-command flakes
-
-      - name: Build Python package
-        run: |
-          nix develop --command bash -c "
-            python -m build
-            ls -la dist/
-          "
-
-      - name: Upload to PyPI
-        if: github.event_name == 'push'
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-        run: |
-          nix develop --command bash -c "
-            pip install twine
-            twine upload dist/*
-          "
-
-      - name: Upload Release Assets
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ needs.create-release.outputs.version }}
-          files: |
-            dist/*.whl
-            dist/*.tar.gz
-
-  build-desktop:
-    name: Build Desktop App
-    needs: create-release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Nix
-        uses: cachix/install-nix-action@v24
-        with:
-          extra_nix_config: |
-            experimental-features = nix-command flakes
-
-      - name: Setup Cachix
-        uses: cachix/cachix-action@v13
-        with:
-          name: phantom
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-
-      - name: Build Tauri app
-        working-directory: cortex-desktop
-        run: |
-          nix develop --command bash -c "
-            npm install
-            npm run build
-            npm run tauri build
-          "
-
-      - name: Upload Desktop App
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ needs.create-release.outputs.version }}
-          files: |
-            cortex-desktop/src-tauri/target/release/bundle/deb/*.deb
-            cortex-desktop/src-tauri/target/release/bundle/appimage/*.AppImage
-
-  publish-release-notes:
-    name: Publish Release Notes
-    needs: [create-release, build-intelagent, build-phantom-python, build-desktop]
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-      - name: Update release with build status
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const release = await github.rest.repos.getReleaseByTag({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag: '${{ needs.create-release.outputs.version }}'
-            });
-
-            const statusEmoji = {
-              success: '✅',
-              failure: '❌',
-              cancelled: '⚠️'
-            };
-
-            const buildStatus = `
-            ## Build Status
-
-            - ${statusEmoji['${{ needs.build-intelagent.result }}']} IntelAgent (Rust)
-            - ${statusEmoji['${{ needs.build-phantom-python.result }}']} Phantom (Python)
-            - ${statusEmoji['${{ needs.build-desktop.result }}']} Desktop App (Tauri)
-            `;
-
-            await github.rest.repos.updateRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: release.data.id,
-              body: release.data.body + '\n\n' + buildStatus
-            });
+          password: ${{ secrets.PYPI_TOKEN }}

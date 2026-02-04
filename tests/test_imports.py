@@ -153,12 +153,12 @@ class TestCircularImports:
     """Test for circular import issues."""
 
     def test_no_circular_imports_on_star_import(self):
-        """Verify 'from phantom import *' doesn't cause circular imports."""
-        # This should complete without hanging or raising ImportError
-        from phantom import *  # noqa: F403
+        """Verify all names in __all__ resolve without circular imports."""
+        import phantom
 
-        # If we get here, no circular imports occurred
-        assert True
+        # Trigger lazy loading of every name declared in __all__
+        for name in phantom.__all__:
+            assert getattr(phantom, name) is not None, f"phantom.{name} is None"
 
     def test_all_submodules_can_be_imported_together(self):
         """Verify all submodules can be imported in sequence."""

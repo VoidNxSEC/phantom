@@ -151,6 +151,32 @@ async def parallel_semantic_search(
 # ═══════════════════════════════════════════════════════════════
 
 
+class LatencyOptimizer:
+    """Facade combining cache, connection pool, batch processing, and metrics."""
+
+    def __init__(self, cache_maxsize: int = 1000, cache_ttl: int = 3600, batch_size: int = 32):
+        self.cache = QueryCache(maxsize=cache_maxsize, ttl_seconds=cache_ttl)
+        self.pool = ConnectionPool()
+        self.batch = BatchProcessor(batch_size=batch_size)
+        self.metrics = LatencyMetrics()
+
+    def cached_search(self, query: str, top_k: int, search_func) -> Any:
+        """Execute search with cache layer and latency tracking."""
+        start = time.perf_counter()
+        result = self.cache.get(query, top_k)
+        if result is None:
+            result = search_func(query, top_k)
+            self.cache.set(query, top_k, result)
+        self.metrics.record("search", (time.perf_counter() - start) * 1000)
+        return result
+
+    def stats(self) -> dict[str, Any]:
+        return {
+            "cache": self.cache.stats(),
+            "metrics": self.metrics.get_stats(),
+        }
+
+
 class LatencyMetrics:
     """Track query latency metrics"""
 

@@ -58,17 +58,11 @@ Code is moved here when it meets ALL of these criteria:
 
 #### `rag/cortex_chunker.py`
 - **Archived**: 2026-02-04
-- **Reason**: Standalone script, not imported as module
-- **Status**: Experimental chunking implementation
-- **Impact**: None - never imported by any module
-- **Notes**: Superseded by phantom.core.cortex.SemanticChunker
+- **Restored**: 2026-02-04 — `tests/unit/test_components.py` and `tests/unit/test_cortex_chunker.py` depend on it; now lives at `src/phantom/rag/cortex_chunker.py`
 
 #### `rag/cortex_embeddings.py`
 - **Archived**: 2026-02-04
-- **Reason**: Standalone script, not imported as module
-- **Status**: Experimental embeddings implementation
-- **Impact**: None - never imported by any module
-- **Notes**: Superseded by phantom.core.embeddings.EmbeddingGenerator
+- **Restored**: 2026-02-04 — `tests/unit/test_components.py` depends on it; now lives at `src/phantom/rag/cortex_embeddings.py`
 
 ## Restoration Process
 

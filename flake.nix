@@ -64,10 +64,8 @@
         pythonEnv = pkgs.python313.withPackages (
           ps: with ps; [
             # Core Data Processing
-            pandas
             numpy
             pyarrow
-            polars
 
             # File Analysis
             python-magic
@@ -114,14 +112,19 @@
             transformers
             torch
             tiktoken
-            langchain
-            chromadb
 
             # API & Web Server
             fastapi
             uvicorn
             python-multipart
-            pytest
+            httpx
+
+            # Observability & Logging
+            prometheus-client
+            structlog
+
+            # CLI
+            typer
 
             # Dev tools
             pytest

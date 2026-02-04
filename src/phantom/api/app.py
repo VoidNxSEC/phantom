@@ -143,7 +143,7 @@ def create_app() -> FastAPI:
             "status": "uploaded",
         }
 
-    @app.post("/rag/query")
+    @app.get("/rag/query")
     async def rag_query(question: str, collection: str = "default", top_k: int = 5):
         """Query the RAG pipeline."""
         # TODO: Implement RAG query

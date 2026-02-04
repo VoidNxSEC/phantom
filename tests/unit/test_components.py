@@ -8,13 +8,9 @@ Tests for chunking and embeddings functionality
 import sys
 import time
 import warnings
-from pathlib import Path
 
 # Suppress warnings
 warnings.filterwarnings("ignore")
-
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent))
 
 from phantom.rag.cortex_chunker import ChunkStrategy, MarkdownChunker
 from phantom.rag.cortex_embeddings import EmbeddingManager
@@ -377,21 +373,15 @@ def main():
         ("Chunking Strategies", test_chunking_strategies),
         ("Chunk Metadata", test_chunk_metadata),
         ("Embedding Generation", test_embedding_generation),
+        ("Semantic Search", test_semantic_search),
         ("Similarity Ranking", test_similarity_ranking),
         ("Integration Pipeline", test_chunking_plus_embeddings),
     ]
 
     for name, test_func in tests:
         try:
-            if name == "Embedding Generation":
-                # This test returns the manager for next test
-                manager = test_func()
-                # Run semantic search with the manager
-                test_semantic_search(manager)
-                tests_passed += 2
-            else:
-                test_func()
-                tests_passed += 1
+            test_func()
+            tests_passed += 1
         except Exception as e:
             print(f"\n   ❌ Test failed: {e}")
             tests_failed += 1

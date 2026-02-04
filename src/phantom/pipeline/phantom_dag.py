@@ -828,6 +828,35 @@ class ClassificationEngine:
 class SanitizationEngine:
     """Content sanitization and metadata stripping"""
 
+    @classmethod
+    def scan_sensitive_patterns(cls, text: str) -> list[SensitiveFinding]:
+        """Scan plain text for sensitive patterns (mirrors ClassificationEngine logic)."""
+        findings: list[SensitiveFinding] = []
+        lines = text.split("\n")
+        for pattern, pattern_name, risk_base in ClassificationEngine.SENSITIVE_PATTERNS:
+            matches: list[str] = []
+            line_numbers: list[int] = []
+            for i, line in enumerate(lines, 1):
+                found = re.findall(pattern, line, re.IGNORECASE)
+                if found:
+                    matches.extend(
+                        found if isinstance(found[0], str)
+                        else [m[0] if isinstance(m, tuple) else m for m in found]
+                    )
+                    line_numbers.append(i)
+            if matches:
+                findings.append(
+                    SensitiveFinding(
+                        pattern_type="regex",
+                        pattern_name=pattern_name,
+                        count=len(matches),
+                        line_numbers=line_numbers[:10],
+                        samples=[ClassificationEngine._redact_sample(m) for m in matches[:3]],
+                        risk_score=min(risk_base * len(matches), 1.0),
+                    )
+                )
+        return findings
+
     @staticmethod
     def strip_image_metadata(filepath: Path, output_path: Path) -> bool:
         """Strip EXIF and other metadata from images"""

@@ -1475,6 +1475,14 @@ class SpectreAnalyzer:
         self.documents_analyzed = 0
         self.total_words_processed = 0
 
+    def analyze(self, text: str) -> MultiDimensionalSentiment:
+        """Analyze raw text and return multi-dimensional sentiment."""
+        word_count = len(text.split())
+        sentiment = self._analyze_sentiment(text)
+        self.documents_analyzed += 1
+        self.total_words_processed += word_count
+        return sentiment
+
     def analyze_document(self, filepath: Path) -> DocumentAnalysis:
         """Analyze a single markdown document"""
         # Read file

@@ -19,22 +19,23 @@ __all__ = [
     "NumpyVectorStore",
     "SearchResult",
     "create_vector_store",
-    # Pipeline (to be implemented)
-    "RAGPipeline",
-    "Retriever",
-    "Reranker",
-    "Generator",
-    "ConversationMemory",
+    # Chunking
+    "MarkdownChunker",
+    "ChunkStrategy",
+    "Chunk",
+    # Embeddings
+    "EmbeddingManager",
+    "EmbeddingGenerator",
 ]
 
 
 def __getattr__(name):
-    if name == "RAGPipeline":
-        from phantom.rag.pipeline import RAGPipeline
+    if name in ("MarkdownChunker", "ChunkStrategy", "Chunk"):
+        from phantom.rag import cortex_chunker
 
-        return RAGPipeline
-    if name == "Retriever":
-        from phantom.rag.retriever import Retriever
+        return getattr(cortex_chunker, name)
+    if name in ("EmbeddingManager", "EmbeddingGenerator"):
+        from phantom.rag import cortex_embeddings
 
-        return Retriever
+        return getattr(cortex_embeddings, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

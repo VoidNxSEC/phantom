@@ -112,6 +112,7 @@
             transformers
             torch
             tiktoken
+            faiss
 
             # API & Web Server
             fastapi

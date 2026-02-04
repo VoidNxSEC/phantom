@@ -2,13 +2,38 @@
 Phantom API - FastAPI REST endpoints.
 """
 
-from fastapi import FastAPI, HTTPException, UploadFile
+import time
+
+from fastapi import FastAPI, HTTPException, Request, Response, UploadFile
 from pydantic import BaseModel
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+
+from phantom.logging import configure_logging, get_logger
+
+# ── Prometheus metrics ──────────────────────────────────────────────
+
+REQUEST_COUNT = Counter(
+    "phantom_requests_total",
+    "Total number of HTTP requests",
+    labelnames=["method", "endpoint", "status"],
+)
+REQUEST_LATENCY = Histogram(
+    "phantom_request_latency_seconds",
+    "HTTP request latency in seconds",
+    labelnames=["endpoint"],
+)
+
+logger = get_logger("api")
 
 
 class HealthResponse(BaseModel):
     status: str
     version: str
+
+
+class ReadyResponse(BaseModel):
+    status: str
+    checks: dict
 
 
 class ExtractRequest(BaseModel):
@@ -26,25 +51,66 @@ def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     from phantom import __version__
 
+    configure_logging()
+
     app = FastAPI(
         title="Phantom API",
         description="AI-Powered Document Intelligence & Classification Pipeline",
         version=__version__,
     )
 
+    # ── Middleware: instrument every request ────────────────────────
+
+    @app.middleware("http")
+    async def metrics_middleware(request: Request, call_next):
+        start = time.perf_counter()
+        response = await call_next(request)
+        duration = time.perf_counter() - start
+
+        endpoint = request.url.path
+        REQUEST_COUNT.labels(
+            method=request.method,
+            endpoint=endpoint,
+            status=str(response.status_code),
+        ).inc()
+        REQUEST_LATENCY.labels(endpoint=endpoint).observe(duration)
+
+        return response
+
+    # ── Health & readiness ──────────────────────────────────────────
+
     @app.get("/health", response_model=HealthResponse)
     async def health():
-        """Health check endpoint."""
-        return HealthResponse(
-            status="operational",
-            version=__version__,
+        """Liveness probe — always 200 if the process is running."""
+        return HealthResponse(status="operational", version=__version__)
+
+    @app.get("/ready", response_model=ReadyResponse)
+    async def ready():
+        """Readiness probe — checks downstream dependencies."""
+        checks: dict = {}
+
+        # Vector store availability (lazy: only checked if previously initialised)
+        try:
+            from phantom.rag.vectors import FAISSVectorStore  # noqa: F811
+
+            checks["vector_store"] = True
+        except Exception:
+            checks["vector_store"] = False
+
+        all_ok = all(checks.values()) if checks else True
+        return ReadyResponse(
+            status="ready" if all_ok else "not_ready",
+            checks=checks,
         )
+
+    @app.get("/metrics")
+    async def metrics():
+        """Prometheus metrics endpoint."""
+        return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
     @app.post("/extract", response_model=ExtractResponse)
     async def extract(request: ExtractRequest):
         """Extract insights from markdown content."""
-        import time
-
         start = time.time()
 
         # TODO: Implement using CortexProcessor

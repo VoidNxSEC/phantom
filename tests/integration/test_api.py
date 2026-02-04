@@ -30,6 +30,35 @@ class TestHealthEndpoint:
         assert isinstance(client.get("/health").json()["version"], str)
 
 
+class TestReadyEndpoint:
+    def test_ready_returns_200(self, client):
+        resp = client.get("/ready")
+        assert resp.status_code == 200
+
+    def test_ready_has_status_and_checks(self, client):
+        body = client.get("/ready").json()
+        assert "status" in body
+        assert "checks" in body
+        assert body["status"] in ("ready", "not_ready")
+
+
+class TestMetricsEndpoint:
+    def test_metrics_returns_200(self, client):
+        resp = client.get("/metrics")
+        assert resp.status_code == 200
+
+    def test_metrics_content_type_is_prometheus(self, client):
+        resp = client.get("/metrics")
+        assert "text/plain" in resp.headers["content-type"]
+
+    def test_metrics_tracks_requests(self, client):
+        # Hit health first to generate a metric
+        client.get("/health")
+        body = client.get("/metrics").text
+        assert "phantom_requests_total" in body
+        assert "phantom_request_latency_seconds" in body
+
+
 class TestExtractEndpoint:
     def test_extract_returns_200(self, client, sample_markdown):
         resp = client.post("/extract", json={

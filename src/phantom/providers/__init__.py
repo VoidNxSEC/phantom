@@ -3,10 +3,12 @@ Phantom Providers - LLM backend providers.
 
 Classes:
     AIProvider - Abstract base for all providers
+    ProviderConfig - Provider configuration model
     LlamaCppProvider - Local llama.cpp server (TURBO)
-    OpenAIProvider - OpenAI API
-    AnthropicProvider - Anthropic Claude API
-    DeepSeekProvider - DeepSeek API
+
+Note:
+    Cloud providers (OpenAI, Anthropic, DeepSeek) are not yet implemented.
+    Use LlamaCppProvider for local inference or extend AIProvider to add custom providers.
 """
 
 from phantom.providers.base import AIProvider, ProviderConfig
@@ -17,18 +19,6 @@ def __getattr__(name):
         from phantom.providers.llamacpp import LlamaCppProvider
 
         return LlamaCppProvider
-    if name == "OpenAIProvider":
-        from phantom.providers.openai import OpenAIProvider
-
-        return OpenAIProvider
-    if name == "AnthropicProvider":
-        from phantom.providers.anthropic import AnthropicProvider
-
-        return AnthropicProvider
-    if name == "DeepSeekProvider":
-        from phantom.providers.deepseek import DeepSeekProvider
-
-        return DeepSeekProvider
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
@@ -36,7 +26,4 @@ __all__ = [
     "AIProvider",
     "ProviderConfig",
     "LlamaCppProvider",
-    "OpenAIProvider",
-    "AnthropicProvider",
-    "DeepSeekProvider",
 ]

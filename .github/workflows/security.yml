@@ -50,7 +50,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload bandit report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: bandit-security-report
           path: bandit-report.json
@@ -119,7 +119,7 @@ jobs:
           detect-secrets scan --all-files --exclude-files '\.lock$' 2>&1 | grep -i "potential" || echo "✓ No secrets detected"
 
       - name: Upload secrets report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: secrets-scan-report
           path: secrets-report.json

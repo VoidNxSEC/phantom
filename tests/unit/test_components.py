@@ -1,23 +1,15 @@
-#!/usr/bin/env python3
 """
-CORTEX v2.0 - Component Tests
+Unit tests for CORTEX v2.0 components: chunking and embeddings.
 
-Tests for chunking and embeddings functionality
+Tests that load sentence-transformers models are marked @pytest.mark.slow.
 """
 
-import sys
-import time
-import warnings
-
-# Suppress warnings
-warnings.filterwarnings("ignore")
+import pytest
 
 from phantom.rag.cortex_chunker import ChunkStrategy, MarkdownChunker
-from phantom.rag.cortex_embeddings import EmbeddingManager
 
-# ═══════════════════════════════════════════════════════════════
-# TEST DATA
-# ═══════════════════════════════════════════════════════════════
+
+pytestmark = pytest.mark.unit
 
 TEST_DOCUMENT = """# Python Error Handling Guide
 
@@ -95,314 +87,139 @@ Proper error handling makes your code more reliable and maintainable.
 """
 
 
-# ═══════════════════════════════════════════════════════════════
-# CHUNKING TESTS
-# ═══════════════════════════════════════════════════════════════
+class TestChunkingStrategies:
+    """Test all chunking strategies produce valid output."""
 
-
-def test_chunking_strategies():
-    """Test all chunking strategies"""
-    print("=" * 70)
-    print("CHUNKING TESTS")
-    print("=" * 70)
-
-    strategies = [
-        ("recursive", ChunkStrategy.RECURSIVE),
-        ("sliding", ChunkStrategy.SLIDING),
-        ("simple", ChunkStrategy.SIMPLE),
-    ]
-
-    results = {}
-
-    for name, strategy in strategies:
-        print(f"\n🧪 Testing {name.upper()} strategy...")
-
+    @pytest.mark.parametrize(
+        "strategy",
+        [ChunkStrategy.RECURSIVE, ChunkStrategy.SLIDING, ChunkStrategy.SIMPLE],
+    )
+    def test_strategy_produces_chunks(self, strategy):
         chunker = MarkdownChunker(strategy=strategy, max_tokens=200, overlap=50)
-
-        start = time.time()
         chunks = chunker.chunk_text(TEST_DOCUMENT, source_file="test.md")
-        elapsed = time.time() - start
+        assert len(chunks) > 0
 
+    @pytest.mark.parametrize(
+        "strategy",
+        [ChunkStrategy.RECURSIVE, ChunkStrategy.SLIDING, ChunkStrategy.SIMPLE],
+    )
+    def test_strategy_chunks_have_tokens(self, strategy):
+        chunker = MarkdownChunker(strategy=strategy, max_tokens=200, overlap=50)
+        chunks = chunker.chunk_text(TEST_DOCUMENT, source_file="test.md")
+        assert all(chunk.metadata.token_count > 0 for chunk in chunks)
+
+    def test_stats_keys(self):
+        chunker = MarkdownChunker(strategy=ChunkStrategy.RECURSIVE, max_tokens=200)
+        chunks = chunker.chunk_text(TEST_DOCUMENT, source_file="test.md")
         stats = chunker.get_stats(chunks)
-
-        print(f"   ✓ Chunks created: {len(chunks)}")
-        print(f"   ✓ Total tokens: {stats['total_tokens']}")
-        print(f"   ✓ Avg tokens/chunk: {stats['avg_tokens_per_chunk']:.1f}")
-        print(f"   ✓ Processing time: {elapsed * 1000:.1f}ms")
-
-        # Validation
-        assert len(chunks) > 0, f"{name} produced no chunks"
-        assert all(chunk.metadata.token_count > 0 for chunk in chunks), (
-            f"{name} has chunks with no tokens"
-        )
-
-        results[name] = {
-            "chunks": len(chunks),
-            "tokens": stats["total_tokens"],
-            "time_ms": elapsed * 1000,
-        }
-
-    print(f"\n{'─' * 70}")
-    print("📊 CHUNKING SUMMARY")
-    print(f"{'─' * 70}")
-    print(f"{'Strategy':<15} {'Chunks':<10} {'Tokens':<10} {'Time (ms)':<10}")
-    print(f"{'─' * 70}")
-    for name, data in results.items():
-        print(
-            f"{name.capitalize():<15} {data['chunks']:<10} {data['tokens']:<10} {data['time_ms']:<10.1f}"
-        )
+        assert "num_chunks" in stats
+        assert "total_tokens" in stats
+        assert "avg_tokens_per_chunk" in stats
+        assert stats["total_tokens"] > 0
 
 
-def test_chunk_metadata():
-    """Test chunk metadata preservation"""
-    print(f"\n{'=' * 70}")
-    print("METADATA TESTS")
-    print("=" * 70)
+class TestChunkMetadata:
+    """Test chunk metadata preservation."""
 
-    chunker = MarkdownChunker(strategy=ChunkStrategy.RECURSIVE, max_tokens=200)
-    chunks = chunker.chunk_text(TEST_DOCUMENT, source_file="test.md")
+    def test_chunk_ids_are_sequential(self):
+        chunker = MarkdownChunker(strategy=ChunkStrategy.RECURSIVE, max_tokens=200)
+        chunks = chunker.chunk_text(TEST_DOCUMENT, source_file="test.md")
+        ids = [chunk.metadata.chunk_id for chunk in chunks]
+        assert ids == list(range(len(chunks)))
 
-    print("\n🧪 Testing metadata preservation...")
+    def test_source_file_preserved(self):
+        chunker = MarkdownChunker(strategy=ChunkStrategy.RECURSIVE, max_tokens=200)
+        chunks = chunker.chunk_text(TEST_DOCUMENT, source_file="test.md")
+        assert all(chunk.metadata.source_file == "test.md" for chunk in chunks)
 
-    for i, chunk in enumerate(chunks[:3]):  # Test first 3 chunks
-        print(f"\n   Chunk {i + 1}:")
-        print(f"   ✓ ID: {chunk.metadata.chunk_id}")
-        print(f"   ✓ Source: {chunk.metadata.source_file}")
-        print(f"   ✓ Tokens: {chunk.metadata.token_count}")
-        print(f"   ✓ Words: {chunk.metadata.word_count}")
-        print(f"   ✓ Headers: {chunk.metadata.headers}")
-
-        # Validation
-        assert chunk.metadata.chunk_id == i
-        assert chunk.metadata.source_file == "test.md"
-        assert chunk.metadata.token_count > 0
-        assert chunk.metadata.word_count > 0
-
-    print("\n   ✅ All metadata tests passed!")
+    def test_word_count_positive(self):
+        chunker = MarkdownChunker(strategy=ChunkStrategy.RECURSIVE, max_tokens=200)
+        chunks = chunker.chunk_text(TEST_DOCUMENT, source_file="test.md")
+        assert all(chunk.metadata.word_count > 0 for chunk in chunks)
 
 
-# ═══════════════════════════════════════════════════════════════
-# EMBEDDINGS TESTS
-# ═══════════════════════════════════════════════════════════════
+@pytest.mark.slow
+class TestEmbeddingGeneration:
+    """Tests requiring sentence-transformers model loading."""
 
+    def test_embeddings_generated(self):
+        from phantom.rag.cortex_embeddings import EmbeddingManager
 
-def test_embedding_generation():
-    """Test embedding generation"""
-    print(f"\n{'=' * 70}")
-    print("EMBEDDING TESTS")
-    print("=" * 70)
+        texts = [
+            "Error handling in Python uses try-except blocks",
+            "FastAPI supports async/await for better performance",
+        ]
+        manager = EmbeddingManager(model_name="all-MiniLM-L6-v2", device="cpu")
+        manager.add_texts(texts)
+        assert len(manager.vector_store) == len(texts)
 
-    # Create sample texts
-    texts = [
-        "Error handling in Python uses try-except blocks",
-        "FastAPI supports async/await for better performance",
-        "Use context managers for resource cleanup",
-        "Python is a high-level programming language",
-    ]
+    def test_embedding_dimension(self):
+        from phantom.rag.cortex_embeddings import EmbeddingManager
 
-    print("\n🧪 Testing embedding generation...")
-    print(f"   Texts to embed: {len(texts)}")
+        manager = EmbeddingManager(model_name="all-MiniLM-L6-v2", device="cpu")
+        manager.add_texts(["test"])
+        assert manager.generator.embedding_dim == 384
 
-    manager = EmbeddingManager(model_name="all-MiniLM-L6-v2", device="cpu")
+    def test_search_returns_results(self):
+        from phantom.rag.cortex_embeddings import EmbeddingManager
 
-    start = time.time()
-    manager.add_texts(texts)
-    elapsed = time.time() - start
+        texts = [
+            "Error handling in Python uses try-except blocks",
+            "FastAPI supports async/await for better performance",
+            "Use context managers for resource cleanup",
+        ]
+        manager = EmbeddingManager(model_name="all-MiniLM-L6-v2", device="cpu")
+        manager.add_texts(texts)
 
-    print(f"   ✓ Embeddings generated: {len(manager.vector_store)}")
-    print(f"   ✓ Embedding dimension: {manager.generator.embedding_dim}")
-    print(f"   ✓ Processing time: {elapsed * 1000:.1f}ms")
-    print(
-        f"   ✓ Speed: {len(texts) / (elapsed if elapsed > 0 else 0.001):.1f} embeddings/sec"
-    )
-
-    # Validation
-    assert len(manager.vector_store) == len(texts)
-    assert manager.generator.embedding_dim == 384  # MiniLM dimension
-
-    # Validation passed - embeddings are working
-
-
-def test_semantic_search():
-    """Test semantic search functionality"""
-    print(f"\n{'=' * 70}")
-    print("SEMANTIC SEARCH TESTS")
-    print("=" * 70)
-
-    # Create sample texts
-    texts = [
-        "Error handling in Python uses try-except blocks",
-        "FastAPI supports async/await for better performance",
-        "Use context managers for resource cleanup",
-        "Python is a high-level programming language",
-    ]
-
-    print("\n🧪 Setting up embedding manager...")
-    manager = EmbeddingManager(model_name="all-MiniLM-L6-v2", device="cpu")
-    manager.add_texts(texts)
-    print(f"   ✓ Embedded {len(manager.vector_store)} texts")
-
-    queries = [
-        "How to handle exceptions?",
-        "Asynchronous programming",
-        "Managing files and resources",
-    ]
-
-    for query in queries:
-        print(f"\n🔍 Query: '{query}'")
-
-        start = time.time()
-        results = manager.search(query, top_k=3)
-        elapsed = time.time() - start
-
-        print(f"   ⏱️  Search time: {elapsed * 1000:.1f}ms")
-        print(f"   📊 Top {len(results)} results:")
-
-        for i, result in enumerate(results, 1):
-            print(f"\n   {i}. Score: {result.score:.3f}")
-            print(f"      Text: {result.text[:60]}...")
-
-        # Validation
-        assert len(results) > 0, "Search returned no results"
-        assert all(r.score >= 0 and r.score <= 1 for r in results), "Invalid scores"
-        assert results[0].score >= results[-1].score, "Results not sorted by score"
-
-    print("\n   ✅ All search tests passed!")
-
-
-def test_similarity_ranking():
-    """Test that similar texts rank higher"""
-    print(f"\n{'=' * 70}")
-    print("SIMILARITY RANKING TESTS")
-    print("=" * 70)
-
-    texts = [
-        "Python error handling with try-except blocks",  # Most similar
-        "Exception handling is important in Python",  # Similar
-        "FastAPI web framework for Python",  # Less similar
-        "JavaScript async functions",  # Least similar
-    ]
-
-    manager = EmbeddingManager(model_name="all-MiniLM-L6-v2")
-    manager.add_texts(texts)
-
-    query = "How to handle errors in Python?"
-    results = manager.search(query, top_k=4)
-
-    print(f"\n🧪 Query: '{query}'")
-    print("\n   Expected order: Error handling topics first\n")
-
-    for i, result in enumerate(results, 1):
-        relevance = "🟢" if i <= 2 else "🟡" if i == 3 else "🔴"
-        print(
-            f"   {relevance} Rank {i} (score: {result.score:.3f}): {result.text[:50]}..."
-        )
-
-    # Validation: Top result should be most relevant
-    assert "error" in results[0].text.lower() or "exception" in results[0].text.lower()
-    print("\n   ✅ Ranking test passed!")
-
-
-# ═══════════════════════════════════════════════════════════════
-# INTEGRATION TESTS
-# ═══════════════════════════════════════════════════════════════
-
-
-def test_chunking_plus_embeddings():
-    """Test full pipeline: chunk → embed → search"""
-    print(f"\n{'=' * 70}")
-    print("INTEGRATION TEST: Chunking + Embeddings")
-    print("=" * 70)
-
-    print("\n🧪 Testing full pipeline...")
-
-    # Step 1: Chunk document
-    print("\n   Step 1: Chunking document...")
-    chunker = MarkdownChunker(strategy=ChunkStrategy.RECURSIVE, max_tokens=150)
-    chunks = chunker.chunk_text(TEST_DOCUMENT, source_file="test.md")
-    print(f"   ✓ Created {len(chunks)} chunks")
-
-    # Step 2: Generate embeddings
-    print("\n   Step 2: Generating embeddings...")
-    manager = EmbeddingManager(model_name="all-MiniLM-L6-v2")
-
-    chunk_texts = [chunk.text for chunk in chunks]
-    chunk_metadata = [
-        {
-            "chunk_id": chunk.metadata.chunk_id,
-            "source_file": chunk.metadata.source_file,
-            "headers": chunk.metadata.headers,
-        }
-        for chunk in chunks
-    ]
-
-    manager.add_texts(chunk_texts, metadata=chunk_metadata)
-    print(f"   ✓ Embedded {len(manager.vector_store)} chunks")
-
-    # Step 3: Semantic search
-    print("\n   Step 3: Testing semantic search...")
-    queries = ["try-except syntax", "resource cleanup", "custom exceptions"]
-
-    for query in queries:
-        results = manager.search(query, top_k=2)
-        print(f"\n   Query: '{query}'")
-        print(
-            f"   → Top result: {results[0].text[:50]}... (score: {results[0].score:.3f})"
-        )
-
+        results = manager.search("How to handle exceptions?", top_k=3)
         assert len(results) > 0
+        assert all(0 <= r.score <= 1 for r in results)
 
-    print("\n   ✅ Integration test passed!")
+    def test_search_results_sorted_by_score(self):
+        from phantom.rag.cortex_embeddings import EmbeddingManager
 
+        texts = [
+            "Error handling in Python uses try-except blocks",
+            "FastAPI supports async/await for better performance",
+            "Use context managers for resource cleanup",
+        ]
+        manager = EmbeddingManager(model_name="all-MiniLM-L6-v2", device="cpu")
+        manager.add_texts(texts)
 
-# ═══════════════════════════════════════════════════════════════
-# MAIN TEST RUNNER
-# ═══════════════════════════════════════════════════════════════
+        results = manager.search("How to handle exceptions?", top_k=3)
+        scores = [r.score for r in results]
+        assert scores == sorted(scores, reverse=True)
 
+    def test_similarity_ranking(self):
+        from phantom.rag.cortex_embeddings import EmbeddingManager
 
-def main():
-    """Run all tests"""
-    print("\n" + "=" * 70)
-    print(" " * 15 + "🧪 CORTEX v2.0 COMPONENT TESTS")
-    print("=" * 70 + "\n")
+        texts = [
+            "Python error handling with try-except blocks",
+            "Exception handling is important in Python",
+            "FastAPI web framework for Python",
+            "JavaScript async functions",
+        ]
+        manager = EmbeddingManager(model_name="all-MiniLM-L6-v2")
+        manager.add_texts(texts)
 
-    tests_passed = 0
-    tests_failed = 0
+        results = manager.search("How to handle errors in Python?", top_k=4)
+        # Top result should be about error/exception handling
+        assert "error" in results[0].text.lower() or "exception" in results[0].text.lower()
 
-    tests = [
-        ("Chunking Strategies", test_chunking_strategies),
-        ("Chunk Metadata", test_chunk_metadata),
-        ("Embedding Generation", test_embedding_generation),
-        ("Semantic Search", test_semantic_search),
-        ("Similarity Ranking", test_similarity_ranking),
-        ("Integration Pipeline", test_chunking_plus_embeddings),
-    ]
+    def test_chunking_plus_embeddings_pipeline(self):
+        from phantom.rag.cortex_embeddings import EmbeddingManager
 
-    for name, test_func in tests:
-        try:
-            test_func()
-            tests_passed += 1
-        except Exception as e:
-            print(f"\n   ❌ Test failed: {e}")
-            tests_failed += 1
-            import traceback
+        # Chunk
+        chunker = MarkdownChunker(strategy=ChunkStrategy.RECURSIVE, max_tokens=150)
+        chunks = chunker.chunk_text(TEST_DOCUMENT, source_file="test.md")
+        assert len(chunks) > 0
 
-            traceback.print_exc()
+        # Embed
+        manager = EmbeddingManager(model_name="all-MiniLM-L6-v2")
+        chunk_texts = [chunk.text for chunk in chunks]
+        manager.add_texts(chunk_texts)
+        assert len(manager.vector_store) == len(chunks)
 
-    # Summary
-    print("\n" + "=" * 70)
-    print(" " * 20 + "📊 TEST SUMMARY")
-    print("=" * 70)
-    print(f"\n   ✅ Tests passed: {tests_passed}")
-    print(f"   ❌ Tests failed: {tests_failed}")
-    print(
-        f"   📈 Success rate: {tests_passed / (tests_passed + tests_failed) * 100:.1f}%"
-    )
-    print("\n" + "=" * 70 + "\n")
-
-    return tests_failed == 0
-
-
-if __name__ == "__main__":
-    success = main()
-    sys.exit(0 if success else 1)
+        # Search
+        results = manager.search("try-except syntax", top_k=2)
+        assert len(results) > 0

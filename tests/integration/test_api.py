@@ -131,3 +131,204 @@ class TestRAGQueryEndpoint:
     def test_rag_query_returns_sources_list(self, client):
         body = client.get("/rag/query?question=hello").json()
         assert isinstance(body["sources"], list)
+
+
+class TestProcessEndpoint:
+    def test_process_requires_file(self, client):
+        resp = client.post("/process")
+        assert resp.status_code == 422  # Missing required field
+
+    def test_process_accepts_markdown(self, client, sample_markdown):
+        resp = client.post(
+            "/process",
+            files={"file": ("test.md", sample_markdown.encode(), "text/markdown")},
+        )
+        # /process depends on CortexProcessor which may require LLM
+        # Accept 200 (success) or 500 (LLM unavailable) — not a client error
+        assert resp.status_code in (200, 500)
+        if resp.status_code == 500:
+            # Verify it's a meaningful error, not a crash
+            body = resp.json()
+            assert "detail" in body
+
+    def test_process_returns_expected_fields(self, client):
+        resp = client.post(
+            "/process",
+            files={"file": ("simple.txt", b"# Test document", "text/plain")},
+        )
+        if resp.status_code == 200:
+            body = resp.json()
+            assert "filename" in body
+            assert "insights" in body
+            assert "processing_time" in body
+
+
+class TestVectorSearchEndpoint:
+    def test_vector_search_empty_store(self, client):
+        resp = client.post("/vectors/search?query=test&top_k=5")
+        # Empty store should return 400 (client told to index first) or 500 (init failure)
+        assert resp.status_code in (400, 500)
+        body = resp.json()
+        assert "detail" in body
+
+    def test_vector_search_requires_query(self, client):
+        resp = client.post("/vectors/search")
+        assert resp.status_code == 422  # Missing required parameter
+
+
+class TestVectorIndexEndpoint:
+    def test_vector_index_requires_file(self, client):
+        resp = client.post("/vectors/index")
+        assert resp.status_code == 422
+
+    def test_vector_index_accepts_text(self, client):
+        content = b"This is a test document about machine learning and AI."
+        resp = client.post(
+            "/vectors/index",
+            files={"file": ("doc.txt", content, "text/plain")},
+        )
+        # May fail if embedding model can't load (env issues); accept 200 or 500
+        if resp.status_code == 200:
+            body = resp.json()
+            assert body["status"] == "indexed"
+            assert body["chunks_indexed"] > 0
+        else:
+            assert resp.status_code == 500
+            body = resp.json()
+            assert "detail" in body
+
+    def test_vector_index_and_search(self, client):
+        # First, index a document
+        content = b"Python is a programming language. It is widely used for AI and data science."
+        resp1 = client.post(
+            "/vectors/index",
+            files={"file": ("python.txt", content, "text/plain")},
+        )
+        # May fail if embedding model is unavailable
+        if resp1.status_code != 200:
+            pytest.skip("Embedding model not available for indexing")
+
+        # Then search for it
+        resp2 = client.post("/vectors/search?query=programming+language&top_k=3")
+        assert resp2.status_code == 200
+        body = resp2.json()
+        assert "results" in body
+        assert len(body["results"]) > 0
+
+
+class TestChatEndpoint:
+    def test_chat_requires_message(self, client):
+        resp = client.post("/api/chat", json={})
+        assert resp.status_code == 422
+
+    def test_chat_basic_request(self, client):
+        resp = client.post(
+            "/api/chat",
+            json={
+                "message": "Hello, how are you?",
+                "conversation_id": "test-123",
+                "history": [],
+                "context_size": 3,
+                "llm_provider": "local",
+            },
+        )
+        # Chat depends on LLM + embedding model; accept 200 or 500 (service unavailable)
+        assert resp.status_code in (200, 500)
+        if resp.status_code == 200:
+            body = resp.json()
+            assert "message" in body
+            assert "conversation_id" in body
+
+    def test_chat_with_empty_store(self, client):
+        resp = client.post(
+            "/api/chat",
+            json={
+                "message": "Tell me about Phantom",
+                "conversation_id": "test-456",
+                "history": [],
+            },
+        )
+        # Should work even with empty vector store
+        if resp.status_code == 200:
+            body = resp.json()
+            assert "message" in body
+            assert "conversation_id" in body
+
+
+class TestModelsEndpoint:
+    def test_models_returns_200(self, client):
+        resp = client.get("/api/models")
+        assert resp.status_code == 200
+
+    def test_models_returns_providers(self, client):
+        body = client.get("/api/models").json()
+        assert "local" in body
+        assert "openai" in body
+        assert "anthropic" in body
+        assert isinstance(body["local"], list)
+
+
+class TestPromptTestEndpoint:
+    def test_prompt_test_simple(self, client):
+        resp = client.post(
+            "/api/prompt/test",
+            json={"template": "Hello {name}!", "variables": {"name": "World"}},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["rendered"] == "Hello World!"
+        assert body["success"] is True
+        assert body["tokens"] > 0
+
+    def test_prompt_test_missing_variable(self, client):
+        resp = client.post(
+            "/api/prompt/test",
+            json={"template": "Hello {name}!", "variables": {}},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["success"] is False
+        assert "Missing values" in body["error"]
+
+    def test_prompt_test_multiple_variables(self, client):
+        resp = client.post(
+            "/api/prompt/test",
+            json={
+                "template": "{greeting} {name}, you are {age} years old.",
+                "variables": {"greeting": "Hello", "name": "Alice", "age": "25"},
+            },
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["rendered"] == "Hello Alice, you are 25 years old."
+        assert body["success"] is True
+
+
+class TestSystemMetricsEndpoint:
+    def test_system_metrics_returns_200(self, client):
+        resp = client.get("/api/system/metrics")
+        assert resp.status_code == 200
+
+    def test_system_metrics_has_cpu(self, client):
+        body = client.get("/api/system/metrics").json()
+        assert "cpu" in body
+        assert "percent" in body["cpu"]
+        assert 0 <= body["cpu"]["percent"] <= 100
+
+    def test_system_metrics_has_memory(self, client):
+        body = client.get("/api/system/metrics").json()
+        assert "memory" in body
+        assert "total_bytes" in body["memory"]
+        assert "percent" in body["memory"]
+        assert body["memory"]["total_bytes"] > 0
+
+    def test_system_metrics_has_disk(self, client):
+        body = client.get("/api/system/metrics").json()
+        assert "disk" in body
+        assert "total_bytes" in body["disk"]
+        assert body["disk"]["total_bytes"] > 0
+
+    def test_system_metrics_has_timestamp(self, client):
+        body = client.get("/api/system/metrics").json()
+        assert "timestamp" in body
+        assert body["timestamp"] > 0

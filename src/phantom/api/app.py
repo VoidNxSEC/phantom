@@ -105,6 +105,23 @@ class PromptTestResponse(BaseModel):
     error: str | None = None
 
 
+class VectorSearchRequest(BaseModel):
+    """Body for POST /vectors/search. Query params are still accepted for backward compatibility."""
+    query: str
+    top_k: int = 5
+    mode: str = "dense"  # "dense" | "sparse" | "hybrid"
+
+
+class BatchIndexRequest(BaseModel):
+    documents: list[dict]  # [{id, text, metadata}]
+
+
+class BatchIndexResponse(BaseModel):
+    indexed: int
+    failed: int
+    errors: list[str]
+
+
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     from phantom import __version__
@@ -369,13 +386,33 @@ def create_app() -> FastAPI:
         }
 
     @app.post("/vectors/search")
-    async def vector_search(query: str, top_k: int = 5):
+    async def vector_search(
+        request: Request,
+        query: str | None = None,
+        top_k: int = 5,
+        mode: str = "dense",
+    ):
         """
-        Semantic vector search using FAISS.
-        Accepts a text query and returns similar documents.
+        Semantic vector search.
+
+        Accepts query params (?query=...&top_k=N&mode=dense) for backward
+        compatibility OR a JSON body {query, top_k, mode} where mode is one of:
+          - "dense"   — FAISS cosine similarity only (default)
+          - "sparse"  — BM25 keyword search only
+          - "hybrid"  — BM25 + FAISS fused with Reciprocal Rank Fusion
         """
         try:
-            # Get instances
+            # Prefer JSON body when present
+            content_type = request.headers.get("content-type", "")
+            if "application/json" in content_type:
+                body = await request.json()
+                query = body.get("query", query)
+                top_k = int(body.get("top_k", top_k))
+                mode = str(body.get("mode", mode))
+
+            if not query:
+                raise HTTPException(400, "query is required")
+
             embedder = get_embedding_generator()
             store = get_vector_store()
 
@@ -384,14 +421,24 @@ def create_app() -> FastAPI:
                     400, "Vector store is empty. Index documents first using /vectors/index"
                 )
 
-            # Generate query embedding
             query_embedding = embedder.encode([query])[0]
 
-            # Search
-            results = store.search(query_embedding, top_k=top_k)
+            if mode == "hybrid":
+                results = store.hybrid_search(query, query_embedding, top_k=top_k)
+            elif mode == "sparse":
+                # BM25 only — fall back to dense if unavailable
+                if hasattr(store, "_bm25_search"):
+                    results = store._bm25_search(query, top_k=top_k)
+                    if not results:
+                        results = store.search(query_embedding, top_k=top_k)
+                else:
+                    results = store.search(query_embedding, top_k=top_k)
+            else:  # dense (default)
+                results = store.search(query_embedding, top_k=top_k)
 
             return {
                 "query": query,
+                "mode": mode,
                 "results": [
                     {"text": r.text, "score": float(r.score), "metadata": r.metadata}
                     for r in results
@@ -399,6 +446,8 @@ def create_app() -> FastAPI:
                 "total_results": len(results),
             }
 
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Vector search failed: {e}")
             raise HTTPException(500, f"Search failed: {str(e)}")
@@ -458,6 +507,52 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.error(f"Indexing failed: {e}")
             raise HTTPException(500, f"Indexing failed: {str(e)}")
+
+    @app.post("/vectors/batch-index", response_model=BatchIndexResponse)
+    async def batch_index(request: BatchIndexRequest):
+        """
+        Index multiple documents into the FAISS vector store in one call.
+
+        Each document should be: {id, text, metadata?}
+        Useful for indexing multiple search results or code snippets at once.
+        """
+        embedder = get_embedding_generator()
+        store = get_vector_store()
+
+        indexed = 0
+        failed = 0
+        errors: list[str] = []
+
+        texts: list[str] = []
+        metadatas: list[dict] = []
+
+        for doc in request.documents:
+            doc_id = doc.get("id", "")
+            text = doc.get("text", "")
+            meta = doc.get("metadata", {})
+            if not isinstance(meta, dict):
+                meta = {}
+
+            if not text:
+                failed += 1
+                errors.append(f"doc '{doc_id}': empty text, skipped")
+                continue
+
+            texts.append(text)
+            metadatas.append({"id": doc_id, **meta})
+
+        if texts:
+            try:
+                embeddings = embedder.encode(texts)
+                store.add(embeddings, texts, metadatas)
+                indexed = len(texts)
+                logger.info(f"Batch indexed {indexed} documents")
+            except Exception as e:
+                failed += len(texts)
+                errors.append(f"Embedding/indexing error: {str(e)}")
+                logger.error(f"Batch index failed: {e}")
+
+        return BatchIndexResponse(indexed=indexed, failed=failed, errors=errors)
 
     @app.post("/api/chat", response_model=ChatResponse)
     async def rag_chat(request: ChatRequest):
@@ -640,9 +735,21 @@ app = create_app()
 
 def serve():
     """Entry point for phantom-api script."""
+    import argparse
+    import os
     import uvicorn
 
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    parser = argparse.ArgumentParser(description="Phantom API Server")
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=int(os.environ.get("PORT", 8008)),
+        help="Port to listen on (default: 8008)",
+    )
+    parser.add_argument("--host", default="127.0.0.1", help="Bind host")
+    args = parser.parse_args()
+
+    uvicorn.run(app, host=args.host, port=args.port)
 
 
 if __name__ == "__main__":

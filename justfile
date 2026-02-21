@@ -159,8 +159,8 @@ run *ARGS:
     @echo "🎯 Running Phantom..."
     phantom {{ARGS}}
 
-# Start API server
-serve PORT="8000":
+# Start API server (default port 8008 — matches securellm-mcp PHANTOM_URL)
+serve PORT="8008":
     @echo "🌐 Starting Phantom API on port {{PORT}}..."
     phantom-api --port {{PORT}}
 

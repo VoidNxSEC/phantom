@@ -140,8 +140,9 @@ class FAISSVectorStore:
 
         self.embedding_dim = embedding_dim
 
-        # Use IndexFlatL2 for exact L2 distance search
-        self.index = faiss.IndexFlatL2(embedding_dim)
+        # IndexFlatIP (inner product) with L2-normalised vectors = cosine similarity.
+        # Consistent with vectors.py; produces scores in [-1, 1] where 1 = identical.
+        self.index = faiss.IndexFlatIP(embedding_dim)
 
         # Metadata storage (separate from FAISS)
         self.texts: list[str] = []
@@ -166,10 +167,11 @@ class FAISSVectorStore:
                 f"Expected embeddings of dim {self.embedding_dim}, got {embeddings.shape[1]}"
             )
 
-        # Normalize for cosine similarity (if using IndexFlatIP, otherwise skip)
-        # For L2, we keep as-is
+        # L2-normalise so IndexFlatIP computes cosine similarity
+        embeddings = embeddings.astype("float32")
+        faiss.normalize_L2(embeddings)
 
-        self.index.add(embeddings.astype("float32"))
+        self.index.add(embeddings)
         self.texts.extend(texts)
 
         if metadata:
@@ -193,14 +195,15 @@ class FAISSVectorStore:
         if len(query_embedding.shape) == 1:
             query_embedding = query_embedding.reshape(1, -1)
 
-        distances, indices = self.index.search(query_embedding.astype("float32"), top_k)
+        # L2-normalise query to match indexed vectors (cosine similarity via IP)
+        query_embedding = query_embedding.astype("float32")
+        faiss.normalize_L2(query_embedding)
+
+        scores, indices = self.index.search(query_embedding, top_k)
 
         results = []
-        for dist, idx in zip(distances[0], indices[0], strict=False):
-            if idx < len(self.texts):  # Valid index
-                # Convert L2 distance to similarity score (inverse)
-                score = 1.0 / (1.0 + dist)
-
+        for score, idx in zip(scores[0], indices[0], strict=False):
+            if idx >= 0 and idx < len(self.texts):  # Valid index
                 results.append(
                     SearchResult(
                         chunk_id=int(idx),

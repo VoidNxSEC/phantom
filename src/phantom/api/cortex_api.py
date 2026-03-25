@@ -253,4 +253,4 @@ if __name__ == "__main__":
     import uvicorn
 
     # Dev server
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8081)

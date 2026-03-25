@@ -13,7 +13,7 @@ fi
 # We're now in nix shell
 cd "$(dirname "$0")"
 
-echo "Starting FastAPI server on http://localhost:8000"
+echo "Starting FastAPI server on http://localhost:8081"
 echo ""
 echo "Endpoints available:"
 echo "  GET  /health     - Health check"

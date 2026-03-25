@@ -517,7 +517,7 @@ class PhantomApp(Adw.Application):
             copyright="© 2024 VoidNix",
             website="https://github.com/kernelcore/phantom",
             issue_url="https://github.com/kernelcore/phantom/issues",
-            license_type=Gtk.License.MIT_X11,
+            license_type=Gtk.License.APACHE_2_0,
             comments="AI-Powered Document Intelligence",
         )
         about.present(self.props.active_window)

@@ -4,7 +4,7 @@
 
 **Version**: 2.0.0 (Beta)
 **Python**: 3.11+
-**License**: MIT
+**License**: Apache-2.0
 **Last Updated**: 2026-02-05
 
 ---

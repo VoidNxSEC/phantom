@@ -93,5 +93,5 @@ Future phases will add:
 ---
 
 **Built with**: GTK4, Rust, Tokio, libadwaita
-**License**: MIT
+**License**: Apache-2.0
 **Author**: kernelcore <kernelcore@voidnix.dev>

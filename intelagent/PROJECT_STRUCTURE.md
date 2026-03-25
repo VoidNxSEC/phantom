@@ -8,7 +8,7 @@ intelagent/
 ├── Cargo.toml                      # Workspace configuration
 ├── README.md                       # Main documentation
 ├── MANIFEST.md                     # Project constitution (MUST READ)
-├── LICENSE                         # MIT License
+├── LICENSE                         # Apache-2.0 License
 ├── .gitignore                      # Git ignore patterns
 │
 ├── crates/                         # Rust crates (modular components)

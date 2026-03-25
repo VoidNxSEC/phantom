@@ -2,12 +2,16 @@
 
 ## Overview
 
-Phantom is a document intelligence framework that processes unstructured files (markdown, text, PDF) into structured, searchable data. It combines semantic chunking, local LLM classification (via llama.cpp), and FAISS vector indexing into a single pipeline exposed through a REST API.
+Phantom is a production-ready document intelligence framework that transforms unstructured data into an active, programmatic knowledge base. 
 
-The project has two runtime components:
+Rather than routing your company's operational data through third-party platforms, Phantom orchestrates the entire intelligence lifecycle—from semantic chunking to LLM classification and FAISS vector indexing—directly on your infrastructure. 
 
-- **Phantom Core** (Python) — document processing, NLP, vector search, REST API
-- **IntelAgent** (Rust) — agent infrastructure with security, governance, and memory modules
+It provides a rational approach to extracting value from documents: uncompromising privacy, predictable performance at scale, and a complete elimination of recurring cloud inference costs.
+
+The project is structured into two core runtime components:
+
+- **Phantom Core** (Python) — The primary pipeline. Handles NLP, document processing, semantic search, and the REST API.
+- **IntelAgent** (Rust) — The agent infrastructure. Provides security auditing, context memory, quality gates, and governance across the toolset.
 
 ## Architecture
 

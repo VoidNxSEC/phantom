@@ -64,7 +64,7 @@ python3Packages.buildPythonApplication rec {
   meta = with lib; {
     description = "Phantom Desktop - Native GTK4 Document Intelligence";
     homepage = "https://github.com/kernelcore/phantom";
-    license = licenses.mit;
+    license = licenses.asl20;
     maintainers = [ ];
     mainProgram = "phantom-desktop";
     platforms = platforms.linux;

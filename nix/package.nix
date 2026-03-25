@@ -51,7 +51,7 @@ python3Packages.buildPythonApplication rec {
   meta = with lib; {
     description = "AI-Powered Document Intelligence & Classification Pipeline";
     homepage = "https://github.com/kernelcore/phantom";
-    license = licenses.mit;
+    license = licenses.asl20;
     maintainers = [ ];
     mainProgram = "phantom";
   };

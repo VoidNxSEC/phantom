@@ -1,14 +1,16 @@
-# Contributing to Phantom
+# The Art of Contributing
 
-This guide covers the development workflow, code standards, and contribution process.
+Great infrastructure is built through deliberate, thoughtful collaboration—the kind that emerges when curious minds align to solve complex problems.
 
-## Code of Conduct
+This document isn't a rigid bureaucratic rulebook. It is a map of our engineering culture, outlining how we build and how we expect partners like you to collaborate within the Phantom ecosystem.
 
-All participants are expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+## The Mutual Agreement
+
+When you contribute, you enter a professional dialogue. We expect clarity, intellectual honesty, and adherence to our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ---
 
-## Getting Started
+## The Landscape (Getting Started)
 
 ### Prerequisites
 

@@ -550,12 +550,13 @@ This is the foundation. Everyone who contributes becomes part of the DAO.
 
 ## XV. LICENSE
 
-MIT License - Freedom to use, modify, distribute.
+Apache-2.0 License - Freedom to use, modify, distribute.
 
-**Why MIT?**
+**Why Apache-2.0?**
 - Aligns with decentralization values
 - Maximum adoption potential
 - Simple, understandable terms
+- Provides express grant of patent rights
 
 ---
 

@@ -372,18 +372,56 @@ def create_app() -> FastAPI:
 
     @app.post("/upload")
     async def upload_file(file: UploadFile):
-        """Upload and process a file."""
+        """Upload and process a single file."""
         if not file.filename:
             raise HTTPException(400, "Filename required")
 
         content = await file.read()
-
-        # TODO: Process file
         return {
             "filename": file.filename,
             "size": len(content),
             "status": "uploaded",
         }
+
+    @app.post("/api/upload")
+    async def api_upload_files(files: list[UploadFile]):
+        """Upload and queue multiple files for CORTEX processing."""
+        import tempfile
+        from pathlib import Path
+
+        from phantom.core.cortex import CortexProcessor
+
+        results = []
+        for file in files:
+            if not file.filename:
+                results.append({"filename": "unknown", "status": "error", "error": "Filename required"})
+                continue
+
+            content = await file.read()
+            try:
+                with tempfile.NamedTemporaryFile(
+                    mode="wb", suffix=Path(file.filename).suffix, delete=False
+                ) as tmp:
+                    tmp.write(content)
+                    tmp_path = Path(tmp.name)
+
+                try:
+                    processor = CortexProcessor(chunk_size=1024, enable_vectors=False, verbose=False)
+                    insights = processor.process_document(tmp_path)
+                    results.append({
+                        "filename": file.filename,
+                        "status": "processed",
+                        "insights": insights.model_dump(),
+                    })
+                finally:
+                    if tmp_path.exists():
+                        tmp_path.unlink()
+
+            except Exception as e:
+                logger.error(f"Upload processing failed for {file.filename}: {e}")
+                results.append({"filename": file.filename, "status": "error", "error": str(e)})
+
+        return {"files": results}
 
     @app.post("/vectors/search")
     async def vector_search(

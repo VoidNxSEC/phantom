@@ -2,9 +2,9 @@
 
 ## Overview
 
-Phantom is a production-ready document intelligence framework that transforms unstructured data into an active, programmatic knowledge base. 
+Phantom is a production-ready document intelligence framework that transforms unstructured data into an active, programmatic knowledge base.
 
-Rather than routing your company's operational data through third-party platforms, Phantom orchestrates the entire intelligence lifecycle—from semantic chunking to LLM classification and FAISS vector indexing—directly on your infrastructure. 
+Rather than routing your company's operational data through third-party platforms, Phantom orchestrates the entire intelligence lifecycle—from semantic chunking to LLM classification and FAISS vector indexing—directly on your infrastructure.
 
 It provides a rational approach to extracting value from documents: uncompromising privacy, predictable performance at scale, and a complete elimination of recurring cloud inference costs.
 
@@ -17,7 +17,7 @@ The project is structured into two core runtime components:
 
 The system is organized into three layers: ingestion, processing, and retrieval.
 
-```mermaid
+```javascript
 graph TD
     subgraph "Ingestion"
         DOCS[Documents] -->|Upload| API[REST API<br/>FastAPI]
@@ -58,15 +58,15 @@ Desktop interface with tabs for RAG chat, document processing, vector search, an
 
 ## Technology Stack
 
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| Backend | Python 3.11+, FastAPI | API, document processing, ML pipeline |
-| Agent | Rust, Tokio, Crane | Security, governance, memory modules |
-| Desktop | Tauri 2, SvelteKit | Cross-platform desktop UI |
-| Vector Store | FAISS, sentence-transformers | Embedding generation and similarity search |
-| LLM Inference | llama.cpp | Local model serving (OpenAI-compatible API) |
-| Build/Dev | Nix Flakes, Just | Reproducible environment, task automation |
-| CI/CD | GitHub Actions | Lint, test, security scan, CodeQL, SBOM |
+| Component     | Technology                   | Purpose                                     |
+| ------------- | ---------------------------- | ------------------------------------------- |
+| Backend       | Python 3.11+, FastAPI        | API, document processing, ML pipeline       |
+| Agent         | Rust, Tokio, Crane           | Security, governance, memory modules        |
+| Desktop       | Tauri 2, SvelteKit           | Cross-platform desktop UI                   |
+| Vector Store  | FAISS, sentence-transformers | Embedding generation and similarity search  |
+| LLM Inference | llama.cpp                    | Local model serving (OpenAI-compatible API) |
+| Build/Dev     | Nix Flakes, Just             | Reproducible environment, task automation   |
+| CI/CD         | GitHub Actions               | Lint, test, security scan, CodeQL, SBOM     |
 
 ## Data Flow
 
@@ -79,11 +79,11 @@ Desktop interface with tabs for RAG chat, document processing, vector search, an
 
 ## Platform Support
 
-| Platform | Status |
-|----------|--------|
-| Linux (x86_64) | Supported (Nix, pip) |
-| macOS (Apple Silicon / Intel) | Supported (Nix, pip) |
-| Windows | Untested (pip — should work) |
+| Platform                      | Status                       |
+| ----------------------------- | ---------------------------- |
+| Linux (x86\_64)               | Supported (Nix, pip)         |
+| macOS (Apple Silicon / Intel) | Supported (Nix, pip)         |
+| Windows                       | Untested (pip — should work) |
 
 Standalone binaries for Linux and macOS are planned.
 

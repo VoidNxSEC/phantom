@@ -328,8 +328,9 @@ async def api_chat(request: ChatRequest):
     try:
         if provider == "tensor_forge" or provider == "local":
             # Llama.cpp server — OpenAI-compatible /v1/chat/completions endpoint
+            # Note: do NOT send 'model' — llamacpp uses whatever is loaded at startup;
+            # sending an unknown model name causes 400 on some builds.
             payload = {
-                "model": target_model,
                 "messages": messages,
                 "temperature": request.temperature,
                 "max_tokens": request.max_tokens,

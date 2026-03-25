@@ -260,6 +260,7 @@ class ChatRequest(BaseModel):
     history: list[ChatMessage] = []
     context_size: int = 5
     llm_provider: str = "tensor_forge"
+    model: str = "llamacpp-swap"
 
 class ChatResponse(BaseModel):
     message: dict[str, Any]
@@ -289,6 +290,7 @@ async def api_chat(request: ChatRequest):
     
     # Base configuration
     provider = request.llm_provider
+    target_model = request.model
     
     # Flatten history
     messages = []
@@ -301,6 +303,7 @@ async def api_chat(request: ChatRequest):
         if provider == "tensor_forge" or provider == "local":
             # Assume Llama.cpp / Tensor Forge running on 8081 with OpenAI-compatible schema
             payload = {
+                "model": target_model,
                 "messages": messages,
                 "temperature": 0.7,
                 "max_tokens": 1024
@@ -315,16 +318,16 @@ async def api_chat(request: ChatRequest):
                     prompt += f"{m['role'].capitalize()}: {m['content']}\n"
                 prompt += "Assistant: "
                 
-                res = requests.post("http://localhost:8081/completion", json={"prompt": prompt, "n_predict": 1024}, timeout=60)
+                res = requests.post("http://localhost:8081/completion", json={"model": target_model, "prompt": prompt, "n_predict": 1024}, timeout=60)
                 if res.ok:
                     content = res.json().get("content", "")
                 else:
-                    raise Exception(f"Tensor Forge API Error: {res.text}")
+                    raise Exception(f"Tensor Forge API Error ({res.status_code}): {res.text}")
 
         elif provider == "openai":
             import os
             headers = {"Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY', '')}"}
-            payload = {"model": "gpt-4o", "messages": messages}
+            payload = {"model": target_model, "messages": messages}
             res = requests.post("https://api.openai.com/v1/chat/completions", json=payload, headers=headers, timeout=60)
             if res.ok:
                 content = res.json().get("choices", [{}])[0].get("message", {}).get("content", "")
@@ -342,7 +345,7 @@ async def api_chat(request: ChatRequest):
             system_msg = "; ".join([m["content"] for m in messages if m["role"] == "system"])
             anthropic_msgs = [m for m in messages if m["role"] != "system"]
             payload = {
-                "model": "claude-3-opus-20240229",
+                "model": target_model,
                 "max_tokens": 1024,
                 "messages": anthropic_msgs
             }

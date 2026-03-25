@@ -268,13 +268,37 @@ class ChatResponse(BaseModel):
     message: dict[str, Any]
     conversation_id: str
 
+@app.get("/api/validate")
+async def validate_providers():
+    """Diagnose connectivity to each LLM provider endpoint."""
+    import requests as _req
+    results = {}
+
+    # Test llamacpp on :8081
+    try:
+        r = _req.get("http://localhost:8081/health", timeout=3)
+        results["tensor_forge"] = {"ok": r.ok, "status": r.status_code, "detail": r.text[:200]}
+    except Exception as e:
+        # Try /v1/models as fallback probe
+        try:
+            r = _req.get("http://localhost:8081/v1/models", timeout=3)
+            results["tensor_forge"] = {"ok": r.ok, "status": r.status_code, "detail": r.text[:200]}
+        except Exception as e2:
+            results["tensor_forge"] = {"ok": False, "status": None, "detail": str(e2)}
+
+    results["openai"] = {"ok": bool(os.environ.get("OPENAI_API_KEY")), "detail": "key present" if os.environ.get("OPENAI_API_KEY") else "OPENAI_API_KEY not set"}
+    results["anthropic"] = {"ok": bool(os.environ.get("ANTHROPIC_API_KEY")), "detail": "key present" if os.environ.get("ANTHROPIC_API_KEY") else "ANTHROPIC_API_KEY not set"}
+
+    return results
+
+
 @app.get("/api/models")
 async def list_models():
-    """List available mock models for UI options."""
+    """List available models per provider."""
     return {
         "tensor_forge": [
-            {"id": "local-llamacpp", "name": "Local LLaMA 3 8B"},
-            {"id": "qwen3-vl-8b", "name": "Qwen 3 VL"}
+            {"id": "local-llamacpp", "name": "Local LLaMA.cpp (8081)"},
+            {"id": "qwen3-vl-8b", "name": "Qwen 3 VL"},
         ],
         "openai": [
             {"id": "gpt-4o", "name": "GPT-4o"},
@@ -283,7 +307,7 @@ async def list_models():
         "anthropic": [
             {"id": "claude-3-opus", "name": "Claude 3 Opus"},
             {"id": "claude-3-sonnet", "name": "Claude 3 Sonnet"},
-        ]
+        ],
     }
 
 @app.post("/api/chat", response_model=ChatResponse)

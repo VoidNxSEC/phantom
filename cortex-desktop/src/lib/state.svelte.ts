@@ -153,9 +153,14 @@ export class CortexState {
           },
         ];
       } else {
+        let errorDetail = `HTTP ${res.status}`;
+        try {
+          const errBody = await res.json();
+          errorDetail = errBody.detail || errBody.message || JSON.stringify(errBody);
+        } catch { errorDetail = await res.text().catch(() => errorDetail); }
         this.messages = [
           ...this.messages,
-          { role: "assistant", content: "❌ API Error", timestamp: Date.now() },
+          { role: "assistant", content: `❌ API Error: ${errorDetail}`, timestamp: Date.now() },
         ];
       }
     } catch {

@@ -261,6 +261,8 @@ class ChatRequest(BaseModel):
     context_size: int = 5
     llm_provider: str = "tensor_forge"
     model: str = "local-llamacpp"
+    temperature: float = 0.7
+    max_tokens: int = 1024
 
 class ChatResponse(BaseModel):
     message: dict[str, Any]
@@ -301,38 +303,50 @@ async def api_chat(request: ChatRequest):
     content = ""
     try:
         if provider == "tensor_forge" or provider == "local":
-            # Assume Llama.cpp / Tensor Forge running on 8081 with OpenAI-compatible schema
+            # Llama.cpp server — OpenAI-compatible /v1/chat/completions endpoint
             payload = {
                 "model": target_model,
                 "messages": messages,
-                "temperature": 0.7,
-                "max_tokens": 1024
+                "temperature": request.temperature,
+                "max_tokens": request.max_tokens,
             }
-            res = requests.post("http://localhost:8081/v1/chat/completions", json=payload, timeout=60)
+            res = requests.post("http://localhost:8081/v1/chat/completions", json=payload, timeout=120)
             if res.ok:
                 content = res.json().get("choices", [{}])[0].get("message", {}).get("content", "")
             else:
-                # Fallback to direct completion API if /v1/chat/completions doesn't exist
+                # Fallback: llama.cpp native /completion endpoint
+                # Note: this endpoint does NOT accept a `model` field — model is set at server startup
                 prompt = ""
                 for m in messages:
                     prompt += f"{m['role'].capitalize()}: {m['content']}\n"
                 prompt += "Assistant: "
-                
-                res = requests.post("http://localhost:8081/completion", json={"model": target_model, "prompt": prompt, "n_predict": 1024}, timeout=60)
+
+                fallback_payload = {
+                    "prompt": prompt,
+                    "n_predict": request.max_tokens,
+                    "temperature": request.temperature,
+                    "stop": ["\nUser:", "\nHuman:"],
+                }
+                res = requests.post("http://localhost:8081/completion", json=fallback_payload, timeout=120)
                 if res.ok:
-                    content = res.json().get("content", "")
+                    content = res.json().get("content", "").strip()
                 else:
                     raise Exception(f"Tensor Forge API Error ({res.status_code}): {res.text}")
 
         elif provider == "openai":
             import os
             headers = {"Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY', '')}"}
-            payload = {"model": target_model, "messages": messages}
+            payload = {
+                "model": target_model,
+                "messages": messages,
+                "temperature": request.temperature,
+                "max_tokens": request.max_tokens,
+            }
             res = requests.post("https://api.openai.com/v1/chat/completions", json=payload, headers=headers, timeout=60)
             if res.ok:
                 content = res.json().get("choices", [{}])[0].get("message", {}).get("content", "")
             else:
-                 raise Exception(f"OpenAI API Error: {res.text}")
+                raise Exception(f"OpenAI API Error: {res.text}")
 
         elif provider == "anthropic":
             import os
@@ -346,8 +360,9 @@ async def api_chat(request: ChatRequest):
             anthropic_msgs = [m for m in messages if m["role"] != "system"]
             payload = {
                 "model": target_model,
-                "max_tokens": 1024,
-                "messages": anthropic_msgs
+                "max_tokens": request.max_tokens,
+                "temperature": request.temperature,
+                "messages": anthropic_msgs,
             }
             if system_msg:
                 payload["system"] = system_msg

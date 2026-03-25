@@ -136,6 +136,8 @@ export class CortexState {
           context_size: 5,
           llm_provider: this.provider,
           model: this.model,
+          temperature: this.temperature,
+          max_tokens: this.maxTokens,
         }),
       });
 
@@ -215,6 +217,8 @@ export class CortexState {
           context_size: 0,
           llm_provider: this.provider,
           model: this.model,
+          temperature: this.temperature,
+          max_tokens: this.maxTokens,
         }),
       });
       if (res.ok) {

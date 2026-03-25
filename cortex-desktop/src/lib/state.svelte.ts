@@ -24,7 +24,7 @@ export interface PromptTemplate {
 export class CortexState {
   currentTab = $state<"chat" | "process" | "search" | "workbench" | "library" | "settings">("chat");
   apiUrl = $state("http://localhost:8087");
-  provider = $state("local");
+  provider = $state("tensor_forge");
   model = $state("/L3-8B-Stheno-v3.2-Q4_K_S.gguf");
   temperature = $state(0.7);
   maxTokens = $state(2048);

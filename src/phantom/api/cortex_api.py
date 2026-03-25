@@ -246,6 +246,125 @@ async def judge_bundle(bundle: PhantomGateBundle):
         logger.error(f"Error judging bundle: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# ═══════════════════════════════════════════════════════════════
+# LLM / CHAT ENDPOINTS
+# ═══════════════════════════════════════════════════════════════
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+class ChatRequest(BaseModel):
+    message: str
+    conversation_id: str
+    history: list[ChatMessage] = []
+    context_size: int = 5
+    llm_provider: str = "tensor_forge"
+
+class ChatResponse(BaseModel):
+    message: dict[str, Any]
+    conversation_id: str
+
+@app.get("/api/models")
+async def list_models():
+    """List available mock models for UI options."""
+    return {
+        "tensor_forge": [
+            {"id": "local-llamacpp", "name": "Local LLaMA 3 8B"},
+            {"id": "qwen3-vl-8b", "name": "Qwen 3 VL"}
+        ],
+        "openai": [
+            {"id": "gpt-4o", "name": "GPT-4o"},
+            {"id": "gpt-4-turbo", "name": "GPT-4 Turbo"},
+        ],
+        "anthropic": [
+            {"id": "claude-3-opus", "name": "Claude 3 Opus"},
+            {"id": "claude-3-sonnet", "name": "Claude 3 Sonnet"},
+        ]
+    }
+
+@app.post("/api/chat", response_model=ChatResponse)
+async def api_chat(request: ChatRequest):
+    import requests
+    
+    # Base configuration
+    provider = request.llm_provider
+    
+    # Flatten history
+    messages = []
+    for msg in request.history:
+        messages.append({"role": msg.role, "content": msg.content})
+    messages.append({"role": "user", "content": request.message})
+
+    content = ""
+    try:
+        if provider == "tensor_forge" or provider == "local":
+            # Assume Llama.cpp / Tensor Forge running on 8081 with OpenAI-compatible schema
+            payload = {
+                "messages": messages,
+                "temperature": 0.7,
+                "max_tokens": 1024
+            }
+            res = requests.post("http://localhost:8081/v1/chat/completions", json=payload, timeout=60)
+            if res.ok:
+                content = res.json().get("choices", [{}])[0].get("message", {}).get("content", "")
+            else:
+                # Fallback to direct completion API if /v1/chat/completions doesn't exist
+                prompt = ""
+                for m in messages:
+                    prompt += f"{m['role'].capitalize()}: {m['content']}\n"
+                prompt += "Assistant: "
+                
+                res = requests.post("http://localhost:8081/completion", json={"prompt": prompt, "n_predict": 1024}, timeout=60)
+                if res.ok:
+                    content = res.json().get("content", "")
+                else:
+                    raise Exception(f"Tensor Forge API Error: {res.text}")
+
+        elif provider == "openai":
+            import os
+            headers = {"Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY', '')}"}
+            payload = {"model": "gpt-4o", "messages": messages}
+            res = requests.post("https://api.openai.com/v1/chat/completions", json=payload, headers=headers, timeout=60)
+            if res.ok:
+                content = res.json().get("choices", [{}])[0].get("message", {}).get("content", "")
+            else:
+                 raise Exception(f"OpenAI API Error: {res.text}")
+
+        elif provider == "anthropic":
+            import os
+            headers = {
+                "x-api-key": os.environ.get("ANTHROPIC_API_KEY", ""),
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json"
+            }
+            # Anthropic schema differs slightly
+            system_msg = "; ".join([m["content"] for m in messages if m["role"] == "system"])
+            anthropic_msgs = [m for m in messages if m["role"] != "system"]
+            payload = {
+                "model": "claude-3-opus-20240229",
+                "max_tokens": 1024,
+                "messages": anthropic_msgs
+            }
+            if system_msg:
+                payload["system"] = system_msg
+                
+            res = requests.post("https://api.anthropic.com/v1/messages", json=payload, headers=headers, timeout=60)
+            if res.ok:
+                content = res.json().get("content", [{}])[0].get("text", "")
+            else:
+                 raise Exception(f"Anthropic API Error: {res.text}")
+        else:
+            raise Exception(f"Unknown provider: {provider}")
+
+    except Exception as e:
+        logger.error(f"Chat generation failed: {e}")
+        content = f"Error generating text: {str(e)}"
+
+    return ChatResponse(
+        message={"content": content, "sources": []},
+        conversation_id=request.conversation_id
+    )
 
 if __name__ == "__main__":
     import uuid

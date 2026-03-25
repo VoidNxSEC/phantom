@@ -164,6 +164,11 @@ serve PORT="8008":
     @echo "🌐 Starting Phantom API on port {{PORT}}..."
     phantom-api --port {{PORT}}
 
+# Start Cortex API (backend for the desktop GUI, proxied through Vite on :1420)
+cortex:
+    @echo "🧠 Starting Cortex API on port 8087..."
+    phantom-api
+
 # Start desktop app
 desktop:
     @echo "🖥️  Starting Cortex Desktop..."

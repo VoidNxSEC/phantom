@@ -28,5 +28,19 @@ export default defineConfig(async () => ({
       // 3. tell Vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],
     },
+    proxy: {
+      // Forward all backend routes to cortex_api.py on :8087
+      "/health":   { target: "http://localhost:8087", changeOrigin: true },
+      "/ready":    { target: "http://localhost:8087", changeOrigin: true },
+      "/metrics":  { target: "http://localhost:8087", changeOrigin: true },
+      "/api":      { target: "http://localhost:8087", changeOrigin: true },
+      "/vectors":  { target: "http://localhost:8087", changeOrigin: true },
+      "/process":  { target: "http://localhost:8087", changeOrigin: true },
+      "/analyze":  { target: "http://localhost:8087", changeOrigin: true },
+      "/extract":  { target: "http://localhost:8087", changeOrigin: true },
+      "/upload":   { target: "http://localhost:8087", changeOrigin: true },
+      "/judge":    { target: "http://localhost:8087", changeOrigin: true },
+      "/rag":      { target: "http://localhost:8087", changeOrigin: true },
+    },
   },
 }));

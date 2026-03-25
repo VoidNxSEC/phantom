@@ -25,9 +25,10 @@
             <div class="relative">
               <input
                 type="text"
-                bind:value={appState.apiUrl}
-                onchange={() => appState.saveSettings()}
-                class="w-full bg-zinc-950/50 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all font-mono"
+                value={appState.apiUrl}
+                disabled
+                class="w-full bg-zinc-950/50 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-500 focus:outline-none transition-all font-mono cursor-not-allowed"
+                title="Auto-detected from window origin. Backend is proxied via Vite in dev."
               />
               <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 px-2 py-1 rounded-md bg-zinc-900 border border-zinc-800">
                 <span class="w-1.5 h-1.5 rounded-full {appState.apiStatus === 'online' ? 'bg-emerald-400' : 'bg-rose-500'}"></span>

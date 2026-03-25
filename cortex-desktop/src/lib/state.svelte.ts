@@ -23,7 +23,7 @@ export interface PromptTemplate {
 
 export class CortexState {
   currentTab = $state<"chat" | "process" | "search" | "workbench" | "library" | "settings">("chat");
-  apiUrl = $state("http://localhost:8087");
+  apiUrl = $state(typeof window !== "undefined" ? window.location.origin : "http://localhost:1420");
   provider = $state("tensor_forge");
   model = $state("/L3-8B-Stheno-v3.2-Q4_K_S.gguf");
   temperature = $state(0.7);
@@ -70,7 +70,8 @@ export class CortexState {
       const s = localStorage.getItem("cortex_settings");
       if (s) {
         const data = JSON.parse(s);
-        this.apiUrl = data.apiUrl || this.apiUrl;
+        // apiUrl is always derived from window.location.origin (proxied via Vite/Tauri)
+        // Do NOT restore it from localStorage to avoid stale port mismatches
         this.provider = data.provider || this.provider;
         this.model = data.model || this.model;
         this.temperature = data.temperature ?? this.temperature;
@@ -85,7 +86,7 @@ export class CortexState {
     if (typeof window === "undefined") return;
     localStorage.setItem(
       "cortex_settings",
-      JSON.stringify({ apiUrl: this.apiUrl, provider: this.provider, model: this.model, temperature: this.temperature, maxTokens: this.maxTokens })
+      JSON.stringify({ provider: this.provider, model: this.model, temperature: this.temperature, maxTokens: this.maxTokens })
     );
   }
 

@@ -37,3 +37,7 @@ Response time target: 48 hours for initial acknowledgement.
 
 - Vulnerabilities in third-party dependencies are reported upstream
 - Issues in archived/experimental code (`.archive/`) are not tracked
+
+## License
+
+Apache License 2.0 — see [LICENSE](LICENSE).

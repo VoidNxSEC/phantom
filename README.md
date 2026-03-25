@@ -13,14 +13,14 @@
 ╚══════════════════════════════════════════════════════════════════╝
 ```
 
-**Living Machine Learning Framework**
+**Document Intelligence Framework**
 
-_Production-grade document intelligence, RAG pipeline, and AI classification system_
+_Semantic chunking, LLM classification, and RAG search over local documents_
 
 [![CI](https://github.com/kernelcore/phantom/actions/workflows/ci.yml/badge.svg)](https://github.com/kernelcore/phantom/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![NixOS](https://img.shields.io/badge/NixOS-5277C3.svg)](https://nixos.org/)
 
 [Features](#features) | [Quick Start](#quick-start) | [Architecture](#architecture) | [Contributing](CONTRIBUTING.md)
@@ -29,39 +29,121 @@ _Production-grade document intelligence, RAG pipeline, and AI classification sys
 
 ---
 
-## 🏗️ System Architecture
+## What is Phantom?
 
-### High-Level Component Diagram
+Phantom processes unstructured documents (markdown, text, PDF) into structured insights. It splits text into semantic chunks, classifies them via a local LLM (llama.cpp), generates vector embeddings, and indexes them in FAISS for retrieval.
+
+The result is a pipeline that takes a pile of documents and gives you: extracted themes, patterns, recommendations, sentiment scores, and a searchable vector index you can query with natural language.
+
+**Design principles:**
+
+- **Local-first** — runs entirely on your hardware via llama.cpp; no cloud API keys required for core functionality
+- **Cross-platform** — targets Linux, macOS, and Windows. Development uses a Nix flake for reproducibility; distribution will include standalone binaries for each platform
+- **Modular** — use individual components (chunker, embeddings, vector store) or the full pipeline
+- **Resource-aware** — monitors VRAM usage and throttles processing when GPU memory is low
+
+---
+
+## Features
+
+### Document Processing (CORTEX)
+
+- Semantic chunking with tiktoken token counting and configurable overlap
+- Parallel LLM classification with retry logic (thread pool)
+- Insight extraction: themes, patterns, learnings, concepts, recommendations
+- Pydantic validation on all extracted data
+
+### Vector Search (RAG)
+
+- FAISS indexing with sentence-transformers embeddings (default: `all-MiniLM-L6-v2`)
+- Hybrid search: BM25 keyword + FAISS cosine similarity, fused via Reciprocal Rank Fusion
+- Dense, sparse, or hybrid search modes selectable per query
+
+### Analysis
+
+- Sentiment analysis via NLTK VADER
+- Named entity extraction (SPECTRE module)
+
+### Resource Management
+
+- Real-time VRAM monitoring via `nvidia-smi`
+- Threshold-based auto-throttling (configurable warning/critical levels)
+- System metrics endpoint: CPU, memory, disk, GPU usage
+
+### API and Interfaces
+
+- **REST API**: FastAPI server with Prometheus metrics, health/readiness probes
+- **CLI**: Typer-based interface (currently stub implementations — see [Roadmap](#roadmap))
+- **Desktop UI**: Tauri 2 + SvelteKit (framework in place, minimal UI — see [Roadmap](#roadmap))
+
+---
+
+## Quick Start
+
+### Linux / macOS (Nix)
+
+The fastest way to get a complete development environment with all dependencies pinned:
+
+```bash
+git clone https://github.com/kernelcore/phantom.git
+cd phantom
+
+nix develop          # enters reproducible dev shell
+
+phantom version      # verify install
+phantom-api          # start REST API on :8008
+phantom --help       # CLI reference
+```
+
+### Linux / macOS / Windows (pip)
+
+Works anywhere Python 3.11+ is available:
+
+```bash
+git clone https://github.com/kernelcore/phantom.git
+cd phantom
+
+python3.11 -m venv venv
+source venv/bin/activate   # Windows: venv\Scripts\activate
+pip install -e ".[dev]"
+
+phantom version
+phantom-api
+```
+
+> **Note:** Nix is used for development and CI. It is not required to run Phantom. Standalone binaries for Linux and macOS are planned (see [Roadmap](#roadmap)).
+
+---
+
+## Architecture
 
 ```mermaid
 graph TB
     subgraph "Client Layer"
         CLI[CLI Interface<br/>Typer + Rich]
         API[REST API<br/>FastAPI]
-        GUI[Desktop App<br/>Tauri + React]
+        GUI[Desktop App<br/>Tauri + SvelteKit]
     end
 
     subgraph "Application Layer"
-        CORTEX[CORTEX Engine<br/>Document Intelligence]
+        CORTEX[CORTEX Engine<br/>Document Processing]
         RAG[RAG Pipeline<br/>Vector Search]
-        ANALYSIS[Analysis Suite<br/>NLP + ML]
+        ANALYSIS[Analysis<br/>Sentiment + NER]
     end
 
     subgraph "Processing Layer"
         CHUNKER[Semantic Chunker<br/>Tiktoken]
         EMBEDDER[Embedding Generator<br/>sentence-transformers]
         CLASSIFIER[LLM Classifier<br/>Multi-threaded]
-        PIPELINE[DAG Pipeline<br/>Orchestration]
     end
 
     subgraph "Storage Layer"
-        FAISS[(FAISS Index<br/>Vector DB)]
-        CACHE[(Semantic Cache<br/>Redis)]
-        FS[(File System<br/>Document Store)]
+        FAISS[(FAISS Index)]
+        FS[(File System)]
     end
 
-    subgraph "External Services"
-        LLAMA[llama.cpp Server<br/>Local Inference]
+    subgraph "Inference"
+        LLAMA[llama.cpp Server<br/>Local LLM]
     end
 
     CLI --> CORTEX
@@ -78,283 +160,107 @@ graph TB
     CLASSIFIER --> LLAMA
 
     EMBEDDER --> FAISS
-    CHUNKER --> PIPELINE
-
-    PIPELINE --> FS
-    RAG --> CACHE
-
-    style CORTEX fill:#4CAF50,stroke:#2E7D32,color:#fff
-    style RAG fill:#2196F3,stroke:#1565C0,color:#fff
-    style FAISS fill:#FF9800,stroke:#E65100,color:#fff
-    style LLAMA fill:#9C27B0,stroke:#6A1B9A,color:#fff
+    CHUNKER --> FS
 ```
 
-### Data Flow - Document Processing Pipeline
+### Data Flow
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant User
-    participant CLI
-    participant CortexProcessor
-    participant SemanticChunker
-    participant LLMProvider
-    participant EmbeddingGen
-    participant FAISSStore
-    participant VRAMMonitor
-
-    User->>CLI: phantom process doc.md
-    CLI->>CortexProcessor: process_document()
-
-    CortexProcessor->>VRAMMonitor: Check VRAM availability
-    VRAMMonitor-->>CortexProcessor: 6.5GB available
-
-    CortexProcessor->>SemanticChunker: chunk_text(doc, size=1024)
-    SemanticChunker-->>CortexProcessor: [chunk1, chunk2, ..., chunkN]
-
-    par Parallel Classification
-        CortexProcessor->>LLMProvider: classify(chunk1)
-        CortexProcessor->>LLMProvider: classify(chunk2)
-        CortexProcessor->>LLMProvider: classify(chunkN)
-    end
-
-    LLMProvider-->>CortexProcessor: [insights1, insights2, ..., insightsN]
-
-    CortexProcessor->>EmbeddingGen: generate_embeddings(chunks)
-    EmbeddingGen-->>CortexProcessor: vectors[768-dim]
-
-    CortexProcessor->>FAISSStore: index_vectors(vectors, metadata)
-    FAISSStore-->>CortexProcessor: index_id
-
-    CortexProcessor-->>CLI: ProcessingResult(insights, index_id)
-    CLI-->>User: ✅ Processed | 📊 Insights | 🔍 Indexed
+```
+Document → Semantic Chunker → [chunk₁, chunk₂, ..., chunkₙ]
+                                        │
+                            ┌───────────┼───────────┐
+                            ▼                       ▼
+                    LLM Classification      Embedding Generation
+                    (llama.cpp, parallel)    (sentence-transformers)
+                            │                       │
+                            ▼                       ▼
+                    Extracted Insights       FAISS Vector Index
+                    (JSON + Pydantic)       (searchable via API)
 ```
 
-### Deployment Architecture
+### Project Structure
 
-```mermaid
-graph LR
-    subgraph "Development"
-        DEV[Nix Development Shell]
-        PRE[Pre-commit Hooks]
-    end
-
-    subgraph "CI/CD Pipeline"
-        LINT[Lint & Format<br/>Ruff]
-        TEST[Unit Tests<br/>pytest + coverage]
-        SECURITY[Security Scan<br/>Bandit + pip-audit]
-        BUILD[Build<br/>Python + Nix]
-        CODEQL[CodeQL<br/>SAST Analysis]
-        SBOM[SBOM Generation<br/>CycloneDX]
-    end
-
-    subgraph "Release"
-        PYPI[PyPI<br/>Python Package]
-        GHR[GitHub Release<br/>Binaries]
-        CACHIX[Cachix<br/>Nix Cache]
-    end
-
-    subgraph "Deployment"
-        NIXOS[NixOS Module<br/>System Service]
-        DOCKER[Docker Container<br/>OCI Image]
-        K8S[Kubernetes<br/>Helm Chart]
-    end
-
-    DEV --> PRE
-    PRE --> LINT
-    LINT --> TEST
-    TEST --> SECURITY
-    SECURITY --> CODEQL
-    CODEQL --> SBOM
-    SBOM --> BUILD
-
-    BUILD --> PYPI
-    BUILD --> GHR
-    BUILD --> CACHIX
-
-    PYPI --> DOCKER
-    GHR --> NIXOS
-    CACHIX --> NIXOS
-    DOCKER --> K8S
-
-    style CODEQL fill:#28a745,stroke:#1e7e34,color:#fff
-    style SBOM fill:#007bff,stroke:#0056b3,color:#fff
-    style SECURITY fill:#dc3545,stroke:#c82333,color:#fff
 ```
-
-### State Machine - Resource Management
-
-```mermaid
-stateDiagram-v2
-    [*] --> Idle
-
-    Idle --> Monitoring: Start Processing
-    Monitoring --> Processing: VRAM > 4GB
-    Monitoring --> Waiting: VRAM < 512MB
-
-    Processing --> Monitoring: Check VRAM
-    Processing --> Throttled: VRAM < 256MB (Critical)
-    Processing --> Completed: All Tasks Done
-
-    Waiting --> Monitoring: VRAM Recovered
-    Waiting --> Failed: Timeout (5min)
-
-    Throttled --> Processing: VRAM > 512MB
-    Throttled --> Failed: Sustained Critical
-
-    Completed --> [*]
-    Failed --> [*]
-
-    note right of Monitoring
-        Real-time nvidia-smi polling
-        Threshold-based throttling
-    end note
-
-    note right of Processing
-        Thread pool: 4-8 workers
-        Batch size: dynamic
-    end note
+phantom/
+├── src/phantom/
+│   ├── core/          # CORTEX engine, embeddings, chunking
+│   ├── rag/           # FAISS vector store, hybrid search
+│   ├── analysis/      # Sentiment (VADER), NER, SPECTRE
+│   ├── pipeline/      # Orchestration, sanitization
+│   ├── providers/     # LLM providers (llama.cpp)
+│   ├── cerebro/       # RAG engine + knowledge integration
+│   ├── neutron/       # Compliance guardrails (SENTINEL)
+│   ├── api/           # FastAPI REST server
+│   └── cli/           # Typer CLI (stubs)
+├── tests/
+│   ├── unit/          # Unit tests
+│   ├── integration/   # API + CLI integration tests
+│   └── e2e/           # End-to-end pipeline tests
+├── cortex-desktop/    # Tauri 2 + SvelteKit desktop app
+├── intelagent/        # Rust agent (multi-crate workspace)
+├── docs/              # Documentation
+└── flake.nix          # Nix development environment
 ```
 
 ---
 
-## What is Phantom?
+## Platform Support
 
-Phantom is a **living ML framework** that transforms unstructured documents into actionable intelligence. Built on a foundation of semantic chunking, vector embeddings, and parallel LLM inference, Phantom provides production-ready tools for document classification, insight extraction, and RAG-powered question answering.
+| Platform | Status | Install method |
+|----------|--------|----------------|
+| Linux (x86_64) | Supported | Nix flake, pip |
+| macOS (Apple Silicon / Intel) | Supported | Nix flake, pip |
+| Windows | Untested | pip (should work, not yet validated) |
 
-### Core Philosophy
+Planned distribution formats:
 
-- **Living Framework**: Continuously evolving components that adapt to your data
-- **Local-First**: Runs entirely on your infrastructure with llama.cpp
-- **Declarative**: Fully reproducible Nix-based environment
-- **Production-Grade**: VRAM monitoring, resource throttling, parallel processing
-- **Modular**: Use individual components or the complete pipeline
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ PHANTOM v2.0                                                    │
-│ Living ML Framework Pipeline                                    │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-        ┌───────────────┼───────────────┐
-        │               │               │
-  ┌─────▼─────┐   ┌────▼────┐   ┌─────▼──────┐
-  │   CORE    │   │   RAG   │   │  ANALYSIS  │
-  ├───────────┤   ├─────────┤   ├────────────┤
-  │  Cortex   │   │ Vectors │   │ Sentiment  │
-  │ Chunking  │   │  FAISS  │   │  Entities  │
-  │Embeddings │   │ Search  │   │   Topics   │
-  └─────┬─────┘   └────┬────┘   └─────┬──────┘
-        │              │              │
-        └──────┬───────┴──────┬───────┘
-               │              │
-        ┌──────▼──────┐ ┌────▼────────┐
-        │  PIPELINE   │ │  PROVIDERS  │
-        ├─────────────┤ ├─────────────┤
-        │  DAG Exec   │ │ llama.cpp   │
-        │ Classifier  │ │ (local)     │
-        │ Sanitizer   │ └─────────────┘
-        └──────┬──────┘
-               │
-        ┌──────┴──────┬──────────┐
-        │             │          │
-   ┌────▼─────┐ ┌────▼─────┐
-   │   CLI    │ │   API    │
-   ├──────────┤ ├──────────┤
-   │  Typer   │ │ FastAPI  │
-   │ Rich UI  │ │   REST   │
-   └──────────┘ └──────────┘
-```
-
----
-
-## Features
-
-### Document Intelligence (CORTEX)
-
-- **Semantic Chunking**: Intelligent text splitting that preserves context
-- **Parallel Classification**: Multi-threaded LLM inference with retry logic
-- **Insight Extraction**: Themes, patterns, learnings, concepts, recommendations
-- **Pydantic Validation**: Strict schema enforcement for all extracted data
-
-### RAG Pipeline
-
-- **Vector Embeddings**: sentence-transformers with local inference
-- **FAISS Indexing**: Blazing-fast similarity search (CPU/GPU)
-- **Semantic Caching**: Reduce redundant computations
-- **Hybrid Search**: Combine vector and keyword search
-
-### Resource Management
-
-- **VRAM Monitoring**: Real-time GPU memory tracking via nvidia-smi
-- **Auto-Throttling**: Pause processing when resources are low
-- **Parallel Execution**: ThreadPool-based concurrent processing
-- **Progress Tracking**: Rich terminal UI with live updates
-
-### Production Features
-
-- **Declarative Environment**: Fully reproducible Nix flake
-- **Type Safety**: Complete Pydantic models for all data structures
-- **API Server**: FastAPI REST endpoints with async support
-- **CLI Interface**: Feature-rich Typer CLI with beautiful output
-- **Testing**: Comprehensive pytest suite
-
----
-
-## Quick Start
-
-### NixOS (Recommended)
-
-```bash
-git clone https://github.com/kernelcore/phantom.git
-cd phantom
-
-nix develop          # enters reproducible dev shell
-
-phantom version      # verify install
-phantom-api          # start REST API on :8000
-phantom --help       # full CLI reference
-```
-
-### Standard Python
-
-```bash
-python3.11 -m venv venv
-source venv/bin/activate
-pip install -e ".[dev]"
-
-phantom version
-```
+| Format | Platform | Status |
+|--------|----------|--------|
+| pip install | Linux, macOS, Windows | Available now |
+| Nix flake | Linux, macOS | Available now |
+| Standalone binary | Linux | Planned |
+| Standalone binary | macOS | Planned |
+| Standalone binary | Windows | Planned |
+| Docker / OCI image | Linux | Planned |
+| NixOS module | NixOS | Planned |
 
 ---
 
 ## Usage
 
-### CLI
+### REST API
 
 ```bash
-# Extract insights from a document
-phantom extract -i ./docs -o output.jsonl
+# Start server
+phantom-api
+# or: python -m uvicorn phantom.api.app:app --reload --host 127.0.0.1 --port 8008
 
-# Analyze a single file
-phantom analyze report.md --sentiment --entities
+# Health check
+curl http://localhost:8008/health
 
-# Classify files in a directory
-phantom classify ./input --dry-run
+# Extract insights from text
+curl -X POST http://localhost:8008/extract \
+  -H "Content-Type: application/json" \
+  -d '{"content": "# My Document\n\nContent here.", "filename": "doc.md"}'
 
-# Scan for sensitive data
-phantom scan ./project
+# Process uploaded file
+curl -X POST http://localhost:8008/process -F "file=@report.md"
 
-# RAG pipeline
-phantom rag query "What are the security patterns?"
-phantom rag ingest ./knowledge
+# Index a document for vector search
+curl -X POST http://localhost:8008/vectors/index -F "file=@report.md"
 
-# Start API server
-phantom api serve --host 127.0.0.1 --port 8000 --reload
+# Semantic search
+curl -X POST http://localhost:8008/vectors/search \
+  -H "Content-Type: application/json" \
+  -d '{"query": "security patterns", "top_k": 5, "mode": "hybrid"}'
+
+# RAG chat
+curl -X POST http://localhost:8008/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What is Phantom?", "conversation_id": "1", "history": []}'
+
+# Prometheus metrics
+curl http://localhost:8008/metrics
 ```
 
 ### Python API
@@ -390,89 +296,32 @@ for result in results:
 processor.save_index("./phantom_index")
 ```
 
-### REST API
-
-```bash
-# Start server
-phantom api serve
-
-# Health check
-curl http://localhost:8000/health
-
-# Extract insights
-curl -X POST http://localhost:8000/extract \
-  -H "Content-Type: application/json" \
-  -d '{"content": "# My Document\n\nContent here.", "filename": "doc.md"}'
-
-# Upload file
-curl -X POST http://localhost:8000/upload -F "file=@report.md"
-
-# RAG query
-curl "http://localhost:8000/rag/query?question=What+is+Phantom?"
-
-# Judge bundle (AI-OS-Agent integration)
-curl -X POST http://localhost:8000/judge \
-  -H "Content-Type: application/json" \
-  -d '{"timestamp": "2026-02-04T00:00:00Z", "hostname": "host", "metrics": {}, "alerts": [], "logs": []}'
-```
-
 ---
 
 ## Module Reference
 
 ### `phantom.core`
 
-**CortexProcessor** - Main intelligence engine
-
-- Semantic chunking with tiktoken
-- Parallel LLM classification
-- FAISS vector indexing
-- Resource monitoring
-
-**EmbeddingGenerator** - Vector embeddings
-
-- sentence-transformers models
-- Batch processing
-- GPU acceleration support
-
-**SemanticChunker** - Intelligent text splitting
-
-- Markdown-aware splitting
-- Token counting with tiktoken
-- Configurable overlap
+- **CortexProcessor** — document processing pipeline: chunking, classification, embedding, indexing
+- **EmbeddingGenerator** — sentence-transformers wrapper with batch processing
+- **SemanticChunker** — markdown-aware text splitting with tiktoken token counting
 
 ### `phantom.rag`
 
-**FAISSVectorStore** - Vector database
-
-- CPU/GPU FAISS support
-- Metadata filtering
-- Persistence to disk
-
-**SearchResult** - Typed search results
-
-- Distance scores
-- Metadata extraction
-- Ranking utilities
+- **FAISSVectorStore** — vector index with dense, sparse (BM25), and hybrid search modes
+- **SearchResult** — typed result with distance scores and metadata
 
 ### `phantom.analysis`
 
-**SentimentAnalyzer** - Sentiment detection
-**EntityExtractor** - Named entity recognition
-**TopicModeler** - LDA topic modeling
-
-### `phantom.pipeline`
-
-**DAGPipeline** - Directed acyclic graph execution
-**FileClassifier** - Document classification
-**DataSanitizer** - PII removal and sanitization
+- **SentimentAnalyzer** — NLTK VADER-based sentiment scoring
+- **EntityExtractor** — named entity recognition (part of SPECTRE module)
 
 ### `phantom.providers`
 
-**LlamaCppProvider** - llama.cpp local inference (TURBO)
+- **LlamaCppProvider** — llama.cpp local inference (OpenAI-compatible API)
 
-> Cloud providers (OpenAI, Anthropic, DeepSeek) are planned.
-> Extend `AIProvider` base class to add custom backends.
+> Cloud providers (OpenAI, Anthropic) are planned but not yet implemented.
+> Extend the `AIProvider` base class to add custom backends.
 
 ---
 
@@ -483,7 +332,6 @@ curl -X POST http://localhost:8000/judge \
 ```bash
 # LLM Provider
 export PHANTOM_LLAMACPP_URL="http://localhost:8080"
-export PHANTOM_OPENAI_API_KEY="sk-..."
 
 # Resource Limits
 export PHANTOM_VRAM_WARNING_MB=512
@@ -500,134 +348,105 @@ export PHANTOM_EMBEDDING_MODEL="all-MiniLM-L6-v2"
 export PHANTOM_VECTOR_BACKEND="faiss"
 ```
 
-### NixOS Development
-
-```bash
-# All dependencies are declared in flake.nix
-cd phantom && nix develop   # enters the dev shell
-
-# Build the package
-nix build .#phantom
-nix run .#phantom -- --help
-```
-
 ---
 
 ## Development
 
-### Project Structure
-
-```
-phantom/
-├── src/phantom/
-│   ├── core/          # CORTEX engine, embeddings, chunking
-│   ├── rag/           # Vector stores (FAISS), search
-│   ├── analysis/      # Sentiment, SPECTRE, viability
-│   ├── pipeline/      # DAG orchestration, classification, sanitization
-│   ├── providers/     # LLM providers (llama.cpp)
-│   ├── cerebro/       # RAG engine + knowledge integration
-│   ├── neutron/       # Compliance guardrails (SENTINEL)
-│   ├── api/           # FastAPI REST server + Judge API
-│   └── cli/           # Typer CLI interface
-├── tests/
-│   ├── unit/          # Unit tests
-│   ├── integration/   # API + CLI integration tests
-│   └── e2e/           # End-to-end pipeline tests
-├── .archive/          # Dead code + experimental (audited)
-├── intelagent/        # Rust agent (part of ai-agent-os ecosystem)
-├── docs/              # Documentation
-└── flake.nix          # Reproducible Nix environment
-```
+Nix is the recommended development environment — it pins Python, native libraries, and tooling to exact versions. Contributors without Nix can use pip, but should match the Python version (3.11+) and install native dependencies (FAISS, etc.) manually.
 
 ### Running Tests
 
 ```bash
-# Run all tests
-pytest
-
-# With coverage
-pytest --cov=phantom --cov-report=html
-
-# Specific module
-pytest tests/test_cortex.py -v
+pytest                                   # all tests
+pytest --cov=phantom --cov-report=html   # with coverage report
+pytest tests/unit/ -v                    # unit tests only
 ```
+
+Coverage minimum: 70% (enforced in CI).
 
 ### Code Quality
 
 ```bash
-# Format code
-ruff format src/
-
-# Lint
-ruff check src/
-
-# Type checking
-mypy src/
+ruff format src/      # format
+ruff check src/       # lint
+mypy src/             # type check
 ```
 
 ---
 
 ## Roadmap
 
-### Current (Phase 0–4)
-- [x] Critical import fixes and dead code cleanup
-- [x] Dependency audit and version pinning
-- [x] Test structure: unit / integration / e2e
-- [x] CI/CD pipeline (lint, test, security scan, release)
-- [ ] Coverage target: 70% across all modules
+### Shipped
 
-### Upcoming
-- [ ] Cloud providers (OpenAI, Anthropic, DeepSeek)
-- [ ] Full CLI command implementations (extract, analyze, classify)
-- [ ] RAG query and ingestion pipeline
-- [ ] Desktop app (GTK4 — archived, revisit later)
-- [ ] Docker + NixOS module packaging
-- [ ] Prometheus metrics endpoint (`/metrics`)
+- [x] CORTEX processor with semantic chunking and parallel classification
+- [x] FAISS vector store with hybrid BM25 + cosine search
+- [x] FastAPI REST API with Prometheus metrics
+- [x] CI/CD pipeline (lint, test, security scan, CodeQL, SBOM)
+- [x] Nix flake development environment
+- [x] pip-installable Python package
+- [x] Sentiment analysis and entity extraction
+- [x] System resource monitoring endpoint
+
+### In Progress
+
+- [ ] CLI command implementations (extract, analyze, classify, scan — currently stubs)
+- [ ] Desktop app UI components (Tauri + SvelteKit framework is in place)
+
+### Planned
+
+- [ ] Standalone binaries for Linux (PyInstaller or Nuitka)
+- [ ] Standalone binaries for macOS
+- [ ] Windows validation and standalone binary
+- [ ] Cloud LLM providers (OpenAI, Anthropic)
+- [ ] Docker / OCI image
+- [ ] NixOS module for system-level deployment
+- [ ] Redis-based semantic cache
+
+---
+
+## Limitations
+
+- **LLM required for classification**: classification and RAG chat need a running llama.cpp server. Without it, Phantom still chunks and indexes documents, but cannot classify or answer questions.
+- **Single-node**: no distributed processing. All operations run in-process with thread pool concurrency.
+- **GPU optional**: FAISS runs on CPU by default. GPU acceleration requires FAISS compiled with CUDA support.
+- **CLI is incomplete**: all CLI commands currently print stub messages. Use the REST API or Python API.
+- **Windows untested**: the codebase is pure Python and should work, but CI does not yet run on Windows.
 
 ---
 
 ## Contributing
 
-Contributions are welcome! Please read our guidelines:
+Contributions are welcome. Please read:
 
-- [CONTRIBUTING.md](CONTRIBUTING.md) - Development workflow and code standards
-- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) - Community guidelines
-- [SECURITY.md](SECURITY.md) - Security policy and vulnerability reporting
+- [CONTRIBUTING.md](CONTRIBUTING.md) — development workflow and code standards
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — community guidelines
+- [SECURITY.md](SECURITY.md) — security policy and vulnerability reporting
 
-### Development Workflow
+### Workflow
 
-1. Fork repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/my-feature`)
 3. Make changes with tests
 4. Run quality checks (`pytest && ruff check`)
-5. Commit (`git commit -m 'Add amazing feature'`)
-6. Push (`git push origin feature/amazing-feature`)
-7. Open Pull Request
+5. Commit using [Conventional Commits](https://www.conventionalcommits.org/) format
+6. Open a Pull Request
 
 ---
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+Apache License 2.0 — see [LICENSE](LICENSE) for details.
 
 ---
 
 ## Acknowledgments
 
-- **llama.cpp**: Fast LLM inference
-- **sentence-transformers**: Local embedding models
-- **FAISS**: Efficient similarity search
-- **Nix**: Reproducible environments
-- **FastAPI**: Modern Python web framework
+- [llama.cpp](https://github.com/ggerganov/llama.cpp) — local LLM inference
+- [sentence-transformers](https://www.sbert.net/) — embedding models
+- [FAISS](https://github.com/facebookresearch/faiss) — vector similarity search
+- [Nix](https://nixos.org/) — reproducible development environments
+- [FastAPI](https://fastapi.tiangolo.com/) — async web framework
 
 ---
 
-## Support
-
-- **Documentation**: [docs/](docs/)
-- **Security**: [SECURITY.md](SECURITY.md)
-- **Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
-
----
-
-Phantom v2.0 | NixOS + llama.cpp | MIT License
+Phantom v2.0 | Apache License 2.0

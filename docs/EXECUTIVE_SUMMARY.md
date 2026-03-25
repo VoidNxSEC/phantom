@@ -1,112 +1,88 @@
-# Executive Summary: Phantom Data Intelligence Platform
+# Executive Summary
 
-## 1. Overview
+## Overview
 
-**Phantom** is an enterprise-grade data intelligence platform designed for high-security environments (NSA-grade classification). It combines robust static analysis with advanced ML capabilities to classify, sanitize, and extract insights from unstructured data.
+Phantom is a document intelligence framework that processes unstructured files (markdown, text, PDF) into structured, searchable data. It combines semantic chunking, local LLM classification (via llama.cpp), and FAISS vector indexing into a single pipeline exposed through a REST API.
 
-**Key Value Proposition:**
+The project has two runtime components:
 
-- **Zero-Trust Architecture**: Files are treated as hostile until verified.
-- **Privacy-First**: Sensitive data (PII, Secrets) is detected and isolated before processing.
-- **Hybrid Performance**: Blends Rust-based speed (IntelAgent) with Python's ML ecosystem (Phantom Core).
-- **Immutable Audit**: All operations are cryptographically signed and logged.
+- **Phantom Core** (Python) — document processing, NLP, vector search, REST API
+- **IntelAgent** (Rust) — agent infrastructure with security, governance, and memory modules
 
----
+## Architecture
 
-## 2. System Architecture
-
-The system is composed of three primary layers: **Ingestion**, **Processing**, and **Intelligence**.
+The system is organized into three layers: ingestion, processing, and retrieval.
 
 ```mermaid
 graph TD
-    subgraph "Ingestion Layer"
-        DOCS[Documents/Files] -->|Upload| GATE[API Gateway]
-        GATE -->|Nix Sandbox| SCAN[Phantom Scanner]
+    subgraph "Ingestion"
+        DOCS[Documents] -->|Upload| API[REST API<br/>FastAPI]
     end
 
-    subgraph "Processing Core"
-        SCAN -->|Sanitized| CLASS[Phantom Classifier]
-        CLASS -->|Routing| ROUTER{Content Type}
-        ROUTER -->|Text| CORTEX[Cortex API (Python)]
-        ROUTER -->|Binary| INTEL[IntelAgent (Rust)]
+    subgraph "Processing"
+        API --> CORTEX[CORTEX Engine<br/>Chunking + Classification]
+        API --> EMBEDDER[Embedding Generator<br/>sentence-transformers]
+        CORTEX -->|llama.cpp| LLM[Local LLM]
     end
 
-    subgraph "Intelligence & Output"
-        CORTEX -->|NLP/Vector| DB[(Vector DB)]
-        INTEL -->|Forensics| LOGS[(Audit Log)]
-
-        DB --> REP[Intelligence Report]
-        LOGS --> REP
+    subgraph "Retrieval"
+        EMBEDDER --> FAISS[(FAISS Index)]
+        FAISS --> SEARCH[Hybrid Search<br/>BM25 + Cosine]
+        SEARCH --> RESULTS[Structured Results<br/>JSON + Pydantic]
     end
-
-    style GATE fill:#f96,stroke:#333
-    style INTEL fill:#dea,stroke:#333
-    style CORTEX fill:#aec,stroke:#333
 ```
 
----
+## Components
 
-## 3. Component Breakdown
+### Phantom Core (Python)
 
-### 🔮 Phantom Core (Python)
+Handles document processing and serves the REST API.
 
-The central nervous system.
+- **CORTEX Engine**: semantic chunking (tiktoken), parallel LLM classification, insight extraction
+- **RAG Pipeline**: FAISS vector store with hybrid search (BM25 + cosine via Reciprocal Rank Fusion)
+- **Analysis**: sentiment scoring (NLTK VADER), named entity extraction (SPECTRE)
+- **API**: FastAPI with Prometheus metrics, health/readiness probes, system resource monitoring
+- **Pipeline**: PII detection and redaction, file fingerprinting (SHA-256), content routing by type
 
-- **Role**: Orchestration, Classification, PII Scanning.
-- **Key Tech**: Python 3.11, Pydantic, Regex (Optimized).
-- **Capabilities**:
-  - **Magic Byte Detection**: File type verification beyond extensions.
-  - **PII Eradication**: Regex-based redaction of emails, SSNs, keys.
-  - **Integrity**: SHA-256 + BLAKE3 fingerprinting.
+### IntelAgent (Rust)
 
-### 🦀 IntelAgent (Rust)
+Multi-crate workspace providing agent infrastructure. Modules include security/privacy auditing, governance, context memory, quality gates, and MCP protocol handling. Builds with Crane (Nix) and Tokio for async execution.
 
-The muscle.
+### Cortex Desktop (Tauri + SvelteKit)
 
-- **Role**: High-performance binary analysis and forensic processing.
-- **Key Tech**: Rust, Crane (Nix), Tokio (Async).
-- **Capabilities**:
-  - **Parallel Processing**: Zero-cost abstractions for massive datasets.
-  - **Memory Safety**: Rust guarantees prevent buffer overflows.
-  - **Low-Level Access**: Direct interaction with file system primitives.
+Desktop interface with tabs for RAG chat, document processing, vector search, and prompt workbench. Framework is in place; UI components are minimal. See the [Roadmap](../README.md#roadmap) for current status.
 
-### 🌐 Cortex API (FastAPI)
+## Technology Stack
 
-The interface.
+| Component | Technology | Purpose |
+|-----------|-----------|---------|
+| Backend | Python 3.11+, FastAPI | API, document processing, ML pipeline |
+| Agent | Rust, Tokio, Crane | Security, governance, memory modules |
+| Desktop | Tauri 2, SvelteKit | Cross-platform desktop UI |
+| Vector Store | FAISS, sentence-transformers | Embedding generation and similarity search |
+| LLM Inference | llama.cpp | Local model serving (OpenAI-compatible API) |
+| Build/Dev | Nix Flakes, Just | Reproducible environment, task automation |
+| CI/CD | GitHub Actions | Lint, test, security scan, CodeQL, SBOM |
 
-- **Role**: RESTful access to platform capabilities.
-- **Key Tech**: FastAPI, Uvicorn, OpenAPI.
-- **Features**:
-  - Async job submission.
-  - Real-time status updates.
-  - Secure file upload handling.
+## Data Flow
 
----
+1. **Upload**: user submits a document via API or CLI
+2. **Chunking**: CORTEX splits text into semantic chunks (configurable size/overlap)
+3. **Classification**: each chunk is sent to llama.cpp for parallel LLM classification
+4. **Embedding**: sentence-transformers generates vector embeddings per chunk
+5. **Indexing**: embeddings are stored in FAISS for retrieval
+6. **Query**: users search the index via dense, sparse (BM25), or hybrid modes
 
-## 4. Data Flow Lifecycle
+## Platform Support
 
-1.  **Ingestion**: User uploads a file or points to a directory.
-2.  **Quarantine**: File is moved to a staging area (`.phantom/staging`).
-3.  **Fingerprinting**: Cryptographic hashes are generated immediately.
-4.  **Scanning**: `phantom-scan` checks for sensitive data (Secrets, PII).
-    - _If sensitive_: Flagged as CONFIDENTIAL/SECRET.
-5.  **Classification**: File type determines the processing path.
-    - _PDF/Text_ -> **Cortex** (NLP Extraction).
-    - _Executable/Bin_ -> **IntelAgent** (Static Analysis).
-6.  **Reporting**: Aggregated JSON report generated with all findings.
+| Platform | Status |
+|----------|--------|
+| Linux (x86_64) | Supported (Nix, pip) |
+| macOS (Apple Silicon / Intel) | Supported (Nix, pip) |
+| Windows | Untested (pip — should work) |
 
----
+Standalone binaries for Linux and macOS are planned.
 
-## 5. Technology Stack Summary
+## License
 
-| Component        | Technology       | Purpose                                |
-| :--------------- | :--------------- | :------------------------------------- |
-| **Build System** | Nih (Flakes)     | Reproducible builds & dev environments |
-| **Backend**      | Python (FastAPI) | API and ML orchestration               |
-| **Performance**  | Rust             | Critical path processing & forensics   |
-| **GUI**          | Tauri + React    | Desktop application (Cross-platform)   |
-| **Task Runner**  | Just             | Command standardization                |
-
----
-
-> _Generated by Antigravity - 2026_
+Apache License 2.0 — see [LICENSE](../LICENSE).

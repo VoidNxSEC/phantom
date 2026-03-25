@@ -1,54 +1,52 @@
-/* Hyprland-Inspired Theme - Catppuccin Mocha Palette */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    @apply bg-[#181825] text-[#cdd6f4] font-mono;
+    @apply bg-[#0A0A0A] text-zinc-300 antialiased selection:bg-cyan-500/30 selection:text-white;
     margin: 0;
     padding: 0;
-    font-family: "Inter", system-ui, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 
-  /* Custom scrollbar */
+  /* Custom minimal scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-[#1e1e2e];
+    @apply bg-transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-[#585b70] rounded;
+    @apply bg-zinc-800 rounded-full border-2 border-transparent bg-clip-padding;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-[#6c7086];
+    @apply bg-zinc-600;
+  }
+
+  /* Fallback specific scrollbar for inner areas */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent rounded-lg;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-zinc-800/80 rounded-full border-[1px] border-transparent bg-clip-padding;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-zinc-600;
   }
 }
 
-@layer components {
-
-  /* Hyprland window style */
-  .hypr-window {
-    @apply bg-[#1e1e2e] border border-[#313244] rounded shadow-lg;
-  }
-
-  /* Gaps between elements */
-  .hypr-gap {
-    @apply gap-2;
-  }
-
-  /* Focused border accent */
-  .hypr-focus {
-    @apply border-[#cba6f7];
-  }
-
-  /* Status indicator */
-  .hypr-status {
-    @apply text-xs font-mono text-[#585b70] uppercase tracking-wider;
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
   }
 }

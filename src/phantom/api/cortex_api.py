@@ -260,7 +260,7 @@ class ChatRequest(BaseModel):
     history: list[ChatMessage] = []
     context_size: int = 5
     llm_provider: str = "tensor_forge"
-    model: str = "llamacpp-swap"
+    model: str = "local-llamacpp"
 
 class ChatResponse(BaseModel):
     message: dict[str, Any]

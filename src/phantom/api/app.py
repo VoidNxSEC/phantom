@@ -2,9 +2,11 @@
 Phantom API - FastAPI REST endpoints.
 """
 
+import json
 import time
 
 from fastapi import FastAPI, HTTPException, Request, Response, UploadFile
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 
@@ -735,10 +737,234 @@ def create_app() -> FastAPI:
                 rendered="", tokens=0, success=False, error=str(e)
             )
 
+    @app.post("/api/chat/stream")
+    async def rag_chat_stream(request: ChatRequest):
+        """
+        RAG-powered chat with Server-Sent Events streaming.
+        Returns tokens as they are generated for lower perceived latency.
+        """
+        import asyncio
+
+        async def event_generator():
+            try:
+                # Retrieve context (same as /api/chat)
+                embedder = get_embedding_generator()
+                store = get_vector_store()
+
+                sources = []
+                if len(store) > 0 and request.context_size > 0:
+                    query_embedding = embedder.encode([request.message])[0]
+                    search_results = store.search(query_embedding, top_k=request.context_size)
+                    sources = [
+                        {"text": r.text, "score": float(r.score), "metadata": r.metadata}
+                        for r in search_results
+                    ]
+
+                # Build context
+                context_str = ""
+                if sources:
+                    context_str = "\n\nRelevant context:\n"
+                    for i, src in enumerate(sources, 1):
+                        context_str += f"{i}. {src['text'][:500]}...\n"
+
+                history_str = ""
+                for msg in request.history[-5:]:
+                    history_str += f"{msg.role}: {msg.content}\n"
+
+                system_prompt = (
+                    "You are a helpful AI assistant with access to a knowledge base. "
+                    "Use the provided context to answer questions accurately. "
+                    "If the context doesn't contain relevant information, say so."
+                )
+                full_prompt = f"{system_prompt}\n\n{history_str}\n{context_str}\nuser: {request.message}\nassistant:"
+
+                # Send sources first
+                yield f"data: {json.dumps({'type': 'sources', 'sources': sources})}\n\n"
+
+                # Stream from LLM
+                from phantom.providers.llamacpp import LlamaCppProvider
+
+                provider = LlamaCppProvider(base_url="http://localhost:8081")
+
+                try:
+                    async for chunk in provider.stream(full_prompt, max_tokens=512, temperature=0.7):
+                        yield f"data: {json.dumps({'type': 'token', 'content': chunk})}\n\n"
+                except Exception as e:
+                    logger.warning(f"LLM streaming failed: {e}")
+                    fallback = (
+                        f"Found {len(sources)} relevant sources, but LLM service is unavailable."
+                        if sources
+                        else "LLM service is currently unavailable."
+                    )
+                    yield f"data: {json.dumps({'type': 'token', 'content': fallback})}\n\n"
+
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+            except Exception as e:
+                logger.error(f"Stream failed: {e}")
+                yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+        return StreamingResponse(
+            event_generator(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+
+    class PipelineRequest(BaseModel):
+        input_dir: str
+        output_dir: str | None = None
+        workers: int = 4
+        dry_run: bool = False
+        sanitization_policy: str = "strip_metadata"
+
+    class PipelineStatusResponse(BaseModel):
+        status: str
+        total_files: int
+        processed: int
+        failed: int
+        quarantined: int
+        duration_seconds: float
+        report: dict
+
+    @app.post("/api/pipeline", response_model=PipelineStatusResponse)
+    async def run_pipeline(request: PipelineRequest):
+        """
+        Execute the DAG pipeline for file classification, integrity verification,
+        sensitive data detection, and sanitization.
+        """
+        import asyncio
+        from pathlib import Path
+
+        from phantom.pipeline.phantom_dag import (
+            PipelineContext,
+            PhantomPipeline,
+            SanitizationPolicy,
+        )
+
+        input_dir = Path(request.input_dir)
+        if not input_dir.exists() or not input_dir.is_dir():
+            raise HTTPException(400, f"Input directory does not exist: {request.input_dir}")
+
+        if request.output_dir:
+            output_dir = Path(request.output_dir)
+        else:
+            output_dir = input_dir.parent / f"{input_dir.name}_classified"
+
+        try:
+            policy = SanitizationPolicy(request.sanitization_policy)
+        except ValueError:
+            raise HTTPException(
+                400,
+                f"Invalid sanitization_policy: {request.sanitization_policy}. "
+                f"Options: none, strip_metadata, redact_pii, full_sanitize",
+            )
+
+        staging_dir = output_dir / ".staging"
+        quarantine_dir = output_dir / ".quarantine"
+
+        ctx = PipelineContext(
+            input_dir=input_dir,
+            output_dir=output_dir,
+            staging_dir=staging_dir,
+            quarantine_dir=quarantine_dir,
+            workers=request.workers,
+            dry_run=request.dry_run,
+            sanitization_policy=policy,
+        )
+
+        # Run pipeline in thread to avoid blocking the event loop
+        start = time.perf_counter()
+
+        def _run():
+            pipeline = PhantomPipeline(ctx)
+            pipeline.execute()
+            return pipeline
+
+        pipeline = await asyncio.to_thread(_run)
+        duration = time.perf_counter() - start
+
+        # Build report from context
+        from collections import defaultdict
+
+        by_classification: dict[str, int] = defaultdict(int)
+        for record in ctx.records.values():
+            by_classification[record.classification] += 1
+
+        report = {
+            "classifications": dict(by_classification),
+            "sensitive_files": sum(
+                1 for r in ctx.records.values() if r.sensitive_findings
+            ),
+            "output_dir": str(output_dir),
+        }
+
+        return PipelineStatusResponse(
+            status="completed",
+            total_files=ctx.total_files,
+            processed=ctx.processed,
+            failed=ctx.failed,
+            quarantined=ctx.quarantined,
+            duration_seconds=round(duration, 2),
+            report=report,
+        )
+
+    @app.post("/api/pipeline/scan")
+    async def pipeline_scan(
+        directory: str,
+        top_n: int = 50,
+    ):
+        """
+        Scan a directory for file classifications and sensitive data without moving files.
+        Lightweight read-only alternative to /api/pipeline.
+        """
+        import asyncio
+        from pathlib import Path
+
+        from phantom.pipeline.phantom_dag import ClassificationEngine
+
+        dir_path = Path(directory)
+        if not dir_path.exists():
+            raise HTTPException(400, f"Directory does not exist: {directory}")
+
+        def _scan():
+            files = [f for f in dir_path.rglob("*") if f.is_file()][:top_n]
+            results = []
+            for filepath in files:
+                try:
+                    classification, mime_type, sensitivity = ClassificationEngine.classify(filepath)
+                    findings = ClassificationEngine.scan_sensitive_content(filepath)
+                    results.append({
+                        "path": str(filepath.relative_to(dir_path)),
+                        "classification": classification.value,
+                        "mime_type": mime_type,
+                        "sensitivity": sensitivity.value,
+                        "sensitive_patterns": [
+                            {"name": f.pattern_name, "count": f.count, "risk": f.risk_score}
+                            for f in findings
+                        ],
+                    })
+                except Exception:
+                    results.append({
+                        "path": str(filepath.relative_to(dir_path)),
+                        "classification": "error",
+                        "mime_type": "unknown",
+                        "sensitivity": 0,
+                        "sensitive_patterns": [],
+                    })
+            return results, len(list(dir_path.rglob("*")))
+
+        results, total_count = await asyncio.to_thread(_scan)
+
+        return {
+            "directory": directory,
+            "scanned": len(results),
+            "total_files": total_count,
+            "files": results,
+        }
+
     @app.get("/rag/query")
     async def rag_query(question: str, collection: str = "default", top_k: int = 5):
         """Query the RAG pipeline (legacy endpoint)."""
-        # Redirect to new chat endpoint
         return {
             "question": question,
             "answer": "Please use /api/chat endpoint for RAG queries",

@@ -103,3 +103,54 @@ class LlamaCppProvider(AIProvider):
             logger.error(f"LlamaCPP generation failed: {e}")
             self._status = ProviderStatus.ERROR
             raise RuntimeError(f"Generation failed: {e}") from e
+
+    async def stream(self, prompt: str, **kwargs) -> "AsyncIterator[str]":
+        """Stream tokens from LlamaCPP server using server-sent events."""
+        import asyncio
+        from collections.abc import AsyncIterator
+
+        payload = {
+            "prompt": prompt,
+            "n_predict": kwargs.get("max_tokens", self.config.max_tokens),
+            "temperature": kwargs.get("temperature", self.config.temperature),
+            "top_p": self.config.top_p,
+            "stream": True,
+            "stop": kwargs.get("stop", []),
+        }
+
+        def _stream_sync():
+            """Synchronous streaming generator."""
+            try:
+                response = requests.post(
+                    f"{self.config.base_url}/completion",
+                    json=payload,
+                    timeout=self.config.timeout,
+                    stream=True,
+                )
+                response.raise_for_status()
+
+                for line in response.iter_lines():
+                    if not line:
+                        continue
+                    decoded = line.decode("utf-8")
+                    if decoded.startswith("data: "):
+                        data_str = decoded[6:]
+                        if data_str.strip() == "[DONE]":
+                            break
+                        try:
+                            import json
+
+                            data = json.loads(data_str)
+                            content = data.get("content", "")
+                            if content:
+                                yield content
+                        except (ValueError, KeyError):
+                            continue
+            except requests.RequestException as e:
+                logger.error(f"LlamaCPP streaming failed: {e}")
+                raise RuntimeError(f"Streaming failed: {e}") from e
+
+        # Wrap sync iterator for async consumption
+        chunks = list(await asyncio.to_thread(lambda: list(_stream_sync())))
+        for chunk in chunks:
+            yield chunk

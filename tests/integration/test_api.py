@@ -173,7 +173,7 @@ class TestVectorSearchEndpoint:
 
     def test_vector_search_requires_query(self, client):
         resp = client.post("/vectors/search")
-        assert resp.status_code == 422  # Missing required parameter
+        assert resp.status_code == 400  # Manual validation returns 400
 
 
 class TestVectorIndexEndpoint:

@@ -38,6 +38,13 @@ SECURELLM_BRIDGE_URL = os.environ.get(
     "SECURELLM_BRIDGE_URL", "http://localhost:8081"
 ).rstrip("/")
 
+# ml-ops-api (M7.4) — local GPU inference via candle/Rust. Tried before the cloud
+# bridge so requests stay on-prem when GPU is available.
+# Set ML_OPS_ENABLED=true to activate. Defaults to disabled so local dev without
+# a GPU still works.
+ML_OPS_ENABLED = os.environ.get("ML_OPS_ENABLED", "false").lower() == "true"
+ML_OPS_API_URL = os.environ.get("ML_OPS_API_URL", "http://localhost:8083").rstrip("/")
+
 # Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("cortex_api")
@@ -366,6 +373,34 @@ def _call_via_bridge(provider: str, model: str | None, messages: list, temperatu
     return res.json().get("choices", [{}])[0].get("message", {}).get("content", "")
 
 
+def _call_via_ml_ops(model: str | None, messages: list, temperature: float, max_tokens: int) -> str:
+    """
+    Route an LLM request to ml-ops-api (local GPU inference via candle).
+
+    ml-ops-api speaks the OpenAI /v1/chat/completions protocol. It runs a candle
+    Rust inference engine and falls back to llama.cpp if candle is unavailable.
+
+    Raises requests.exceptions.ConnectionError if ml-ops-api is unreachable.
+    Raises Exception on any API error.
+    """
+    import requests as _requests
+
+    payload: dict = {
+        "model": model or "local-model",
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    res = _requests.post(
+        f"{ML_OPS_API_URL}/v1/chat/completions",
+        json=payload,
+        timeout=120,
+    )
+    if not res.ok:
+        raise Exception(f"ml-ops-api error ({res.status_code}): {res.text[:200]}")
+    return res.json().get("choices", [{}])[0].get("message", {}).get("content", "")
+
+
 def _call_direct(provider: str, model: str | None, messages: list, temperature: float, max_tokens: int) -> str:
     """
     Direct provider calls — fallback for local dev when securellm-bridge is not running.
@@ -425,19 +460,57 @@ async def api_chat(request: ChatRequest):
     try:
         import requests as _requests
 
-        if SECURELLM_BRIDGE_URL:
+        # ── Fallback chain (M7.4): candle/ml-ops → securellm-bridge → direct ──
+        #
+        # Tier 1: ml-ops-api — local GPU inference via candle (lowest latency,
+        #          on-prem, no egress). Only active when ML_OPS_ENABLED=true.
+        # Tier 2: securellm-bridge — zero-trust LLM proxy; handles provider
+        #          selection, rate limiting, and audit logging. Used when Tier 1
+        #          is unavailable or disabled.
+        # Tier 3: direct provider calls — last resort for local dev when neither
+        #          ml-ops-api nor the bridge is running.
+        #
+        # All tiers use the OpenAI-compatible /v1/chat/completions protocol.
+
+        used_tier: str = "unknown"
+
+        # Tier 1: ml-ops-api (local GPU / candle)
+        if ML_OPS_ENABLED:
             try:
-                content = _call_via_bridge(provider, model, messages, request.temperature, request.max_tokens)
-                logger.info(f"LLM call routed via securellm-bridge: provider={provider}")
+                content = _call_via_ml_ops(model, messages, request.temperature, request.max_tokens)
+                used_tier = "ml-ops-api"
             except _requests.exceptions.ConnectionError:
-                # Bridge unreachable — fall back to direct calls (dev only)
-                logger.warning(f"securellm-bridge unreachable at {SECURELLM_BRIDGE_URL}, falling back to direct call")
-                content = _call_direct(provider, model, messages, request.temperature, request.max_tokens)
-        else:
-            content = _call_direct(provider, model, messages, request.temperature, request.max_tokens)
+                logger.warning(
+                    f"ml-ops-api unreachable at {ML_OPS_API_URL} — falling back to securellm-bridge"
+                )
+            except Exception as ml_err:
+                logger.warning(f"ml-ops-api error: {ml_err} — falling back to securellm-bridge")
+
+        # Tier 2: securellm-bridge (cloud LLM proxy)
+        if not content and SECURELLM_BRIDGE_URL:
+            try:
+                content = _call_via_bridge(
+                    provider, model, messages, request.temperature, request.max_tokens
+                )
+                used_tier = "securellm-bridge"
+            except _requests.exceptions.ConnectionError:
+                logger.warning(
+                    f"securellm-bridge unreachable at {SECURELLM_BRIDGE_URL} — falling back to direct call"
+                )
+            except Exception as bridge_err:
+                logger.warning(f"securellm-bridge error: {bridge_err} — falling back to direct call")
+
+        # Tier 3: direct provider calls (dev fallback)
+        if not content:
+            content = _call_direct(
+                provider, model, messages, request.temperature, request.max_tokens
+            )
+            used_tier = "direct"
+
+        logger.info(f"LLM call completed via {used_tier}: provider={provider}")
 
     except Exception as e:
-        logger.error(f"Chat generation failed: {e}")
+        logger.error(f"Chat generation failed (all tiers exhausted): {e}")
         content = f"Error generating text: {str(e)}"
 
     return ChatResponse(

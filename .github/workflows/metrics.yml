@@ -71,7 +71,7 @@ jobs:
           EOF
 
       - name: Upload Metrics Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: code-metrics
           path: |

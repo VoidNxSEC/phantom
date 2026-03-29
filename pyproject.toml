@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "phantom"
-version = "2.0.0"
+version = "0.0.1"
 description = "AI-Powered Document Intelligence & Classification Pipeline"
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.11"
 authors = [
-    { name = "kernelcore", email = "kernelcore@voidnix.dev" }
+    { name = "voidnxlabs", email = "dev@voidnxlabs.io" }
 ]
 keywords = [
     "ai",
@@ -22,7 +22,7 @@ keywords = [
     "classification",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 2 - Pre-Alpha",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",

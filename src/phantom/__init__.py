@@ -21,7 +21,7 @@ Modules:
     cli      - Typer CLI interface
 """
 
-__version__ = "2.0.0"
+__version__ = "0.0.1"
 __codename__ = "PHANTOM"
 
 # Core exports

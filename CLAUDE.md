@@ -2,10 +2,10 @@
 
 > **Living Machine Learning Framework** - Production-grade document intelligence, RAG pipeline, and AI classification system.
 
-**Version**: 2.0.0 (Beta)
+**Version**: 0.0.1 (Pre-Alpha)
 **Python**: 3.11+
 **License**: Apache-2.0
-**Last Updated**: 2026-02-05
+**Last Updated**: 2026-03-26
 
 ---
 
@@ -74,17 +74,19 @@ Phantom is a **local-first AI document intelligence framework** that processes u
 | Pydantic Schemas    | ✅ Complete | All modules             | High          |
 | CI/CD Pipelines     | ✅ Complete | `.github/workflows/`    | N/A           |
 | Nix Environment     | ✅ Complete | `flake.nix`             | N/A           |
+| CLI Commands        | ✅ Complete | `cli/main.py`           | Medium        |
+| RAG Query API       | ✅ Complete | `api/app.py`            | High          |
+| Document Upload     | ✅ Complete | `api/app.py`            | High          |
+| Vector Indexing API | ✅ Complete | `api/app.py`            | High          |
+| SSE Streaming Chat  | ✅ Complete | `api/app.py`            | Medium        |
 
 ### 🟡 Partially Implemented Components
 
-| Component           | Status         | Missing             | Priority |
-| ------------------- | -------------- | ------------------- | -------- |
-| CLI Commands        | 🟡 Stubs       | Implementations     | High     |
-| Desktop UI          | 🟡 Framework   | Components          | Medium   |
-| RAG Query API       | 🟡 Endpoint    | Implementation      | High     |
-| Document Upload     | 🟡 Endpoint    | Processing logic    | High     |
-| Vector Indexing API | 🟡 Missing     | Full endpoint       | High     |
-| Judge API           | 🟡 Integration | Full implementation | Low      |
+| Component           | Status         | Missing                          | Priority |
+| ------------------- | -------------- | -------------------------------- | -------- |
+| Desktop UI          | 🟡 Framework   | Component polish, e2e tests      | Medium   |
+| tools vram          | 🟡 Partial     | Model-specific VRAM estimates    | Low      |
+| Cloud LLM Providers | 🟡 Stub        | OpenAI, Anthropic, DeepSeek impl | Medium   |
 
 ### ❌ Not Implemented
 

@@ -57,27 +57,6 @@ jobs:
         if: always()
 
   # ═══════════════════════════════════════════════════════════════
-  # RUST SECURITY (if applicable)
-  # ═══════════════════════════════════════════════════════════════
-  rust-audit:
-    name: Rust Security Audit
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-action@stable
-
-      - name: Install cargo-audit
-        run: cargo install cargo-audit
-
-      - name: Run cargo audit
-        working-directory: intelagent
-        run: cargo audit
-        continue-on-error: true
-
-  # ═══════════════════════════════════════════════════════════════
   # DEPENDENCY REVIEW (for PRs)
   # ═══════════════════════════════════════════════════════════════
   dependency-review:

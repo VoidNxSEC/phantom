@@ -112,48 +112,6 @@
         ];
 
         # ═══════════════════════════════════════════════════════════════
-        # RUST BUILD CONFIGURATION (IntelAgent)
-        # ═══════════════════════════════════════════════════════════════
-
-        # Source filtering - only include relevant files
-        src = craneLib.cleanCargoSource ./intelagent;
-
-        # Common arguments for all Crane builds
-        commonArgs = {
-          inherit src;
-
-          # Native build inputs
-          nativeBuildInputs = with pkgs; [
-            pkg-config
-          ];
-
-          # Build inputs (libraries)
-          buildInputs = with pkgs; [
-            openssl
-            gtk4
-            libadwaita
-          ];
-
-          # Environment variables
-          CARGO_BUILD_INCREMENTAL = "true";
-        };
-
-        # Build dependencies only (cached separately)
-        cargoArtifacts = craneLib.buildDepsOnly (commonArgs // {
-          pname = "intelagent-deps";
-        });
-
-        # Build the actual workspace
-        intelagent = craneLib.buildPackage (commonArgs // {
-          inherit cargoArtifacts;
-          pname = "intelagent";
-          version = VERSION;
-
-          # Don't run tests in build (we do that separately)
-          doCheck = false;
-        });
-
-        # ═══════════════════════════════════════════════════════════════
         # PYTHON SCRIPTS (from original flake)
         # ═══════════════════════════════════════════════════════════════
         phantomCore = pkgs.writeScriptBin "phantom" ''
@@ -256,8 +214,7 @@
         # PACKAGES
         # ═══════════════════════════════════════════════════════════════
         packages = {
-          default = intelagent;
-          intelagent = intelagent;
+          default = phantomCore;
           phantom = phantomCore;
           phantom-verify = phantomVerify;
           phantom-hash = phantomHash;
@@ -268,32 +225,6 @@
         # CI/CD CHECKS
         # ═══════════════════════════════════════════════════════════════
         checks = {
-          # Rust tests
-          intelagent-tests = craneLib.cargoNextest (commonArgs // {
-            inherit cargoArtifacts;
-            pname = "intelagent-tests";
-            cargoNextestExtraArgs = "--all-features --workspace";
-          });
-
-          # Clippy lints
-          intelagent-clippy = craneLib.cargoClippy (commonArgs // {
-            inherit cargoArtifacts;
-            pname = "intelagent-clippy";
-            cargoClippyExtraArgs = "--all-features --workspace -- --deny warnings";
-          });
-
-          # Format check
-          intelagent-fmt = craneLib.cargoFmt {
-            inherit src;
-            pname = "intelagent-fmt";
-          };
-
-          # Security audit
-          intelagent-audit = craneLib.cargoAudit {
-            inherit src;
-            pname = "intelagent-audit";
-          };
-
           # Python tests
           python-tests = pkgs.runCommand "python-tests" {
             buildInputs = [ pythonEnv ];
@@ -335,10 +266,6 @@
             pkgs.webkitgtk_4_1
             pkgs.openssl
             pkgs.pkg-config
-
-            # GTK4 for IntelAgent SOC
-            pkgs.gtk4
-            pkgs.libadwaita
 
             # Rust Toolchain
             rustToolchain
@@ -391,12 +318,6 @@
             echo "  phantom-verify <file> <hash>       Verify integrity"
             echo "  phantom-scan <dir>                 Scan for sensitive data"
             echo ""
-            echo -e "\033[0;33m🦀 Rust (IntelAgent):\033[0m"
-            echo "  cd intelagent && cargo build       Build workspace"
-            echo "  cargo test --workspace             Run all tests"
-            echo "  cargo clippy --all-features        Lint code"
-            echo "  cargo watch -x test                Watch mode"
-            echo ""
             echo -e "\033[0;33m🐍 Python (CORTEX):\033[0m"
             echo "  pytest tests/ -v                   Run tests"
             echo "  pytest --cov=phantom               With coverage"
@@ -405,7 +326,6 @@
             echo ""
             echo -e "\033[0;33m🧪 CI/CD:\033[0m"
             echo "  nix flake check                    Run all checks"
-            echo "  nix build .#intelagent             Build Rust"
             echo "  nix build .#phantom                Build Python"
             echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -418,11 +338,7 @@
         apps = {
           default = {
             type = "app";
-            program = "${intelagent}/bin/intelagent";
-          };
-          intelagent = {
-            type = "app";
-            program = "${intelagent}/bin/intelagent";
+            program = "${phantomCore}/bin/phantom";
           };
           phantom = {
             type = "app";

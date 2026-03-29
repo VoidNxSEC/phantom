@@ -246,43 +246,6 @@
         );
 
         # ═══════════════════════════════════════════════════════════════
-        # RUST BUILD CONFIGURATION (IntelAgent)
-        # ═══════════════════════════════════════════════════════════════
-
-        # IntelAgent source
-        intelagentSrc = craneLib.cleanCargoSource ./intelagent;
-
-        # IntelAgent common arguments
-        intelagentCommonArgs = {
-          src = intelagentSrc;
-          nativeBuildInputs = with pkgs; [ pkg-config ];
-          buildInputs = with pkgs; [
-            openssl
-            sqlite
-          ];
-        };
-
-        # Build IntelAgent dependencies
-        intelagentCargoArtifacts = craneLib.buildDepsOnly (
-          intelagentCommonArgs
-          // {
-            pname = "intelagent-deps";
-          }
-        );
-
-        # Build IntelAgent workspace
-        intelagent = craneLib.buildPackage (
-          intelagentCommonArgs
-          // {
-            inherit (intelagentCommonArgs) src;
-            cargoArtifacts = intelagentCargoArtifacts;
-            pname = "intelagent";
-            version = VERSION;
-            doCheck = false;
-          }
-        );
-
-        # ═══════════════════════════════════════════════════════════════
         # PYTHON SCRIPTS (from original flake)
         # ═══════════════════════════════════════════════════════════════
         phantomCore = pkgs.writeScriptBin "phantom" ''
@@ -394,7 +357,6 @@
         packages = {
           default = cortexDesktop;
           cortexDesktop = cortexDesktop;
-          intelagent = intelagent;
           phantom = phantomCore;
           phantom-verify = phantomVerify;
           phantom-hash = phantomHash;
@@ -436,39 +398,6 @@
           cortex-desktop-audit = craneLib.cargoAudit {
             inherit src advisory-db;
             pname = "cortex-desktop-audit";
-          };
-
-          # IntelAgent Rust tests
-          intelagent-tests = craneLib.cargoNextest (
-            intelagentCommonArgs
-            // {
-              cargoArtifacts = intelagentCargoArtifacts;
-              pname = "intelagent-tests";
-              cargoNextestExtraArgs = "--all-features --workspace";
-            }
-          );
-
-          # IntelAgent Clippy
-          intelagent-clippy = craneLib.cargoClippy (
-            intelagentCommonArgs
-            // {
-              cargoArtifacts = intelagentCargoArtifacts;
-              pname = "intelagent-clippy";
-              cargoClippyExtraArgs = "--all-features --workspace -- --deny warnings";
-            }
-          );
-
-          # IntelAgent Format check
-          intelagent-fmt = craneLib.cargoFmt {
-            src = intelagentSrc;
-            pname = "intelagent-fmt";
-          };
-
-          # IntelAgent Security audit
-          intelagent-audit = craneLib.cargoAudit {
-            src = intelagentSrc;
-            inherit advisory-db;
-            pname = "intelagent-audit";
           };
 
           # Python tests
@@ -573,7 +502,6 @@
             echo -e "\033[1;36m🔮 Project Components & Status\033[0m"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo -e "  🔹 \033[1mPhantom Core\033[0m:    Python/FastAPI \033[0;32m(Ready)\033[0m"
-            echo -e "  🔹 \033[1mIntelAgent\033[0m:      Rust/Crane     \033[0;32m(Ready)\033[0m"
             echo -e "  🔹 \033[1mCortex GUI\033[0m:      Tauri/React    \033[0;33m(Dev)\033[0m"
             echo ""
 

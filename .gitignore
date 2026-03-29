@@ -40,7 +40,7 @@ htmlcov/
 .tox/
 .nox/
 
-# Rust (intelagent)
+# Rust
 target/
 
 # Node.js

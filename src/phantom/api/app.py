@@ -2,8 +2,10 @@
 Phantom API - FastAPI REST endpoints.
 """
 
+import asyncio
 import json
 import time
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request, Response, UploadFile
 from fastapi.responses import StreamingResponse
@@ -124,6 +126,27 @@ class BatchIndexResponse(BaseModel):
     errors: list[str]
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan: connect NATS publisher + start consumer on startup."""
+    from phantom.nats.publisher import connect as nats_connect, drain as nats_drain
+    from phantom.nats.consumer import start_consumer, stop_consumer
+
+    await nats_connect()
+    consumer_task = asyncio.ensure_future(start_consumer())
+    app.state.nats_consumer_task = consumer_task
+
+    yield
+
+    await stop_consumer()
+    consumer_task.cancel()
+    try:
+        await consumer_task
+    except asyncio.CancelledError:
+        pass
+    await nats_drain()
+
+
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     from phantom import __version__
@@ -134,6 +157,7 @@ def create_app() -> FastAPI:
         title="Phantom API",
         description="AI-Powered Document Intelligence & Classification Pipeline",
         version=__version__,
+        lifespan=lifespan,
     )
 
     # ── Middleware: instrument every request ────────────────────────

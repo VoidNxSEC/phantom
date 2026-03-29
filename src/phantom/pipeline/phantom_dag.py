@@ -1354,6 +1354,27 @@ class PhantomPipeline:
             # Step 9: Persist record
             self._save_record(record)
 
+            # Step 10: Publish ingest.file.sanitized.v1 event (non-blocking, non-fatal)
+            try:
+                from phantom.nats.publisher import publish_sync  # noqa: PLC0415
+
+                publish_sync(
+                    "ingest.file.sanitized.v1",
+                    {
+                        "event_id": record.record_id,
+                        "source_service": "phantom",
+                        "file_path": record.destination_path,
+                        "file_hash_sha256": record.fingerprint_input.sha256,
+                        "original_filename": record.original_name,
+                        "mime_type": record.mime_type,
+                        "sensitivity_level": record.sensitivity,
+                        "sanitization_policy": self.ctx.sanitization_policy.value,
+                        "timestamp": datetime.now(UTC).isoformat(),
+                    },
+                )
+            except Exception:
+                pass  # NATS publish must never abort the pipeline
+
             # Calculate duration
             record.processing_duration_ms = (time.time() - start_time) * 1000
 

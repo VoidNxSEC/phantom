@@ -31,6 +31,13 @@ except ImportError as e:
 TEMP_DIR = Path(".phantom/staging")
 TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
+# SecureLLM Bridge (M3.4) — all LLM calls route through the bridge in production.
+# Set SECURELLM_BRIDGE_URL to the bridge address; empty string disables routing
+# so direct provider calls are used (local dev without the bridge running).
+SECURELLM_BRIDGE_URL = os.environ.get(
+    "SECURELLM_BRIDGE_URL", "http://localhost:8081"
+).rstrip("/")
+
 # Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("cortex_api")
@@ -310,95 +317,124 @@ async def list_models():
         ],
     }
 
+def _bridge_model_id(provider: str, model: str | None) -> str:
+    """Map cortex provider names to securellm-bridge {provider}/{model} identifiers."""
+    if provider in ("tensor_forge", "local"):
+        # Local llamacpp — bridge routes to configured local endpoint.
+        # Do not send model name (llamacpp uses whatever is loaded at startup).
+        return "local/llamacpp"
+    if provider == "openai":
+        return f"openai/{model}" if model else "openai/gpt-4o"
+    if provider == "anthropic":
+        return f"anthropic/{model}" if model else "anthropic/claude-3-sonnet"
+    if provider == "deepseek":
+        return f"deepseek/{model}" if model else "deepseek/deepseek-chat"
+    return f"{provider}/{model}" if model else provider
+
+
+def _call_via_bridge(provider: str, model: str | None, messages: list, temperature: float, max_tokens: int) -> str:
+    """
+    Route an LLM request through securellm-bridge.
+
+    The bridge exposes an OpenAI-compatible /v1/chat/completions endpoint and
+    handles provider-specific normalisation (Anthropic schema, auth headers, etc.)
+    internally. All requests use a unified JSON payload format.
+
+    Returns the assistant message content string.
+    Raises requests.exceptions.ConnectionError if the bridge is unreachable.
+    """
+    import requests as _requests
+
+    bridge_model = _bridge_model_id(provider, model)
+    payload: dict = {
+        "model": bridge_model,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    # Local llamacpp: bridge may expect no model field for pass-through
+    if provider in ("tensor_forge", "local"):
+        payload.pop("model", None)
+
+    res = _requests.post(
+        f"{SECURELLM_BRIDGE_URL}/v1/chat/completions",
+        json=payload,
+        timeout=120,
+    )
+    if not res.ok:
+        raise Exception(f"SecureLLM Bridge error ({res.status_code}): {res.text[:200]}")
+    return res.json().get("choices", [{}])[0].get("message", {}).get("content", "")
+
+
+def _call_direct(provider: str, model: str | None, messages: list, temperature: float, max_tokens: int) -> str:
+    """
+    Direct provider calls — fallback for local dev when securellm-bridge is not running.
+    Not used in production (bridge is always available in Docker compose).
+    """
+    import requests as _requests
+
+    if provider in ("tensor_forge", "local"):
+        payload = {
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        res = _requests.post("http://localhost:8081/v1/chat/completions", json=payload, timeout=120)
+        if res.ok:
+            return res.json().get("choices", [{}])[0].get("message", {}).get("content", "")
+        # Native llama.cpp /completion fallback
+        prompt = "".join(f"{m['role'].capitalize()}: {m['content']}\n" for m in messages) + "Assistant: "
+        fallback = {"prompt": prompt, "n_predict": max_tokens, "temperature": temperature, "stop": ["\nUser:", "\nHuman:"]}
+        res2 = _requests.post("http://localhost:8081/completion", json=fallback, timeout=120)
+        if res2.ok:
+            return res2.json().get("content", "").strip()
+        raise Exception(f"Tensor Forge API Error ({res2.status_code}): {res2.text}")
+
+    if provider == "openai":
+        headers = {"Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY', '')}"}
+        payload = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
+        res = _requests.post("https://api.openai.com/v1/chat/completions", json=payload, headers=headers, timeout=60)
+        if res.ok:
+            return res.json().get("choices", [{}])[0].get("message", {}).get("content", "")
+        raise Exception(f"OpenAI API Error: {res.text}")
+
+    if provider == "anthropic":
+        headers = {"x-api-key": os.environ.get("ANTHROPIC_API_KEY", ""), "anthropic-version": "2023-06-01", "content-type": "application/json"}
+        system_msg = "; ".join(m["content"] for m in messages if m["role"] == "system")
+        anthropic_msgs = [m for m in messages if m["role"] != "system"]
+        payload = {"model": model, "max_tokens": max_tokens, "temperature": temperature, "messages": anthropic_msgs}
+        if system_msg:
+            payload["system"] = system_msg
+        res = _requests.post("https://api.anthropic.com/v1/messages", json=payload, headers=headers, timeout=60)
+        if res.ok:
+            return res.json().get("content", [{}])[0].get("text", "")
+        raise Exception(f"Anthropic API Error: {res.text}")
+
+    raise Exception(f"Unknown provider: {provider}")
+
+
 @app.post("/api/chat", response_model=ChatResponse)
 async def api_chat(request: ChatRequest):
-    import requests
-    
-    # Base configuration
     provider = request.llm_provider
-    target_model = request.model
-    
-    # Flatten history
-    messages = []
-    for msg in request.history:
-        messages.append({"role": msg.role, "content": msg.content})
+    model = request.model
+
+    messages = [{"role": msg.role, "content": msg.content} for msg in request.history]
     messages.append({"role": "user", "content": request.message})
 
     content = ""
     try:
-        if provider == "tensor_forge" or provider == "local":
-            # Llama.cpp server — OpenAI-compatible /v1/chat/completions endpoint
-            # Note: do NOT send 'model' — llamacpp uses whatever is loaded at startup;
-            # sending an unknown model name causes 400 on some builds.
-            payload = {
-                "messages": messages,
-                "temperature": request.temperature,
-                "max_tokens": request.max_tokens,
-            }
-            res = requests.post("http://localhost:8081/v1/chat/completions", json=payload, timeout=120)
-            if res.ok:
-                content = res.json().get("choices", [{}])[0].get("message", {}).get("content", "")
-            else:
-                # Fallback: llama.cpp native /completion endpoint
-                # Note: this endpoint does NOT accept a `model` field — model is set at server startup
-                prompt = ""
-                for m in messages:
-                    prompt += f"{m['role'].capitalize()}: {m['content']}\n"
-                prompt += "Assistant: "
+        import requests as _requests
 
-                fallback_payload = {
-                    "prompt": prompt,
-                    "n_predict": request.max_tokens,
-                    "temperature": request.temperature,
-                    "stop": ["\nUser:", "\nHuman:"],
-                }
-                res = requests.post("http://localhost:8081/completion", json=fallback_payload, timeout=120)
-                if res.ok:
-                    content = res.json().get("content", "").strip()
-                else:
-                    raise Exception(f"Tensor Forge API Error ({res.status_code}): {res.text}")
-
-        elif provider == "openai":
-            import os
-            headers = {"Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY', '')}"}
-            payload = {
-                "model": target_model,
-                "messages": messages,
-                "temperature": request.temperature,
-                "max_tokens": request.max_tokens,
-            }
-            res = requests.post("https://api.openai.com/v1/chat/completions", json=payload, headers=headers, timeout=60)
-            if res.ok:
-                content = res.json().get("choices", [{}])[0].get("message", {}).get("content", "")
-            else:
-                raise Exception(f"OpenAI API Error: {res.text}")
-
-        elif provider == "anthropic":
-            import os
-            headers = {
-                "x-api-key": os.environ.get("ANTHROPIC_API_KEY", ""),
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json"
-            }
-            # Anthropic schema differs slightly
-            system_msg = "; ".join([m["content"] for m in messages if m["role"] == "system"])
-            anthropic_msgs = [m for m in messages if m["role"] != "system"]
-            payload = {
-                "model": target_model,
-                "max_tokens": request.max_tokens,
-                "temperature": request.temperature,
-                "messages": anthropic_msgs,
-            }
-            if system_msg:
-                payload["system"] = system_msg
-                
-            res = requests.post("https://api.anthropic.com/v1/messages", json=payload, headers=headers, timeout=60)
-            if res.ok:
-                content = res.json().get("content", [{}])[0].get("text", "")
-            else:
-                 raise Exception(f"Anthropic API Error: {res.text}")
+        if SECURELLM_BRIDGE_URL:
+            try:
+                content = _call_via_bridge(provider, model, messages, request.temperature, request.max_tokens)
+                logger.info(f"LLM call routed via securellm-bridge: provider={provider}")
+            except _requests.exceptions.ConnectionError:
+                # Bridge unreachable — fall back to direct calls (dev only)
+                logger.warning(f"securellm-bridge unreachable at {SECURELLM_BRIDGE_URL}, falling back to direct call")
+                content = _call_direct(provider, model, messages, request.temperature, request.max_tokens)
         else:
-            raise Exception(f"Unknown provider: {provider}")
+            content = _call_direct(provider, model, messages, request.temperature, request.max_tokens)
 
     except Exception as e:
         logger.error(f"Chat generation failed: {e}")
@@ -406,7 +442,7 @@ async def api_chat(request: ChatRequest):
 
     return ChatResponse(
         message={"content": content, "sources": []},
-        conversation_id=request.conversation_id
+        conversation_id=request.conversation_id,
     )
 
 if __name__ == "__main__":

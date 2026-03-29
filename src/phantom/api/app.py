@@ -164,6 +164,10 @@ def create_app() -> FastAPI:
     @app.get("/ready", response_model=ReadyResponse)
     async def ready():
         """Readiness probe — checks downstream dependencies."""
+        import os
+
+        import httpx
+
         checks: dict = {}
 
         # Vector store availability (lazy: only checked if previously initialised)
@@ -173,6 +177,16 @@ def create_app() -> FastAPI:
             checks["vector_store"] = True
         except Exception:
             checks["vector_store"] = False
+
+        # SecureLLM Bridge health (M3.4)
+        bridge_url = os.environ.get("SECURELLM_BRIDGE_URL", "http://localhost:8081").rstrip("/")
+        if bridge_url:
+            try:
+                async with httpx.AsyncClient(timeout=3.0) as client:
+                    r = await client.get(f"{bridge_url}/api/ready")
+                checks["securellm_bridge"] = r.status_code == 200
+            except Exception:
+                checks["securellm_bridge"] = False
 
         all_ok = all(checks.values()) if checks else True
         return ReadyResponse(

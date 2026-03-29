@@ -25,7 +25,7 @@ libadwaita = { version = "0.7", features = ["v1_5"] }
 glib = "0.20"
 
 # Process execution
-which = "7.0"
+which = "8.0"
 
 # Phantom integration (tight coupling)
 # TODO: Add phantom crate when it's published or use path dependency

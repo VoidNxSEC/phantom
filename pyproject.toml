@@ -69,6 +69,7 @@ dependencies = [
 
     # Event bus
     "nats-py>=2.7,<3.0",
+    "nkeys>=0.2.1,<1.0",
 ]
 
 [project.optional-dependencies]

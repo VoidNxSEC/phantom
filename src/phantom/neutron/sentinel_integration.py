@@ -21,7 +21,7 @@ logger = logging.getLogger("phantom.neutron.sentinel")
 NEUTRON_AVAILABLE = False
 try:
     # Adicionar path do Neutron
-    neutron_path = Path("/home/kernelcore/arch/neutron")
+    neutron_path = Path("/home/kernelcore/master/neotron")
     if neutron_path.exists():
         sys.path.insert(0, str(neutron_path))
 

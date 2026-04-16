@@ -131,19 +131,24 @@ async def lifespan(app: FastAPI):
     """Application lifespan: connect NATS publisher + start consumer on startup."""
     from phantom.nats.publisher import connect as nats_connect, drain as nats_drain
     from phantom.nats.consumer import start_consumer, stop_consumer
+    from phantom.nats.neoland_scanner import start_scanner, stop_scanner
 
     await nats_connect()
     consumer_task = asyncio.ensure_future(start_consumer())
+    scanner_task = asyncio.ensure_future(start_scanner())  # Ciclo 1 — Fase D
     app.state.nats_consumer_task = consumer_task
+    app.state.nats_scanner_task = scanner_task
 
     yield
 
+    await stop_scanner()
     await stop_consumer()
-    consumer_task.cancel()
-    try:
-        await consumer_task
-    except asyncio.CancelledError:
-        pass
+    for task in (scanner_task, consumer_task):
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
     await nats_drain()
 
 

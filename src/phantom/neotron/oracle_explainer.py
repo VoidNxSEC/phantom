@@ -16,7 +16,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
-logger = logging.getLogger("phantom.neutron.oracle")
+logger = logging.getLogger("phantom.neotron.oracle")
 
 
 # =============================================================================

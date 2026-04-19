@@ -6,7 +6,7 @@ Tests: OracleExplainer, evidence extraction, confidence calculation.
 
 import pytest
 
-from phantom.neutron.oracle_explainer import ADRExplanation, Evidence, OracleExplainer
+from phantom.neotron.oracle_explainer import ADRExplanation, Evidence, OracleExplainer
 
 
 pytestmark = pytest.mark.unit

@@ -1,16 +1,16 @@
 """
-PHANTOM-NEUTRON Integration Module
+PHANTOM-NEOTRON Integration Module
 
-Integra Phantom Intelligence com Neutron Compliance Framework.
+Integra Phantom Intelligence com Neotron Compliance Framework.
 Garante que todas as recomendações de ADRs passem por validação de compliance.
 """
 
-from phantom.neutron.sentinel_integration import (
+from phantom.neotron.sentinel_integration import (
     PhantomSentinel,
     PhantomGuardrails,
     validate_recommendation,
 )
-from phantom.neutron.oracle_explainer import OracleExplainer
+from phantom.neotron.oracle_explainer import OracleExplainer
 
 __all__ = [
     "PhantomSentinel",

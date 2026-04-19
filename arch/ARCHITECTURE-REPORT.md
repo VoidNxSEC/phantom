@@ -1,7 +1,7 @@
 # NixOS Architecture Analysis Report
 
 > **Professional Edition v2.0.0**
-> **Generated**: 2026-04-01 04:27:26 -03
+> **Generated**: 2026-04-19 01:21:03 -03
 > **Location**: `/home/kernelcore/master/phantom`
 
 ---
@@ -24,14 +24,14 @@
 
 | Metric | Value |
 |--------|-------|
-| **Total Files** | 268 |
+| **Total Files** | 269 |
 | **Total Directories** | 176 |
-| **Repository Size** | 3,4G |
+| **Repository Size** | 133M |
 | **Git Branch** | `main` |
-| **Git Commit** | `aa5e2c2` |
-| **Total Commits** | 99 |
+| **Git Commit** | `e58802b` |
+| **Total Commits** | 102 |
 | **Contributors** | 2 |
-| **Repository Age** | 1 days |
+| **Repository Age** | 2 days |
 
 ### NixOS Configuration
 
@@ -129,7 +129,7 @@
 |------|-------|-------|
 | .nix | 10 | 1739 |
 | .sh | 19 | 5426 |
-| .md | 70 | 20449 |
+| .md | 70 | 20444 |
 | .yaml | 1 | - |
 
 ### Directory Sizes
@@ -139,7 +139,7 @@
 | modules/ | N/A |
 | docs/ | 300K |
 | scripts/ | 148K |
-| **Total** | **3,4G** |
+| **Total** | **133M** |
 
 ---
 
@@ -160,7 +160,8 @@
 │   │   ├── snapshot-20260110-143905.txt
 │   │   ├── snapshot-20260110-144012.txt
 │   │   ├── snapshot-20260110-144056.txt
-│   │   └── snapshot-20260110-144416.txt
+│   │   ├── snapshot-20260110-144416.txt
+│   │   └── snapshot-20260401-042725.txt
 │   ├── ARCHITECTURE-REPORT.json
 │   ├── ARCHITECTURE-REPORT.md
 │   ├── ARCHITECTURE-REPORT.txt
@@ -367,7 +368,7 @@
 ├── test_cerebro.sh*
 └── vulnix-cortex-desktop-audit.txt
 
-70 directories, 150 files
+70 directories, 151 files
 ```
 
 ---
@@ -375,7 +376,7 @@
 ## 📝 Metadata
 
 - **Report Version**: 2.0.0
-- **Generated**: 2026-04-01 04:27:27 -03
+- **Generated**: 2026-04-19 01:21:03 -03
 - **Tool**: NixOS Architecture Analysis Tool
 - **Repository**: /home/kernelcore/master/phantom
 

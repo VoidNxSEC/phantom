@@ -15,15 +15,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger("phantom.neutron.sentinel")
+logger = logging.getLogger("phantom.neotron.sentinel")
 
-# Importar Neutron SENTINEL (com fallback se não disponível)
-NEUTRON_AVAILABLE = False
+# Importar Neotron SENTINEL (com fallback se não disponível)
+NEOTRON_AVAILABLE = False
 try:
-    # Adicionar path do Neutron
-    neutron_path = Path("/home/kernelcore/master/neotron")
-    if neutron_path.exists():
-        sys.path.insert(0, str(neutron_path))
+    # Adicionar path do Neotron
+    neotron_path = Path("/home/kernelcore/master/neotron")
+    if neotron_path.exists():
+        sys.path.insert(0, str(neotron_path))
 
     from neutron.compliance.sentinel import (
         AgentOutput,
@@ -32,12 +32,12 @@ try:
         EnforcedOutput,
         ComplianceViolation,
     )
-    NEUTRON_AVAILABLE = True
-    logger.info("Neutron SENTINEL loaded successfully")
+    NEOTRON_AVAILABLE = True
+    logger.info("Neotron SENTINEL loaded successfully")
 except ImportError as e:
-    logger.warning(f"Neutron not available: {e}. Running in bypass mode.")
+    logger.warning(f"Neotron not available: {e}. Running in bypass mode.")
 
-    # Fallback classes para quando Neutron não está disponível
+    # Fallback classes para quando Neotron não está disponível
     @dataclass
     class AgentOutput:
         content: str
@@ -82,6 +82,8 @@ except ImportError as e:
 
         def enforce(self, output: AgentOutput) -> EnforcedOutput:
             result = self.check(output)
+            if not result.passed and self.severity == "block":
+                raise ComplianceViolation(f"Compliance violation: {self.name} ({self.regulation})")
             return EnforcedOutput(
                 original=output,
                 validation_result=result,
@@ -257,10 +259,10 @@ class PhantomSentinel:
 
     def __init__(self, guardrails: list[ComplianceGuardrail] | None = None):
         self.guardrails = guardrails or PhantomGuardrails.all_guardrails()
-        self.neutron_available = NEUTRON_AVAILABLE
+        self.neotron_available = NEOTRON_AVAILABLE
         logger.info(
             f"PhantomSentinel initialized with {len(self.guardrails)} guardrails "
-            f"(Neutron: {'available' if NEUTRON_AVAILABLE else 'bypass mode'})"
+            f"(Neotron: {'available' if NEOTRON_AVAILABLE else 'bypass mode'})"
         )
 
     def validate(

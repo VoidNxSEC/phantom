@@ -2,9 +2,9 @@
 ║                    NIXOS ARCHITECTURE TREE                                ║
 ╚═══════════════════════════════════════════════════════════════════════════╝
 
-Generated: 2026-04-01 04:27:26 -03
+Generated: 2026-04-19 01:21:03 -03
 Location:  /home/kernelcore/master/phantom
-Branch:    main (aa5e2c2)
+Branch:    main (e58802b)
 
 ═══════════════════════════════════════════════════════════════════════════
 
@@ -22,7 +22,8 @@ Branch:    main (aa5e2c2)
 │   │   ├── snapshot-20260110-143905.txt
 │   │   ├── snapshot-20260110-144012.txt
 │   │   ├── snapshot-20260110-144056.txt
-│   │   └── snapshot-20260110-144416.txt
+│   │   ├── snapshot-20260110-144416.txt
+│   │   └── snapshot-20260401-042725.txt
 │   ├── ARCHITECTURE-REPORT.json
 │   ├── ARCHITECTURE-REPORT.md
 │   ├── ARCHITECTURE-REPORT.txt
@@ -229,6 +230,6 @@ Branch:    main (aa5e2c2)
 ├── test_cerebro.sh*
 └── vulnix-cortex-desktop-audit.txt
 
-70 directories, 150 files
+70 directories, 151 files
 
 ═══════════════════════════════════════════════════════════════════════════

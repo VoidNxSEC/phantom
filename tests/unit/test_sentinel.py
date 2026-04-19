@@ -7,8 +7,9 @@ PhantomSentinel validation.
 
 import pytest
 
-from phantom.neutron.sentinel_integration import (
+from phantom.neotron.sentinel_integration import (
     AgentOutput,
+    ComplianceViolation,
     PhantomSentinel,
     ValidationResult,
     check_adr_traceability,
@@ -141,31 +142,33 @@ class TestPhantomSentinel:
 
     def test_validate_missing_explanation(self):
         sentinel = PhantomSentinel()
-        result = sentinel.validate(
-            recommendation="Restart system",
-            adr_id="ADR-0001",
-            explanation=None,
-        )
-        assert result.validation_result.passed is False
-        assert result.validation_result.metadata["failed"] > 0
+        with pytest.raises(ComplianceViolation) as exc_info:
+            sentinel.validate(
+                recommendation="Restart system",
+                adr_id="ADR-0001",
+                explanation=None,
+            )
+        assert "phantom_explanation_required" in str(exc_info.value)
 
     def test_validate_missing_adr(self):
         sentinel = PhantomSentinel()
-        result = sentinel.validate(
-            recommendation="Increase swap",
-            adr_id=None,
-            explanation="System has low memory available",
-        )
-        assert result.validation_result.passed is False
+        with pytest.raises(ComplianceViolation) as exc_info:
+            sentinel.validate(
+                recommendation="Increase swap",
+                adr_id=None,
+                explanation="System has low memory available",
+            )
+        assert "phantom_adr_traceability" in str(exc_info.value)
 
     def test_validate_dangerous_command(self):
         sentinel = PhantomSentinel()
-        result = sentinel.validate(
-            recommendation="Execute: rm -rf / to clean cache",
-            adr_id="ADR-0001",
-            explanation="Cleaning disk space",
-        )
-        assert result.validation_result.passed is False
+        with pytest.raises(ComplianceViolation) as exc_info:
+            sentinel.validate(
+                recommendation="Execute: rm -rf / to clean cache",
+                adr_id="ADR-0001",
+                explanation="Cleaning disk space",
+            )
+        assert "phantom_safety_check" in str(exc_info.value)
 
     def test_guardrail_name(self):
         sentinel = PhantomSentinel()

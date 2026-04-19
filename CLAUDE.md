@@ -121,7 +121,7 @@ phantom/
 │   ├── pipeline/            # DAG orchestration, classification
 │   ├── providers/           # LLM providers (llama.cpp base)
 │   ├── cerebro/             # RAG engine + knowledge integration
-│   ├── neutron/             # Compliance guardrails (SENTINEL)
+│   ├── neotron/             # Compliance guardrails (SENTINEL)
 │   ├── api/                 # FastAPI REST server + Judge API
 │   └── cli/                 # Typer CLI interface
 ├── tests/                   # 18 test files

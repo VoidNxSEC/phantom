@@ -2,7 +2,7 @@
 """
 JUDGE API - Endpoint para julgar bundles do AI-OS-Agent
 
-Integrado com Neutron Compliance Framework:
+Integrado com Neotron Compliance Framework:
 - SENTINEL: Validação de compliance para recomendações
 - ORACLE: Explainability para ADRs recomendados
 """
@@ -15,15 +15,15 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger("judge_api")
 
-# Importar Neutron integration
+# Importar Neotron integration
 try:
-    from phantom.neutron.sentinel_integration import PhantomSentinel
-    from phantom.neutron.oracle_explainer import OracleExplainer
-    NEUTRON_INTEGRATION_AVAILABLE = True
-    logger.info("Neutron integration loaded successfully")
+    from phantom.neotron.sentinel_integration import PhantomSentinel
+    from phantom.neotron.oracle_explainer import OracleExplainer
+    NEOTRON_INTEGRATION_AVAILABLE = True
+    logger.info("Neotron integration loaded successfully")
 except ImportError as e:
-    logger.warning(f"Neutron integration not available: {e}")
-    NEUTRON_INTEGRATION_AVAILABLE = False
+    logger.warning(f"Neotron integration not available: {e}")
+    NEOTRON_INTEGRATION_AVAILABLE = False
     PhantomSentinel = None  # type: ignore
     OracleExplainer = None  # type: ignore
 
@@ -125,8 +125,8 @@ class JudgmentEngine:
         if knowledge_base_path:
             self._init_cerebro_rag()
 
-        # Inicializar Neutron components
-        self._init_neutron_components()
+        # Inicializar Neotron components
+        self._init_neotron_components()
 
     def _init_cerebro_rag(self) -> None:
         """Inicializar Vector Store (lazy)"""
@@ -161,10 +161,10 @@ class JudgmentEngine:
             logger.warning(f"Failed to initialize RAG: {e}")
             self.vector_store = None
 
-    def _init_neutron_components(self) -> None:
+    def _init_neotron_components(self) -> None:
         """Inicializar SENTINEL e ORACLE"""
-        if not NEUTRON_INTEGRATION_AVAILABLE:
-            logger.warning("Neutron integration not available - compliance checks disabled")
+        if not NEOTRON_INTEGRATION_AVAILABLE:
+            logger.warning("Neotron integration not available - compliance checks disabled")
             return
 
         try:
@@ -177,7 +177,7 @@ class JudgmentEngine:
             logger.info("ORACLE explainer initialized")
 
         except Exception as e:
-            logger.error(f"Failed to initialize Neutron components: {e}")
+            logger.error(f"Failed to initialize Neotron components: {e}")
             self.sentinel = None
             self.oracle = None
 

@@ -1,7 +1,7 @@
 # NixOS Architecture Analysis Report
 
 > **Professional Edition v2.0.0**
-> **Generated**: 2026-04-19 01:21:03 -03
+> **Generated**: 2026-04-26 18:54:21 -03
 > **Location**: `/home/kernelcore/master/phantom`
 
 ---
@@ -24,14 +24,14 @@
 
 | Metric | Value |
 |--------|-------|
-| **Total Files** | 269 |
-| **Total Directories** | 176 |
-| **Repository Size** | 133M |
-| **Git Branch** | `main` |
-| **Git Commit** | `e58802b` |
-| **Total Commits** | 102 |
+| **Total Files** | 271 |
+| **Total Directories** | 175 |
+| **Repository Size** | 3.4G |
+| **Git Branch** | `dev` |
+| **Git Commit** | `95529cb` |
+| **Total Commits** | 103 |
 | **Contributors** | 2 |
-| **Repository Age** | 2 days |
+| **Repository Age** | 7 days |
 
 ### NixOS Configuration
 
@@ -129,7 +129,7 @@
 |------|-------|-------|
 | .nix | 10 | 1739 |
 | .sh | 19 | 5426 |
-| .md | 70 | 20444 |
+| .md | 70 | 20445 |
 | .yaml | 1 | - |
 
 ### Directory Sizes
@@ -139,7 +139,7 @@
 | modules/ | N/A |
 | docs/ | 300K |
 | scripts/ | 148K |
-| **Total** | **133M** |
+| **Total** | **3.4G** |
 
 ---
 
@@ -161,7 +161,9 @@
 │   │   ├── snapshot-20260110-144012.txt
 │   │   ├── snapshot-20260110-144056.txt
 │   │   ├── snapshot-20260110-144416.txt
-│   │   └── snapshot-20260401-042725.txt
+│   │   ├── snapshot-20260401-042725.txt
+│   │   ├── snapshot-20260419-012102.txt
+│   │   └── snapshot-20260426-183803.txt
 │   ├── ARCHITECTURE-REPORT.json
 │   ├── ARCHITECTURE-REPORT.md
 │   ├── ARCHITECTURE-REPORT.txt
@@ -335,14 +337,13 @@
 │       ├── cli/
 │       ├── core/
 │       ├── nats/
-│       ├── neutron/
+│       ├── neotron/
 │       ├── pipeline/
 │       ├── providers/
 │       └── rag/
 ├── tests/
 │   ├── e2e/
 │   ├── integration/
-│   ├── python/
 │   ├── unit/
 │   ├── LOG_ANALYSIS_REPORT.md
 │   └── test_chat_api.sh*
@@ -368,7 +369,7 @@
 ├── test_cerebro.sh*
 └── vulnix-cortex-desktop-audit.txt
 
-70 directories, 151 files
+69 directories, 153 files
 ```
 
 ---
@@ -376,7 +377,7 @@
 ## 📝 Metadata
 
 - **Report Version**: 2.0.0
-- **Generated**: 2026-04-19 01:21:03 -03
+- **Generated**: 2026-04-26 18:54:21 -03
 - **Tool**: NixOS Architecture Analysis Tool
 - **Repository**: /home/kernelcore/master/phantom
 

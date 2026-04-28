@@ -1,23 +1,23 @@
 {
   "metadata": {
     "version": "2.0.0",
-    "generated": "2026-04-19T04:21:03Z",
+    "generated": "2026-04-26T21:54:21Z",
     "location": "/home/kernelcore/master/phantom",
     "hostname": "nx"
   },
   "git": {
-    "branch": "main",
-    "commit": "e58802b",
-    "commit_long": "e58802b6f43f90b59ce68b9994f94657ddfd02db",
-    "commit_date": "2026-04-16 07:12:55",
-    "total_commits": 102,
+    "branch": "dev",
+    "commit": "95529cb",
+    "commit_long": "95529cb837cc91f720dd11bcee8270155ef6e62d",
+    "commit_date": "2026-04-19 01:45:08",
+    "total_commits": 103,
     "contributors": 2,
     "last_tag": "v0.1.0-production-ready",
-    "repo_age_days": 2
+    "repo_age_days": 7
   },
   "statistics": {
     "files": {
-      "total": 269,
+      "total": 271,
       "nix": 10,
       "sh": 19,
       "md": 70,
@@ -26,14 +26,14 @@
     "lines": {
       "nix": 1739,
       "sh": 5426,
-      "md": 20444
+      "md": 20445
     },
-    "directories": 176,
+    "directories": 175,
     "sizes": {
       "modules": "N/A",
       "docs": "300K",
       "scripts": "148K",
-      "total": "133M"
+      "total": "3.4G"
     }
   },
   "modules": {

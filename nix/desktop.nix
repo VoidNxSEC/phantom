@@ -1,16 +1,17 @@
 # Nix derivation for Phantom Desktop GTK4 application
-{ lib
-, python3Packages
-, gtk4
-, libadwaita
-, wrapGAppsHook4
-, gobject-introspection
+{
+  lib,
+  python3Packages,
+  gtk4,
+  libadwaita,
+  wrapGAppsHook4,
+  gobject-introspection,
 }:
 
 python3Packages.buildPythonApplication rec {
   pname = "phantom-desktop";
-  version = "2.0.0";
-  format = "other";  # Not a standard Python package
+  version = "0.1.0";
+  format = "other"; # Not a standard Python package
 
   src = ./..;
 
@@ -37,17 +38,17 @@ python3Packages.buildPythonApplication rec {
 
   installPhase = ''
     mkdir -p $out/bin $out/share/applications $out/share/phantom
-    
+
     # Copy the main script
     cp apps/desktop/main.py $out/share/phantom/phantom-desktop.py
-    
+
     # Create launcher script
     cat > $out/bin/phantom-desktop << EOF
     #!/usr/bin/env bash
     exec python3 $out/share/phantom/phantom-desktop.py "\$@"
     EOF
     chmod +x $out/bin/phantom-desktop
-    
+
     # Desktop entry
     cat > $out/share/applications/dev.phantom.desktop.desktop << EOF
     [Desktop Entry]
@@ -63,9 +64,9 @@ python3Packages.buildPythonApplication rec {
 
   meta = with lib; {
     description = "Phantom Desktop - Native GTK4 Document Intelligence";
-    homepage = "https://github.com/kernelcore/phantom";
-    license = licenses.asl20;
-    maintainers = [ ];
+    homepage = "https://github.com/VoidNxSEC/phantom";
+    license = licenses.ALv2;
+    maintainers = [ VoidNxSEC ];
     mainProgram = "phantom-desktop";
     platforms = platforms.linux;
   };

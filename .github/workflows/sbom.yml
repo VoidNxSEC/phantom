@@ -4,10 +4,10 @@ on:
   push:
     branches: [main]
     paths:
-      - '**/pyproject.toml'
-      - '**/Cargo.toml'
-      - '**/package.json'
-      - '**/flake.lock'
+      - "**/pyproject.toml"
+      - "**/Cargo.toml"
+      - "**/package.json"
+      - "**/flake.lock"
   release:
     types: [published]
   workflow_dispatch:

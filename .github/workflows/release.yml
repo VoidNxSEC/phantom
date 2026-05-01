@@ -3,12 +3,12 @@ name: Publish GitHub Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   release:
     name: Create GitHub Release
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 

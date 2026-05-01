@@ -1,17 +1,21 @@
-{ lib, python3Packages, fetchFromGitHub }:
+{
+  lib,
+  python313Packages,
+  fetchFromGitHub,
+}:
 
-python3Packages.buildPythonApplication rec {
+python313Packages.buildPythonApplication rec {
   pname = "phantom";
   version = "2.0.0";
   format = "pyproject";
 
   src = ../.;
 
-  nativeBuildInputs = with python3Packages; [
+  nativeBuildInputs = with python313Packages; [
     hatchling
   ];
 
-  propagatedBuildInputs = with python3Packages; [
+  propagatedBuildInputs = with python313Packages; [
     # Core
     pydantic
     rich

@@ -189,7 +189,8 @@
         src = pkgs.lib.cleanSourceWith {
           src = ./cortex-desktop/src-tauri;
           name = "cortex-desktop-source";
-          filter = path: type:
+          filter =
+            path: type:
             let
               baseName = baseNameOf path;
             in
@@ -547,7 +548,9 @@
       nixosModules = {
         default = ./nix/module.nix;
         phantom = ./nix/module.nix;
+        desktop = ./nix/desktop.nix;
         aliases = ./nix/aliases.nix;
+        package = ./nix/package.nix;
       };
 
       overlays.default = import ./nix/overlay.nix;

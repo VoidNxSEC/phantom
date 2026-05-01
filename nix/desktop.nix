@@ -1,14 +1,14 @@
 # Nix derivation for Phantom Desktop GTK4 application
 {
   lib,
-  python3Packages,
+  python313Packages,
   gtk4,
   libadwaita,
   wrapGAppsHook4,
   gobject-introspection,
 }:
 
-python3Packages.buildPythonApplication rec {
+python313Packages.buildPythonApplication rec {
   pname = "phantom-desktop";
   version = "0.1.0";
   format = "other"; # Not a standard Python package
@@ -25,7 +25,7 @@ python3Packages.buildPythonApplication rec {
     libadwaita
   ];
 
-  propagatedBuildInputs = with python3Packages; [
+  propagatedBuildInputs = with python313Packages; [
     pygobject3
     pycairo
     # Phantom dependencies

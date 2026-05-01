@@ -3,6 +3,19 @@
 All notable changes to this project are documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.2.0] - 2026-05-01
+
+### Changed
+- **Monorepo Reorganization**: Consolidated repository structure for public release.
+- **Documentation**: Reorganized `docs/` into categorized subdirectories (Architecture, Development, API, Guides, Reference, History).
+- **Nix Flake**: Updated `flake.nix` to use the modern modular CLI (`phantom.cli.main`) instead of deprecated scripts.
+- **Root Cleanup**: Moved implementation reports, quickrefs, and standalone scripts to their respective directories (`docs/history/`, `docs/reference/`, `scripts/`).
+- **Archive**: Moved deprecated code (`phantom_core`) and old architecture snapshots to `.archive/`.
+
+### Added
+- Professional `README.md` overhaul with accurate project status and roadmap.
+- Centralized `history` tracking for project milestones.
+
 ## [2.1.0] - 2025-12-10
 
 ### Infrastructure

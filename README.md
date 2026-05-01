@@ -1,6 +1,8 @@
+```html
 <div align="center">
-
 ```
+
+```javascript
 ██████╗ ██╗  ██╗ █████╗ ███╗   ██╗████████╗ ██████╗ ███╗   ███╗
 ██╔══██╗██║  ██║██╔══██╗████╗  ██║╚══██╔══╝██╔═══██╗████╗ ████║
 ██████╔╝███████║███████║██╔██╗ ██║   ██║   ██║   ██║██╔████╔██║
@@ -9,50 +11,70 @@
 ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝    ╚═════╝ ╚═╝     ╚═╝
 ```
 
-**Local-first AI document intelligence. No cloud required. No excuses.**
+**Local-first document intelligence engine. Private, sovereign, and platform-agnostic.**
 
-[![CI](https://github.com/kernelcore/phantom/actions/workflows/ci.yml/badge.svg)](https://github.com/kernelcore/phantom/actions/workflows/ci.yml)
-[![Security](https://github.com/kernelcore/phantom/actions/workflows/security.yml/badge.svg)](https://github.com/kernelcore/phantom/actions/workflows/security.yml)
-[![CodeQL](https://github.com/kernelcore/phantom/actions/workflows/codeql.yml/badge.svg)](https://github.com/kernelcore/phantom/actions/workflows/codeql.yml)
-[![Coverage](https://codecov.io/gh/kernelcore/phantom/branch/main/graph/badge.svg)](https://codecov.io/gh/kernelcore/phantom)
-[![License](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org)
-[![Nix](https://img.shields.io/badge/built_with-nix-5277C3?logo=nixos)](https://nixos.org)
-[![Version](https://img.shields.io/badge/version-0.0.1-orange)](https://github.com/kernelcore/phantom/releases/tag/0.0.1)
+[!\[CI\](https://github.com/VoidNxSEC/phantom/actions/workflows/ci.yml/badge.svg)](https://github.com/VoidNxSEC/phantom/actions/workflows/ci.yml)
+[!\[Security\](https://github.com/VoidNxSEC/phantom/actions/workflows/security.yml/badge.svg)](https://github.com/VoidNxSEC/phantom/actions/workflows/security.yml) 
+[!\[CodeQL\](https://github.com/VoidNxSEC/phantom/actions/workflows/codeql.yml/badge.svg)](https://github.com/VoidNxSEC/phantom/actions/workflows/codeql.yml)
+[!\[Coverage\](https://codecov.io/gh/VoidNxSEC/phantom/branch/main/graph/badge.svg)](https://codecov.io/gh/VoidNxSEC/phantom)
+[!\[License\](https://img.shields.io/badge/license-Apache\_2.0-blue.svg)](LICENSE)
+[!\[Python\](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org)
+[!\[Nix\](https://img.shields.io/badge/built\_with-nix-5277C3?logo=nixos)](https://nixos.org)
+[!\[Version\](https://img.shields.io/badge/version-0.1.0-orange)](https://github.com/VoidNxSEC/phantom/releases/tag/0.1.0)
 
+```html
 </div>
+```
 
 ---
 
-Phantom is a **production-grade document intelligence engine** that classifies, sanitizes, and understands unstructured data — locally, privately, and fast.
+Phantom is a **voidnxlabs-grade document intelligence engine** that classifies, sanitizes, and understands unstructured data — locally, privately, and fast.
 
-It's not a wrapper around an API. It's not a demo. It runs entirely on your hardware, speaks to local LLMs via llama.cpp, indexes your documents into FAISS, and answers questions about them through a hybrid RAG pipeline. The only dependency is Nix.
+It is architected as an infrastructure-agnostic system. While it leverages Nix for hermetic development environments, it is fully compatible with any OCI-compliant container runtime or standard Python 3.11+ environment. It interfaces with local LLMs via `llama.cpp` and indexes data into FAISS through a high-performance RAG pipeline.
 
-**What it does in one sentence**: feed it documents, get back structured intelligence — themes, patterns, PII reports, vector search, and RAG-powered chat — without a single byte leaving your machine.
+**Core Mission**: Transform raw documents into structured intelligence — themes, patterns, PII reports, and vector search — without data ever leaving your controlled environment.
 
 ---
 
 ## What's Inside
 
-```
+```javascript
 phantom/
-├── CORTEX Engine          — semantic chunking, LLM classification, VRAM-aware
-├── RAG Pipeline           — FAISS + BM25 hybrid search with RRF fusion
-├── FastAPI Server         — 20 endpoints, SSE streaming, Prometheus metrics
-├── DAG Pipeline           — file classification, PII detection, sanitization
-├── IntelAgent (Rust)      — 8-crate workspace: governance, security, memory, MCP
-├── Cortex Desktop         — Tauri 2 + SvelteKit GUI
-└── CLI                    — Typer-based, scriptable, composable
+├── src/phantom/           — Core Python logic (CORTEX, RAG, DAG, API)
+├── cortex-desktop/        — Desktop GUI (Tauri 2 + SvelteKit)
+├── spectre/               — Sentiment & Pattern Extraction component
+├── docs/                  — Structured documentation (Architecture, API, Guides)
+├── nix/                   — Hermetic environment & package definitions
+└── tests/                 — Comprehensive Python & Integration test suite
 ```
+
+---
+
+## Roadmap
+
+- **IntelAgent (Rust)** — 8-crate workspace for decentralized agent governance, security, and memory.
+- **Cloud LLM Providers** — Native support for OpenAI, Anthropic, and DeepSeek.
+- **Redis Semantic Cache** — Low-latency response caching for recurring queries.
+- **Kubernetes Helm Charts** — For scalable, self-hosted enterprise deployments.
+
+# Contributing
+
+Fork the repo to your own account, make changes, and open a pr.
+Follow voidnxlabs on [social media](https://voidnxlabs.com/links) for updates.
+
+# Support
+For enterprise support, open a [support ticket](https://voidnxlabs.com/support).
+
+# TODO: Add support ticket link on company website 
 
 ---
 
 ## Quickstart
 
-You need [Nix](https://nixos.org/download). That's it.
+Phantom is optimized for [Nix](https://nixos.org/download), but supports any OCI-compliant or Python 3.11+ environment.
 
 ```bash
-git clone https://github.com/kernelcore/phantom
+git clone https://github.com/VoidNxSEC/phantom
 cd phantom
 
 # Drop into the fully-pinned dev environment
@@ -68,7 +90,7 @@ just serve
 just desktop
 ```
 
-No `pip install`. No virtualenv. No "works on my machine." The environment is hermetic and reproducible — today, in six months, on any machine.
+By leveraging Nix, the development environment is hermetic and reproducible. However, Phantom remains fully deployable via standard Python tools or Docker for production environments.
 
 ---
 
@@ -78,7 +100,7 @@ No `pip install`. No virtualenv. No "works on my machine." The environment is he
 
 The heart of Phantom. Processes raw documents into structured insights through a multi-stage pipeline:
 
-```
+```javascript
 Document → SemanticChunker → EmbeddingGenerator → LLM Classifier → Pydantic Schema
 ```
 
@@ -102,7 +124,7 @@ curl -X POST http://localhost:8000/process \
 
 Most RAG systems pick either semantic or keyword search. Phantom does both and fuses the results using [Reciprocal Rank Fusion](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf):
 
-```
+```javascript
 Query → FAISS (dense cosine) ─┐
                                ├→ RRF Fusion → Ranked Results
 Query → BM25Okapi (sparse) ───┘
@@ -134,24 +156,24 @@ curl -X POST http://localhost:8000/api/chat/stream \
   }'
 ```
 
-The LLM provider is fully abstracted. Default is `llama.cpp` over HTTP (OpenAI-compatible). OpenAI, Anthropic, and DeepSeek slots exist in the provider registry — they're just not wired yet. That's intentional: we're not building cloud lock-in.
+Phantom utilizes a strictly decoupled **Provider Abstraction Layer**. While local inference via `llama.cpp` is the primary target for maximum data sovereignty, the engine is architected as a cloud-native agnostic infrastructure. The provider registry ensures seamless interoperability with any OpenAI-compatible API, allowing deployment across diverse environments without architectural lock-in.
 
 ### Data Sanitization Pipeline
 
 Phantom's DAG pipeline processes files through a classification and sanitization chain before they ever touch your vector store:
 
-```
+```javascript
 Discovery → Fingerprint → Classify → Pseudonymize → Sanitize → Verify → Persist
 ```
 
 Four sanitization levels:
 
-| Level | What happens |
-|---|---|
-| `none` | Direct copy, no modifications |
-| `strip_metadata` | EXIF, document properties, author fields removed |
-| `redact_pii` | Email, phone, SSN, CPF/CNPJ, credit cards replaced with `[REDACTED]` |
-| `full_sanitize` | Everything above + content normalization |
+| Level            | What happens                                                         |
+| ---------------- | -------------------------------------------------------------------- |
+| `none`           | Direct copy, no modifications                                        |
+| `strip_metadata` | EXIF, document properties, author fields removed                     |
+| `redact_pii`     | Email, phone, SSN, CPF/CNPJ, credit cards replaced with `[REDACTED]` |
+| `full_sanitize`  | Everything above + content normalization                             |
 
 PII detection covers: email addresses, phone numbers, SSN, CPF/CNPJ, payment card numbers, AWS credentials, API keys, Bearer tokens, private keys, PGP blocks, IPv4/IPv6 ranges, UUIDs.
 
@@ -170,11 +192,11 @@ phantom -i ./input -o ./output --dry-run
 
 Every file processed gets a hash. You choose the algorithm:
 
-| Algorithm | Use case |
-|---|---|
-| SHA256 | Baseline integrity, broad compatibility |
-| BLAKE3 | High-throughput, modern standard |
-| xxHash | Maximum speed, block-level streaming |
+| Algorithm | Use case                                |
+| --------- | --------------------------------------- |
+| SHA256    | Baseline integrity, broad compatibility |
+| BLAKE3    | High-throughput, modern standard        |
+| xxHash    | Maximum speed, block-level streaming    |
 
 ```bash
 # Generate a manifest
@@ -193,26 +215,26 @@ diff <(jq -S . before.json) <(jq -S . after.json)
 
 The FastAPI server runs at `http://localhost:8000` by default. Prometheus metrics at `/metrics`, OpenAPI docs at `/docs`.
 
-| Endpoint | Method | Purpose |
-|---|---|---|
-| `/health` | GET | Liveness probe |
-| `/ready` | GET | Readiness check with downstream deps |
-| `/metrics` | GET | Prometheus metrics |
-| `/api/system/metrics` | GET | CPU, RAM, VRAM, disk |
-| `/process` | POST | Process document with CORTEX |
-| `/extract` | POST | Extract insights from text |
-| `/upload` | POST | Single file upload |
-| `/api/upload` | POST | Multi-file upload with processing |
-| `/vectors/search` | POST | Hybrid vector search |
-| `/vectors/index` | POST | Index document to FAISS |
-| `/vectors/batch-index` | POST | Batch indexing |
-| `/api/chat` | POST | RAG-powered chat |
-| `/api/chat/stream` | POST | SSE streaming chat |
-| `/api/models` | GET | List available LLM models |
-| `/api/prompt/test` | POST | Render and token-count a prompt |
-| `/api/pipeline` | POST | Full DAG pipeline execution |
-| `/api/pipeline/scan` | POST | Scan-only (read-only, no writes) |
-| `/judge` | POST | AI-Agent-OS judgment integration |
+| Endpoint               | Method | Purpose                              |
+| ---------------------- | ------ | ------------------------------------ |
+| `/health`              | GET    | Liveness probe                       |
+| `/ready`               | GET    | Readiness check with downstream deps |
+| `/metrics`             | GET    | Prometheus metrics                   |
+| `/api/system/metrics`  | GET    | CPU, RAM, VRAM, disk                 |
+| `/process`             | POST   | Process document with CORTEX         |
+| `/extract`             | POST   | Extract insights from text           |
+| `/upload`              | POST   | Single file upload                   |
+| `/api/upload`          | POST   | Multi-file upload with processing    |
+| `/vectors/search`      | POST   | Hybrid vector search                 |
+| `/vectors/index`       | POST   | Index document to FAISS              |
+| `/vectors/batch-index` | POST   | Batch indexing                       |
+| `/api/chat`            | POST   | RAG-powered chat                     |
+| `/api/chat/stream`     | POST   | SSE streaming chat                   |
+| `/api/models`          | GET    | List available LLM models            |
+| `/api/prompt/test`     | POST   | Render and token-count a prompt      |
+| `/api/pipeline`        | POST   | Full DAG pipeline execution          |
+| `/api/pipeline/scan`   | POST   | Scan-only (read-only, no writes)     |
+| `/judge`               | POST   | AI-Agent-OS judgment integration     |
 
 All request/response bodies are validated by Pydantic v2. No silent failures.
 
@@ -220,7 +242,7 @@ All request/response bodies are validated by Pydantic v2. No silent failures.
 
 ## Output Structure
 
-```
+```javascript
 output/
 ├── documents/          # PDF, DOCX, TXT, MD
 ├── images/             # PNG, JPG, SVG
@@ -274,7 +296,7 @@ output/
 
 Original paths are replaced with deterministic, reversible pseudonyms. Nothing is lost — the mapping is persisted in `pseudonym_map.json`.
 
-```
+```javascript
 /home/user/docs/secret_report_2024.pdf
              ↓
 PH-a1b2c3d4-e5f6a7b8-1234abcd.pdf
@@ -286,33 +308,6 @@ PH-a1b2c3d4-e5f6a7b8-1234abcd.pdf
 
 # Resolve it back
 phantom --resolve PH-a1b2c3d4-e5f6a7b8-1234abcd.pdf
-```
-
----
-
-## IntelAgent (Rust)
-
-A separate Rust workspace living inside Phantom's repo. Eight crates, each with a defined responsibility:
-
-| Crate | Purpose |
-|---|---|
-| `intelagent-core` | Shared types, traits, runtime primitives |
-| `intelagent-mcp` | MCP protocol implementation (agent-to-agent comms) |
-| `intelagent-memory` | Context windows, knowledge graphs |
-| `intelagent-quality` | Automated peer review gates |
-| `intelagent-security` | Privacy auditing, ed25519 signing, blake3 hashing |
-| `intelagent-governance` | DAO-style rules, reward mechanisms |
-| `intelagent-cli` | Command-line interface for the agent |
-| `intelagent-soc` | GTK4 Security Operations Center UI |
-
-Built with `opt-level=3 + LTO + strip=true`. Production binaries, not dev toys.
-
-```bash
-# Build all Rust crates
-nix build .#intelagent
-
-# Run Rust tests (nextest parallel runner)
-nix flake check
 ```
 
 ---
@@ -340,7 +335,7 @@ just test-gpu
 just test-match "test_vector"
 ```
 
-```
+```javascript
 tests/
 ├── conftest.py                 # Shared fixtures
 ├── test_imports.py             # Critical import smoke tests
@@ -394,28 +389,32 @@ Register it in the API's provider resolver. Done.
 - Encrypted file content cannot be classified beyond magic bytes and extension.
 - Metadata stripping is best-effort on proprietary formats — some residual metadata may survive.
 
-These are documented tradeoffs, not bugs.
+We are working on this issues, you can submit a PR or open a issue.
 
 ---
 
 ## Common Workflows
 
 **Normalize legacy storage:**
+
 ```bash
 phantom -i /mnt/legacy -o /mnt/normalized -w 8 -v
 ```
 
 **Export sanitized dataset:**
+
 ```bash
 phantom-dag -i ./internal -o ./export --sanitize pii
 ```
 
 **Audit a repo before committing:**
+
 ```bash
 phantom-scan ./project | jq '.findings[] | select(.risk_score > 0.7)'
 ```
 
 **Verify a data transfer:**
+
 ```bash
 phantom-hash ./original > before.json
 cp -r ./original ./destination
@@ -424,6 +423,7 @@ diff <(jq -S . before.json) <(jq -S . after.json)
 ```
 
 **Ask questions about your documents:**
+
 ```bash
 just serve &
 curl -X POST http://localhost:8000/vectors/index -F "file=@docs.pdf"
@@ -468,20 +468,18 @@ Pre-commit hooks are installed automatically when you enter `nix develop`. They 
 
 ## Status
 
-| Component | Status |
-|---|---|
-| CORTEX Engine | Production ready |
+| Component                          | Status           |
+| ---------------------------------- | ---------------- |
+| CORTEX Engine                      | Production ready |
 | FAISS Vector Store + Hybrid Search | Production ready |
-| FastAPI Server (20 endpoints) | Production ready |
-| DAG Pipeline + Sanitization | Production ready |
-| Prometheus Metrics + Structlog | Production ready |
-| CI/CD (7 workflows) | Production ready |
-| IntelAgent Rust Workspace | Production ready |
-| Cortex Desktop (Tauri + SvelteKit) | Beta |
-| CLI Commands | Complete |
-| Cloud LLM Providers | Planned (Q2 2026) |
-| Redis Semantic Cache | Planned (Q2 2026) |
-| Kubernetes Helm Charts | Planned (Q3 2026) |
+| FastAPI Server (20 endpoints)      | Production ready |
+| DAG Pipeline + Sanitization        | Production ready |
+| Prometheus Metrics + Structlog     | Production ready |
+| CI/CD (7 workflows)                | Production ready |
+| Cortex Desktop (Tauri + SvelteKit) | Beta             |
+| CLI Commands                       | Complete         |
+| SPECTRE Analysis                   | Production ready |
+| IntelAgent (Rust)                  | Planned          |
 
 ---
 

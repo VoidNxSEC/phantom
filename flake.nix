@@ -250,13 +250,8 @@
         # ═══════════════════════════════════════════════════════════════
         phantomCore = pkgs.writeScriptBin "phantom" ''
           #!${pkgs.bash}/bin/bash
-          if [ -f "./phantom_core/phantom_classifier.py" ]; then
-            exec ${pythonEnv}/bin/python3 ./phantom_core/phantom_classifier.py "$@"
-          else
-            echo "⚠️  PHANTOM CORE NOT FOUND"
-            echo "   Expected at: ./phantom_core/phantom_classifier.py"
-            exit 1
-          fi
+          export PYTHONPATH=$PYTHONPATH:${./.}/src
+          exec ${pythonEnv}/bin/python3 -m phantom.cli.main "$@"
         '';
 
         phantomVerify = pkgs.writeScriptBin "phantom-verify" ''
@@ -494,33 +489,34 @@
             ║  ██╔═══╝ ██╔══██║██╔══██║██║╚██╗██║   ██║   ██║   ██║██║╚██╔╝██║ ║
             ║  ██║     ██║  ██║██║  ██║██║ ╚████║   ██║   ╚██████╔╝██║ ╚═╝ ██║ ║
             ║  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝    ╚═════╝ ╚═╝     ╚═╝ ║
-            ║  v${VERSION} - Enhanced Development Environment                  ║
+            ║  v2.2.0 - SOVEREIGN MONOREPO | LOCAL-FIRST AI                    ║
             ╚══════════════════════════════════════════════════════════════════╝
             BANNER
             echo -e "\033[0m"
 
-            echo -e "\033[1;36m🔮 Project Components & Status\033[0m"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo -e "  🔹 \033[1mPhantom Core\033[0m:    Python/FastAPI \033[0;32m(Ready)\033[0m"
-            echo -e "  🔹 \033[1mCortex GUI\033[0m:      Tauri/React    \033[0;33m(Dev)\033[0m"
+            echo -e "\033[1;36m🔮 PROJECT STATUS: Production Ready (v${VERSION})\033[0m"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo -e "  🔹 \033[1mPHANTOM CORE:\033[0m  Python 3.13, FastAPI, CORTEX V2.0"
+            echo -e "  🔹 \033[1mCORTEX GUI:\033[0m    Tauri 2.0, Rust Stable, SvelteKit"
+            echo -e "  🔹 \033[1mENVIRONMENT:\033[0m   Hermetic Nix Shell, Crane-backed builds"
             echo ""
 
-            echo -e "\033[1;33m🚀 Common Workflows\033[0m"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo -e "  \033[1mjust dev\033[0m              Enter dev shell (you are here)"
-            echo -e "  \033[1mjust serve\033[0m            Start API server"
-            echo -e "  \033[1mjust ui\033[0m               Start Graphical UI (Tauri)"
-            echo -e "  \033[1mjust test\033[0m             Run all test suites"
-            echo -e "  \033[1mjust lint\033[0m             Run code quality checks"
+            echo -e "\033[1;33m🚀 QUICK ACTIONS\033[0m"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo -e "  \033[1mjust serve\033[0m        Start API server (8008)"
+            echo -e "  \033[1mjust desktop\033[0m      Launch Desktop GUI"
+            echo -e "  \033[1mjust test\033[0m         Run full test suite"
+            echo -e "  \033[1mjust lint\033[0m         Check code quality (ruff/mypy)"
             echo ""
 
-            echo -e "\033[1;35m🛠️  Quick Tools\033[0m"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo -e "  \033[1mphantom-scan <dir>\033[0m    Scan for sensitive data (PII/Secrets)"
-            echo -e "  \033[1mphantom-hash <dir>\033[0m    Generate cryptographic manifest"
-            echo -e "  \033[1mphantom-api\033[0m           Direct API invocation"
+            echo -e "\033[1;35m🛠️  PHANTOM TOOLKIT\033[0m"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo -e "  \033[1mphantom-api\033[0m       Direct API interactions"
+            echo -e "  \033[1mphantom-scan\033[0m      PII & Secret scanner"
+            echo -e "  \033[1mphantom-hash\033[0m      Cryptographic manifest generator"
             echo ""
-            echo -e "\033[0;90mType 'just' to see all available commands.\033[0m"
+            echo -e "\033[0;90m📚 DOCUMENTATION: ./docs\033[0m"
+            echo -e "\033[0;90mType 'just --list' for all available automation tasks.\033[0m"
             echo ""
           '';
         };

@@ -2,7 +2,7 @@
 
 > **Living Machine Learning Framework** - Production-grade document intelligence, RAG pipeline, and AI classification system.
 
-**Version**: 0.0.1 (Pre-Alpha)
+**Version**: 0.1.0 (Alpha)
 **Python**: 3.11+
 **License**: Apache-2.0
 **Last Updated**: 2026-03-26
@@ -843,9 +843,9 @@ pre-commit run --all-files
 
 ---
 
-**Last Updated**: 2026-02-05
+**Last Updated**: 2026-05-02
 **Maintainer**: kernelcore <kernelcore@voidnix.dev>
-**Version**: 2.0.0 (Beta)
+**Version**: 0.1.0 (Alpha)
 
 ---
 

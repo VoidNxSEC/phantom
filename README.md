@@ -269,7 +269,7 @@ output/
 
 ```json
 {
-  "phantom_version": "0.0.1",
+  "phantom_version": "0.1.0",
   "statistics": {
     "total_files": 15420,
     "processed": 15398,

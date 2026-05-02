@@ -2,9 +2,9 @@
 ║                    NIXOS ARCHITECTURE TREE                                ║
 ╚═══════════════════════════════════════════════════════════════════════════╝
 
-Generated: 2026-04-26 18:54:21 -03
+Generated: 2026-04-30 13:49:10 -03
 Location:  /home/kernelcore/master/phantom
-Branch:    dev (95529cb)
+Branch:    dev (c242813)
 
 ═══════════════════════════════════════════════════════════════════════════
 
@@ -25,7 +25,8 @@ Branch:    dev (95529cb)
 │   │   ├── snapshot-20260110-144416.txt
 │   │   ├── snapshot-20260401-042725.txt
 │   │   ├── snapshot-20260419-012102.txt
-│   │   └── snapshot-20260426-183803.txt
+│   │   ├── snapshot-20260426-183803.txt
+│   │   └── snapshot-20260426-185420.txt
 │   ├── ARCHITECTURE-REPORT.json
 │   ├── ARCHITECTURE-REPORT.md
 │   ├── ARCHITECTURE-REPORT.txt
@@ -124,6 +125,7 @@ Branch:    dev (95529cb)
 │   ├── module.nix
 │   ├── overlay.nix
 │   └── package.nix
+├── phantom_core/
 ├── scripts/
 │   ├── arch-generator.sh*
 │   ├── bootstrap.sh
@@ -225,12 +227,11 @@ Branch:    dev (95529cb)
 ├── pytest.ini
 ├── README.md
 ├── SECURITY.md
-├── ssh_sessions.db
 ├── start_api.sh*
 ├── taxonomy.txt
 ├── test_cerebro.sh*
 └── vulnix-cortex-desktop-audit.txt
 
-69 directories, 153 files
+70 directories, 153 files
 
 ═══════════════════════════════════════════════════════════════════════════

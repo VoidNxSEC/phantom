@@ -359,7 +359,17 @@ class Chunk:
 
 
 class SemanticChunker:
-    """Intelligent markdown chunking preserving structure"""
+    """
+    Semantic markdown chunker with intelligent splitting.
+    
+    Preserves document structure by splitting at semantic boundaries (headers,
+    code blocks, paragraphs) rather than arbitrary positions. Supports token
+    counting and overlap for context preservation.
+    
+    Attributes:
+        max_tokens (int): Maximum tokens per chunk (default: 1024)
+        overlap (int): Token overlap between chunks for context (default: 128)
+    """
 
     MARKDOWN_SEPARATORS = [
         "\n## ",  # H2 headers
@@ -468,14 +478,29 @@ class SemanticChunker:
 
 class CortexProcessor:
     """
-    Unified CORTEX Processor - Best of v1 + v2
-
-    Pipeline:
-    1. Semantic chunking
-    2. Parallel LLM classification
-    3. Pydantic validation
-    4. FAISS vector indexing
-    5. Aggregation and output
+    Unified CORTEX Processor - AI Document Intelligence Engine.
+    
+    Main orchestrator for the document processing pipeline:
+    
+    Pipeline stages:
+        1. Semantic chunking with intelligent splitting
+        2. Parallel LLM-based classification using thread pool
+        3. Pydantic validation for type safety
+        4. FAISS vector indexing for RAG (optional)
+        5. Aggregation and insight extraction
+    
+    Features:
+        - Auto-throttling based on VRAM/RAM monitoring
+        - Retry logic with exponential backoff for LLM calls
+        - Concurrent processing with configurable worker threads
+        - Full Pydantic validation of all extracted data
+        - Optional vector store integration for semantic search
+    
+    Attributes:
+        chunk_size (int): Size of text chunks in tokens (default: 1024)
+        enable_vectors (bool): Whether to enable FAISS indexing (default: False)
+        verbose (bool): Print detailed processing information (default: False)
+        workers (int): Number of concurrent worker threads (default: 4)
     """
 
     def __init__(

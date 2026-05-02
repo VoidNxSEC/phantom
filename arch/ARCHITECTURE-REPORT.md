@@ -1,7 +1,7 @@
 # NixOS Architecture Analysis Report
 
 > **Professional Edition v2.0.0**
-> **Generated**: 2026-04-26 18:54:21 -03
+> **Generated**: 2026-04-30 13:49:10 -03
 > **Location**: `/home/kernelcore/master/phantom`
 
 ---
@@ -24,14 +24,14 @@
 
 | Metric | Value |
 |--------|-------|
-| **Total Files** | 271 |
-| **Total Directories** | 175 |
-| **Repository Size** | 3.4G |
+| **Total Files** | 280 |
+| **Total Directories** | 176 |
+| **Repository Size** | 5.8G |
 | **Git Branch** | `dev` |
-| **Git Commit** | `95529cb` |
-| **Total Commits** | 103 |
+| **Git Commit** | `c242813` |
+| **Total Commits** | 104 |
 | **Contributors** | 2 |
-| **Repository Age** | 7 days |
+| **Repository Age** | 2 days |
 
 ### NixOS Configuration
 
@@ -129,7 +129,7 @@
 |------|-------|-------|
 | .nix | 10 | 1739 |
 | .sh | 19 | 5426 |
-| .md | 70 | 20445 |
+| .md | 70 | 20446 |
 | .yaml | 1 | - |
 
 ### Directory Sizes
@@ -139,7 +139,7 @@
 | modules/ | N/A |
 | docs/ | 300K |
 | scripts/ | 148K |
-| **Total** | **3.4G** |
+| **Total** | **5.8G** |
 
 ---
 
@@ -163,7 +163,8 @@
 │   │   ├── snapshot-20260110-144416.txt
 │   │   ├── snapshot-20260401-042725.txt
 │   │   ├── snapshot-20260419-012102.txt
-│   │   └── snapshot-20260426-183803.txt
+│   │   ├── snapshot-20260426-183803.txt
+│   │   └── snapshot-20260426-185420.txt
 │   ├── ARCHITECTURE-REPORT.json
 │   ├── ARCHITECTURE-REPORT.md
 │   ├── ARCHITECTURE-REPORT.txt
@@ -262,6 +263,7 @@
 │   ├── module.nix
 │   ├── overlay.nix
 │   └── package.nix
+├── phantom_core/
 ├── scripts/
 │   ├── arch-generator.sh*
 │   ├── bootstrap.sh
@@ -363,13 +365,12 @@
 ├── pytest.ini
 ├── README.md
 ├── SECURITY.md
-├── ssh_sessions.db
 ├── start_api.sh*
 ├── taxonomy.txt
 ├── test_cerebro.sh*
 └── vulnix-cortex-desktop-audit.txt
 
-69 directories, 153 files
+70 directories, 153 files
 ```
 
 ---
@@ -377,7 +378,7 @@
 ## 📝 Metadata
 
 - **Report Version**: 2.0.0
-- **Generated**: 2026-04-26 18:54:21 -03
+- **Generated**: 2026-04-30 13:49:10 -03
 - **Tool**: NixOS Architecture Analysis Tool
 - **Repository**: /home/kernelcore/master/phantom
 

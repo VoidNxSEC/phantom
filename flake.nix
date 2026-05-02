@@ -1,5 +1,5 @@
 {
-  description = "🔮 PHANTOM v2.0 - Enhanced with Crane & CI/CD Checks";
+  description = "Phantom - Document Intelligence Engine";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
@@ -14,7 +14,6 @@
     # Crane for incremental Rust builds
     crane = {
       url = "github:ipetkov/crane";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     advisory-db = {
@@ -36,7 +35,7 @@
     flake-utils.lib.eachDefaultSystem (
       system:
       let
-        VERSION = "2.0.0";
+        VERSION = "0.1.0";
 
         pkgs = import nixpkgs {
           inherit system;
@@ -189,7 +188,8 @@
         src = pkgs.lib.cleanSourceWith {
           src = ./cortex-desktop/src-tauri;
           name = "cortex-desktop-source";
-          filter = path: type:
+          filter =
+            path: type:
             let
               baseName = baseNameOf path;
             in
@@ -547,7 +547,9 @@
       nixosModules = {
         default = ./nix/module.nix;
         phantom = ./nix/module.nix;
+        desktop = ./nix/desktop.nix;
         aliases = ./nix/aliases.nix;
+        package = ./nix/package.nix;
       };
 
       overlays.default = import ./nix/overlay.nix;

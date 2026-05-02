@@ -13,14 +13,13 @@
 
 **Local-first document intelligence engine. Private, sovereign, and platform-agnostic.**
 
-[!\[CI\](https://github.com/VoidNxSEC/phantom/actions/workflows/ci.yml/badge.svg)](https://github.com/VoidNxSEC/phantom/actions/workflows/ci.yml)
-[!\[Security\](https://github.com/VoidNxSEC/phantom/actions/workflows/security.yml/badge.svg)](https://github.com/VoidNxSEC/phantom/actions/workflows/security.yml) 
-[!\[CodeQL\](https://github.com/VoidNxSEC/phantom/actions/workflows/codeql.yml/badge.svg)](https://github.com/VoidNxSEC/phantom/actions/workflows/codeql.yml)
-[!\[Coverage\](https://codecov.io/gh/VoidNxSEC/phantom/branch/main/graph/badge.svg)](https://codecov.io/gh/VoidNxSEC/phantom)
+[!\[Nix Build\](https://github.com/VoidNxSEC/phantom/actions/workflows/nix-build.yml/badge.svg)](https://github.com/VoidNxSEC/phantom/actions/workflows/nix-build.yml)
+[!\[Nix Check\](https://github.com/VoidNxSEC/phantom/actions/workflows/nix-check.yml/badge.svg)](https://github.com/VoidNxSEC/phantom/actions/workflows/nix-check.yml)
+[!\[Secret Scan\](https://github.com/VoidNxSEC/phantom/actions/workflows/secret-scan.yml/badge.svg)](https://github.com/VoidNxSEC/phantom/actions/workflows/secret-scan.yml)
 [!\[License\](https://img.shields.io/badge/license-Apache\_2.0-blue.svg)](LICENSE)
 [!\[Python\](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org)
 [!\[Nix\](https://img.shields.io/badge/built\_with-nix-5277C3?logo=nixos)](https://nixos.org)
-[!\[Version\](https://img.shields.io/badge/version-0.1.0-orange)](https://github.com/VoidNxSEC/phantom/releases/tag/0.1.0)
+[!\[Version\](https://img.shields.io/badge/version-0.1.0-orange)](https://github.com/VoidNxSEC/phantom/releases/latest)
 
 ```html
 </div>

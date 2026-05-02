@@ -344,6 +344,15 @@
           exec ${pythonEnv}/bin/python3 ${./.}/src/phantom/api/cortex_api.py "$@"
         '';
 
+        # Main FastAPI app (RAG, vectors, chat, /playground) — default :8000
+        phantomApiCore = pkgs.writeScriptBin "phantom-api-core" ''
+          #!${pkgs.bash}/bin/bash
+          export PYTHONPATH=$PYTHONPATH:${./.}/src
+          HOST="''${HOST:-127.0.0.1}"
+          PORT="''${PORT:-8000}"
+          exec ${pythonEnv}/bin/python3 -m uvicorn phantom.api.app:app --host "$HOST" --port "$PORT" "$@"
+        '';
+
       in
       {
         # ═══════════════════════════════════════════════════════════════
@@ -357,6 +366,7 @@
           phantom-hash = phantomHash;
           phantom-scan = phantomScan;
           phantom-api = phantomApi;
+          phantom-api-core = phantomApiCore;
         };
 
         # ═══════════════════════════════════════════════════════════════
@@ -466,6 +476,7 @@
             phantomHash
             phantomScan
             phantomApi
+            phantomApiCore
           ]
           ++ systemTools;
 
@@ -511,7 +522,8 @@
 
             echo -e "\033[1;35m🛠️  PHANTOM TOOLKIT\033[0m"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo -e "  \033[1mphantom-api\033[0m       Direct API interactions"
+            echo -e "  \033[1mphantom-api\033[0m       Cortex API (legacy GUI backend, default :8087)"
+            echo -e "  \033[1mphantom-api-core\033[0m  Phantom FastAPI (RAG/playground, default :8000)"
             echo -e "  \033[1mphantom-scan\033[0m      PII & Secret scanner"
             echo -e "  \033[1mphantom-hash\033[0m      Cryptographic manifest generator"
             echo ""
@@ -536,6 +548,10 @@
           phantom = {
             type = "app";
             program = "${phantomCore}/bin/phantom";
+          };
+          phantom-api-core = {
+            type = "app";
+            program = "${phantomApiCore}/bin/phantom-api-core";
           };
         };
       }

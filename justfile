@@ -159,14 +159,14 @@ run *ARGS:
     @echo "🎯 Running Phantom..."
     phantom {{ARGS}}
 
-# Start API server (default port 8008 — matches securellm-mcp PHANTOM_URL)
+# Start API server (default port 8008 — matches securellm-mcp PHANTOM_URL; uses legacy phantom-api / cortex stack)
 serve PORT="8008":
-    @echo "🌐 Starting Phantom API on port {{PORT}}..."
+    @echo "🌐 Starting API on port {{PORT}} (phantom-api / cortex)..."
     phantom-api --port {{PORT}}
 
-# Start Cortex API (backend for the desktop GUI, proxied through Vite on :1420)
+# Cortex API only (cortex_api.py) — desktop/GUI backend, default :8087
 cortex:
-    @echo "🧠 Starting Cortex API on port 8087..."
+    @echo "🧠 Cortex API (cortex_api.py) — http://127.0.0.1:8087"
     phantom-api
 
 # Run the full pipeline demo
@@ -179,16 +179,69 @@ doctor:
     @echo "🩺 Running Phantom diagnostics..."
     PYTHONPATH=$$PYTHONPATH:src python -m phantom.cli.doctor
 
-# Start main Phantom API server on port 8000
+# One-page CLI quick reference (same as: phantom cheat)
+cheat:
+    @PYTHONPATH=$$PYTHONPATH:src python -c "from phantom.cli.cheat_sheet import print_cheat; print_cheat()"
+
+# Regenerate shell completion scripts under scripts/completions/ (requires dev deps on PATH)
+completions:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p scripts/completions
+    export PYTHONPATH="$PWD/src:${PYTHONPATH:-}"
+    if command -v phantom >/dev/null 2>&1; then
+      cmd=(phantom)
+    else
+      py="$(command -v python3 || command -v python)"
+      cmd=("$py" -m phantom.cli.main)
+    fi
+    "${cmd[@]}" --show-completion bash > scripts/completions/phantom.bash
+    "${cmd[@]}" --show-completion zsh > scripts/completions/phantom.zsh
+    "${cmd[@]}" --show-completion fish > scripts/completions/phantom.fish
+    echo "Wrote scripts/completions/phantom.{bash,zsh,fish} (entry: ${cmd[*]})"
+
+# Main Phantom FastAPI (app.py: RAG, vectors, chat, /playground) on :8000
 api:
-    @echo "🌐 Starting Phantom API on port 8000..."
+    @echo "🌐 Phantom API (app.py) — http://127.0.0.1:8000  (playground: /playground)"
     PYTHONPATH=$$PYTHONPATH:src python -m uvicorn phantom.api.app:app --host 127.0.0.1 --port 8000 --reload
 
-# Start both API servers (Cortex + Phantom) in background
+# List OS listeners on :8000 (Phantom) and :8087 (Cortex) with PID and uptime
+ps:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    show() {
+      local port=$1 name=$2
+      if ! command -v lsof >/dev/null 2>&1; then
+        echo "  $name  :$port  (install 'lsof' for details)"
+        return
+      fi
+      line=$(lsof -iTCP:"$port" -sTCP:LISTEN -n -P 2>/dev/null | tail -n +2 | head -1)
+      if [[ -z "$line" ]]; then
+        echo "  $name  :$port  (no listener)"
+        return
+      fi
+      pid=$(echo "$line" | awk '{print $2}')
+      el=$(ps -o etime= -p "$pid" 2>/dev/null | tr -d ' ' || echo "?")
+      echo "  $name  :$port  PID $pid  uptime $el"
+    }
+    echo "Phantom stack (expect both after 'just up'):"
+    show 8000 "Phantom API   "
+    show 8087 "Cortex API    "
+
+# Open browser playground (run `just api` first)
+playground:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "Opening http://127.0.0.1:8000/playground …"
+    if command -v xdg-open >/dev/null 2>&1; then xdg-open "http://127.0.0.1:8000/playground"
+    elif command -v open >/dev/null 2>&1; then open "http://127.0.0.1:8000/playground"
+    else echo "Open http://127.0.0.1:8000/playground in your browser"; fi
+
+# Both APIs: Phantom app.py :8000 (background) + Cortex cortex_api :8087 (foreground)
 up:
-    @echo "🚀 Starting Phantom stack..."
-    @echo "  ➜ Cortex API → http://127.0.0.1:8087"
-    @echo "  ➜ Phantom API → http://127.0.0.1:8000"
+    @echo "🚀 Phantom stack — Phantom API :8000 + Cortex :8087"
+    @echo "  ➜ Phantom (app.py) → http://127.0.0.1:8000/playground"
+    @echo "  ➜ Cortex (GUI)    → http://127.0.0.1:8087"
     @(PYTHONPATH=$$PYTHONPATH:src python -m uvicorn phantom.api.app:app --host 127.0.0.1 --port 8000 --reload &)
     @phantom-api
 
@@ -205,9 +258,9 @@ ui-build:
     @echo "🏗️  Building Cortex Desktop (static)..."
     @cd cortex-desktop && npm run build
 
-# Run CORTEX demo
-demo:
-    @echo "🎬 Running CORTEX demo..."
+# Run legacy shell-based CORTEX demo script (distinct from `demo DOC=` pipeline demo above)
+demo-cortex:
+    @echo "🎬 Running CORTEX demo script..."
     ./scripts/cortex_demo.sh
 
 # ═══════════════════════════════════════════════════════════════

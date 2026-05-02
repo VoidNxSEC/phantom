@@ -3,7 +3,7 @@
 > **Goal**: Transform Phantom from a powerful-but-hidden framework into a
 > discoverable, demonstrable, and delightful developer experience.
 >
-> **Status**: 🟡 Planning
+> **Status**: 🟢 In progress
 > **Duration**: 2–3 weeks (part-time)
 > **Owner**: kernelcore
 > **Last Updated**: 2026-05-01
@@ -20,6 +20,7 @@
   - [Epic 3: CLI Discovery & DX](#epic-3-cli-discovery--dx)
   - [Epic 4: Unify the Server Story](#epic-4-unify-the-server-story)
   - [Epic 5: Playground Web UI](#epic-5-playground-web-ui)
+  - [Epic 6: Deanonymize & integrity (chain of custody)](#epic-6-deanonymize--integrity-chain-of-custody)
 - [Appendix: Architecture](#appendix-architecture)
 - [Appendix: Success Metrics](#appendix-success-metrics)
 
@@ -82,7 +83,7 @@ know it can do**.
 | 1.2 | Implement `cli/demo.py` with a `demo` Typer command: chunk → embed → index → search → (optional) chat | 3 h | ✅ |
 | 1.3 | Rich progress panels, color-coded search results, summary on completion | 1 h | ✅ |
 | 1.4 | Add `just demo` recipe in `justfile` | 5 min | ✅ |
-| 1.5 | Add `demo_input/` samples to `pyproject.toml` package data | 10 min | 🟡 Open |
+| 1.5 | Add `demo_input/` samples to `pyproject.toml` package data | 10 min | ✅ |
 
 **Acceptance Criteria**:
 - `phantom demo --doc financial --no-rag` runs entirely offline with no dependencies ✅
@@ -130,15 +131,17 @@ every component — providers, vector store, NATS, GPU, system resources.
 **Story**: A developer types `phantom` and sees a well-organized help page with
 examples. Tab-completion works in bash/zsh/fish.
 
+**Status**: ✅ **COMPLETED**
+
 **Tasks**:
 
-| # | Task | Effort | Depends On |
-|---|---|---|---|
-| 3.1 | Audit all CLI commands for missing `--help` descriptions and example usage | 1 h | — |
-| 3.2 | Add rich `epilog` / `examples` to each Typer command with real-world usage | 2 h | 3.1 |
-| 3.3 | Register shell completion: `phantom --install-completion` for bash/zsh/fish | 1 h | — |
-| 3.4 | Add `just completions` to generate and persist completions | 30 min | 3.3 |
-| 3.5 | Create a `just cheat` command that prints a one-page quick reference | 30 min | — |
+| # | Task | Effort | Depends On | Status |
+|---|---|---|---|---|
+| 3.1 | Audit all CLI commands for missing `--help` descriptions and example usage | 1 h | — | ✅ |
+| 3.2 | Add rich `epilog` / `examples` to each Typer command with real-world usage | 2 h | 3.1 | ✅ |
+| 3.3 | Register shell completion: `phantom --install-completion` for bash/zsh/fish | 1 h | — | ✅ |
+| 3.4 | Add `just completions` to generate and persist completions | 30 min | 3.3 | ✅ |
+| 3.5 | Create a `just cheat` command that prints a one-page quick reference | 30 min | — | ✅ |
 
 **Acceptance Criteria**:
 - `phantom --help` shows organized groups with descriptions
@@ -153,15 +156,17 @@ examples. Tab-completion works in bash/zsh/fish.
 **Story**: A developer runs `just up` and both servers start. The `justfile`
 clearly explains what runs where and why.
 
+**Status**: ✅ **COMPLETED**
+
 **Tasks**:
 
-| # | Task | Effort | Depends On |
-|---|---|---|---|
-| 4.1 | ✅ **DONE** — Add `just api` recipe for `app.py` on port 8000 | — | — |
-| 4.2 | ✅ **DONE** — Add `just up` recipe that starts both servers | — | — |
-| 4.3 | Register `phantom-api-core` as a second Nix package for `app.py` | 1 h | — |
-| 4.4 | Update `CLAUDE.md` to document the two-server architecture clearly | 30 min | 4.3 |
-| 4.5 | Add `just ps` to check which servers are running | 15 min | — |
+| # | Task | Effort | Depends On | Status |
+|---|---|---|---|---|
+| 4.1 | Add `just api` recipe for `app.py` on port 8000 | — | — | ✅ |
+| 4.2 | Add `just up` recipe that starts both servers | — | — | ✅ |
+| 4.3 | Register `phantom-api-core` as a second Nix package for `app.py` | 1 h | — | ✅ |
+| 4.4 | Update `CLAUDE.md` to document the two-server architecture clearly | 30 min | 4.3 | ✅ |
+| 4.5 | Add `just ps` to check which servers are running | 15 min | — | ✅ |
 
 **Acceptance Criteria**:
 - `just up` starts both servers with a single command
@@ -175,21 +180,49 @@ clearly explains what runs where and why.
 **Story**: A developer opens `http://localhost:8000/playground` and sees a
 minimal HTML page where they can test every API endpoint without curl.
 
+**Status**: ✅ **COMPLETED**
+
 **Tasks**:
 
-| # | Task | Effort | Depends On |
-|---|---|---|---|
-| 5.1 | Serve a simple HTML playground from a FastAPI route in `app.py` | 2 h | — |
-| 5.2 | Add sections: Process, Search, Chat, Models, Metrics, Doctor | 2 h | 5.1 |
-| 5.3 | Each section has a form → calls the local API → shows the JSON response | 1.5 h | 5.2 |
-| 5.4 | Style with minimal CSS (dark theme, monospace output) | 1 h | 5.3 |
-| 5.5 | Add `just playground` to open `http://localhost:8000/playground` in browser | 5 min | 5.1 |
+| # | Task | Effort | Depends On | Status |
+|---|---|---|---|---|
+| 5.1 | Serve a simple HTML playground from a FastAPI route in `app.py` | 2 h | — | ✅ |
+| 5.2 | Add sections: Process, Search, Chat, Models, Metrics, Doctor | 2 h | 5.1 | ✅ |
+| 5.3 | Each section has a form → calls the local API → shows the JSON response | 1.5 h | 5.2 | ✅ |
+| 5.4 | Style with minimal CSS (dark theme, monospace output) | 1 h | 5.3 | ✅ |
+| 5.5 | Add `just playground` to open `http://localhost:8000/playground` in browser | 5 min | 5.1 | ✅ |
 
 **Acceptance Criteria**:
-- All major API endpoints are accessible from the playground
-- Forms have sensible defaults so one click produces results
-- Responses are displayed as formatted JSON
-- Works in a browser without JavaScript errors
+- All major API endpoints are accessible from the playground ✅
+- Forms have sensible defaults so one click produces results ✅
+- Responses are displayed as formatted JSON ✅
+- Works in a browser without JavaScript errors ✅
+
+---
+
+### Epic 6: Deanonymize & integrity (chain of custody)
+
+**Story**: Pseudonyms protect identities in exports; **authorized** workflows must
+recover the original path and optionally **verify** the processed artifact against
+fingerprints stored with the pipeline run — the inverse of anonymization for audit.
+
+**Status**: 🟡 **Started** (`phantom resolve`, `phantom-dag --resolve`, bundled `demo_input`)
+
+**Tasks**:
+
+| # | Task | Effort | Status |
+|---|---|---|---|
+| 6.1 | Bundle `src/phantom/demo_input/` + Hatch `force-include` | 30 min | ✅ |
+| 6.2 | CLI `phantom resolve` + `--list` / `--verify` + `--map` | 1 h | ✅ |
+| 6.3 | Fix `phantom-dag --resolve` (was documented but ran full pipeline) | 15 min | ✅ |
+| 6.4 | REST `GET /api/custody/resolve` + RBAC hooks *(optional)* | TBD | ⬜ |
+
+**Acceptance Criteria**:
+
+- `phantom resolve PH-.... -o <dag-out>` prints original path from `pseudonym_map.json` ✅
+- `phantom resolve -o <dag-out> --list` prints all mappings ✅
+- `phantom resolve … --verify` checks output file vs SQLite metadata when DB exists ✅
+- `phantom-dag -o <out> --resolve PH-....` exits without requiring `-i` ✅
 
 ---
 

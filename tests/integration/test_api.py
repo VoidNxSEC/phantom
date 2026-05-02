@@ -332,3 +332,12 @@ class TestSystemMetricsEndpoint:
         body = client.get("/api/system/metrics").json()
         assert "timestamp" in body
         assert body["timestamp"] > 0
+
+
+class TestPlaygroundEndpoint:
+    def test_playground_returns_html(self, client):
+        resp = client.get("/playground")
+        assert resp.status_code == 200
+        assert "html" in resp.headers.get("content-type", "").lower()
+        assert "Phantom API Playground" in resp.text
+        assert "/vectors/search" in resp.text

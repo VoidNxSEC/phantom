@@ -112,6 +112,17 @@ Phantom is a **local-first AI document intelligence framework** that processes u
 
 ## 🏗️ Architecture Quick Reference
 
+### Two HTTP API processes (do not confuse them)
+
+| Script / entry | Module | Default port | Role |
+| ---------------- | ------ | ------------ | ---- |
+| **`phantom-api`** | `phantom/api/cortex_api.py` | **8087** | Cortex/GUI-oriented API used by the desktop app and `just cortex`. |
+| **`phantom-api-core`** (Nix) or **`uvicorn phantom.api.app:app`** | `phantom/api/app.py` | **8000** | Main Phantom REST API: CORTEX extract/process, FAISS, RAG chat, metrics, **`/playground`**. |
+| **`just up`** | — | 8000 + 8087 | Starts **both** (Phantom in background, then `phantom-api`). |
+| **`just api`** | — | 8000 | Dev shortcut: `uvicorn` on `app:app` with reload. |
+
+Use **`just ps`** to see which PIDs are listening on 8000/8087. Open **`http://127.0.0.1:8000/playground`** after `just api` to exercise the main API from the browser.
+
 ### Directory Structure
 
 ```javascript
@@ -160,6 +171,7 @@ Results (JSON + Pydantic validation)
 
 | Endpoint            | Method | Status       | Returns                       |
 | ------------------- | ------ | ------------ | ----------------------------- |
+| `/playground`       | GET    | ✅ Complete  | Browser UI to test major endpoints |
 | `/health`           | GET    | ✅ Complete  | Health status                 |
 | `/ready`            | GET    | ✅ Complete  | Readiness checks              |
 | `/metrics`          | GET    | ✅ Complete  | Prometheus metrics            |

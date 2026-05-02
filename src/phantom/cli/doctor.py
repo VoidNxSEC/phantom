@@ -28,7 +28,20 @@ from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
 
-app = typer.Typer(help="Diagnose Phantom stack health")
+app = typer.Typer(
+    help=(
+        "Health checks for Python/GPU/FAISS, vector store, APIs (:8000 / :8087), "
+        "and LLM providers (local + cloud keys)."
+    ),
+    epilog=(
+        "[bold]Examples:[/bold]\n"
+        "  phantom doctor\n"
+        "  phantom doctor --providers-only\n"
+        "  phantom doctor -v"
+    ),
+    rich_markup_mode="rich",
+    rich_help_panel="Getting started",
+)
 console = Console()
 
 # ── Severity levels ─────────────────────────────────────────────────

@@ -18,6 +18,7 @@ Usage:
 """
 
 import time
+from importlib import resources
 from pathlib import Path
 from typing import Any
 
@@ -29,13 +30,21 @@ from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
 
-app = typer.Typer(help="One-command demo of the full Phantom pipeline")
+app = typer.Typer(
+    help=(
+        "One-command demo: chunk → embed → FAISS → search → optional RAG chat.\n"
+        "[dim]Samples ship inside the package ([cyan]phantom/demo_input[/cyan]).[/dim]"
+    ),
+    epilog=(
+        "[bold]Examples:[/bold]\n"
+        "  phantom demo\n"
+        "  phantom demo --doc tech --no-rag\n"
+        "  phantom demo --doc quantum -v"
+    ),
+    rich_markup_mode="rich",
+    rich_help_panel="Getting started",
+)
 console = Console()
-
-# ── Paths ───────────────────────────────────────────────────────────
-
-HERE = Path(__file__).resolve().parent.parent.parent.parent
-DEMO_INPUT = HERE / "demo_input"
 
 SAMPLE_DOCS: dict[str, str] = {
     "financial": "financial_report.md",
@@ -81,24 +90,32 @@ def _fail(msg: str) -> None:
 # ── Domain helpers ──────────────────────────────────────────────────
 
 
-def _validate_doc(doc_name: str) -> Path:
-    """Resolve and validate the sample document path."""
-    filename = SAMPLE_DOCS.get(doc_name)
+def _load_demo_document(doc_key: str) -> tuple[str, str]:
+    """Return (filename, utf-8 text) from bundled package data or dev tree."""
+    filename = SAMPLE_DOCS.get(doc_key)
     if not filename:
         console.print(
-            f"[red]Unknown document '{doc_name}'. Choose from: {', '.join(SAMPLE_DOCS)}[/]"
+            f"[red]Unknown document '{doc_key}'. Choose from: {', '.join(SAMPLE_DOCS)}[/]"
         )
         raise typer.Exit(1)
 
-    doc_path = DEMO_INPUT / filename
-    if not doc_path.exists():
-        console.print(
-            f"[red]Demo document not found at {doc_path}.[/]\n"
-            f"  Make sure 'demo_input/' exists alongside the source tree."
-        )
-        raise typer.Exit(1)
+    try:
+        p = resources.files("phantom") / "demo_input" / filename
+        if p.is_file():
+            return filename, p.read_text(encoding="utf-8")
+    except (OSError, TypeError, ValueError):
+        pass
 
-    return doc_path
+    pkg_root = Path(__file__).resolve().parents[1]
+    dev_path = pkg_root / "demo_input" / filename
+    if dev_path.is_file():
+        return filename, dev_path.read_text(encoding="utf-8")
+
+    console.print(
+        f"[red]Demo document not found: {filename}[/]\n"
+        f"  Expected bundled [cyan]phantom/demo_input/{filename}[/] or {dev_path}"
+    )
+    raise typer.Exit(1)
 
 
 # ── Pipeline steps ─────────────────────────────────────────────────
@@ -303,8 +320,7 @@ def demo(
     Works fully offline for the core pipeline (chunk → embed → index → search).
     Only the RAG chat step requires a running LLM provider.
     """
-    doc_path = _validate_doc(doc)
-    content = doc_path.read_text(encoding="utf-8")
+    doc_name, content = _load_demo_document(doc)
     query = QUERIES.get(doc, QUERIES["financial"])
     chat_q = CHAT_QUESTIONS.get(doc, CHAT_QUESTIONS["financial"])
 
@@ -318,7 +334,7 @@ def demo(
         )
     )
     wc = len(content.split())
-    console.print(f"\n  Document: [bold]{doc_path.name}[/] ({wc} words)")
+    console.print(f"\n  Document: [bold]{doc_name}[/] ({wc} words)")
     console.print(f"  Search query: [italic]{query}[/]")
     console.print(f"  Chat question: [italic]{chat_q}[/]")
     console.print()

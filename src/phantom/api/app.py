@@ -8,10 +8,11 @@ import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request, Response, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from pydantic import BaseModel
 
+from phantom.api.playground import PLAYGROUND_HTML
 from phantom.logging import configure_logging, get_logger
 
 # ── Prometheus metrics ──────────────────────────────────────────────
@@ -1057,6 +1058,16 @@ def create_app() -> FastAPI:
             return engine.judge(bundle)
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get(
+        "/playground",
+        response_class=HTMLResponse,
+        tags=["playground"],
+        summary="Browser playground for local API calls",
+    )
+    async def playground():
+        """Minimal dark-theme UI to exercise major REST endpoints without curl."""
+        return PLAYGROUND_HTML
 
     return app
 

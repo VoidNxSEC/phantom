@@ -19,18 +19,37 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from phantom.cli.cheat_sheet import print_cheat
 from phantom.cli.demo import app as demo_app
 from phantom.cli.doctor import app as doctor_app
 
 app = typer.Typer(
     name="phantom",
-    help="Phantom AI - Document Intelligence & Classification Pipeline",
-    add_completion=False,
+    help=(
+        "[bold cyan]Phantom[/bold cyan] — local-first document intelligence "
+        "(CORTEX, RAG, DAG sanitization, REST API).\n\n"
+        "[bold]Use[/bold] [cyan]phantom <command> --help[/cyan] for options. "
+        "Commands are grouped below."
+    ),
+    epilog=(
+        "[dim]Quick ref:[/dim] [bold]phantom cheat[/bold] · "
+        "[bold]phantom --install-completion[/bold] (bash/zsh/fish)"
+    ),
+    add_completion=True,
+    rich_markup_mode="rich",
+    no_args_is_help=True,
 )
 console = Console()
 
 
-@app.command()
+@app.command(
+    rich_help_panel="Documents & pipeline",
+    epilog=(
+        "[bold]Examples:[/bold]\n"
+        "  phantom extract -i ./docs -o insights.jsonl\n"
+        "  phantom extract -i ./README.md -o one.jsonl -v"
+    ),
+)
 def extract(
     input_path: Path = typer.Option(..., "-i", "--input", help="Input directory or file"),
     output_path: Path = typer.Option(..., "-o", "--output", help="Output file (JSONL)"),
@@ -83,7 +102,10 @@ def extract(
     console.print(f"[green]Extracted {len(results)} document(s) -> {output_path}[/]")
 
 
-@app.command()
+@app.command(
+    rich_help_panel="Documents & pipeline",
+    epilog="[bold]Example:[/bold]  phantom analyze ./report.md --no-entities",
+)
 def analyze(
     file: Path = typer.Argument(..., help="File to analyze"),
     sentiment: bool = typer.Option(True, "--sentiment", help="Include sentiment analysis"),
@@ -133,7 +155,14 @@ def analyze(
     console.print(f"\n[dim]Processing time: {insights.processing_time_seconds:.2f}s[/]")
 
 
-@app.command()
+@app.command(
+    rich_help_panel="Documents & pipeline",
+    epilog=(
+        "[bold]Examples:[/bold]\n"
+        "  phantom classify ./incoming -o ./organized\n"
+        "  phantom classify ./dump --dry-run"
+    ),
+)
 def classify(
     input_dir: Path = typer.Argument(..., help="Directory to classify"),
     output_dir: Path = typer.Option(None, "-o", "--output", help="Output directory"),
@@ -180,7 +209,10 @@ def classify(
         console.print(f"[yellow]{ctx.quarantined} files quarantined[/]")
 
 
-@app.command()
+@app.command(
+    rich_help_panel="Documents & pipeline",
+    epilog="[bold]Example:[/bold]  phantom scan ./repo  # recursive sensitive-pattern scan",
+)
 def scan(
     directory: Path = typer.Argument(".", help="Directory to scan"),
 ):
@@ -225,11 +257,22 @@ def scan(
 
 
 # RAG subcommands
-rag_app = typer.Typer(help="RAG pipeline commands")
+rag_app = typer.Typer(
+    name="rag",
+    help="Local FAISS: ingest text/md into [cyan]data/index_<collection>.faiss[/cyan], then query.",
+    rich_markup_mode="rich",
+    rich_help_panel="RAG",
+)
 app.add_typer(rag_app, name="rag")
 
 
-@rag_app.command("query")
+@rag_app.command(
+    "query",
+    epilog=(
+        "[bold]Example:[/bold]  phantom rag query \"What are the main risks?\" -c default -k 8\n"
+        "[dim]Requires[/dim] [bold]phantom rag ingest[/bold] on the same machine first."
+    ),
+)
 def rag_query(
     question: str = typer.Argument(..., help="Question to ask"),
     collection: str = typer.Option("default", "-c", "--collection", help="Collection name"),
@@ -264,7 +307,13 @@ def rag_query(
         console.print(f"   {r.text[:200]}{'...' if len(r.text) > 200 else ''}\n")
 
 
-@rag_app.command("ingest")
+@rag_app.command(
+    "ingest",
+    epilog=(
+        "[bold]Example:[/bold]  phantom rag ingest ./knowledge_base -c myproj\n"
+        "[dim]Writes[/dim] ./data/index_myproj.faiss"
+    ),
+)
 def rag_ingest(
     directory: Path = typer.Argument(..., help="Directory to ingest"),
     collection: str = typer.Option("default", "-c", "--collection", help="Collection name"),
@@ -319,11 +368,19 @@ def rag_ingest(
 
 
 # Tools subcommands
-tools_app = typer.Typer(help="Utility tools")
+tools_app = typer.Typer(
+    name="tools",
+    help="VRAM snapshot, repository audit, interactive prompt helper.",
+    rich_markup_mode="rich",
+    rich_help_panel="Tools",
+)
 app.add_typer(tools_app, name="tools")
 
 
-@tools_app.command("vram")
+@tools_app.command(
+    "vram",
+    epilog="[bold]Example:[/bold]  phantom tools vram -m Llama-3-70B",
+)
 def tools_vram(
     model: str | None = typer.Option(None, "-m", "--model", help="Model name"),
 ):
@@ -360,7 +417,10 @@ def tools_vram(
         console.print(f"\n[dim]Model-specific estimates for '{model}' not yet available[/]")
 
 
-@tools_app.command("prompt")
+@tools_app.command(
+    "prompt",
+    epilog="[bold]Example:[/bold]  Template [cyan]{topic}[/cyan] → prompted fill-in for token estimate.",
+)
 def tools_prompt():
     """Open the prompt workbench (interactive prompt testing)."""
     console.print("[cyan]Prompt Workbench[/]")
@@ -391,7 +451,10 @@ def tools_prompt():
         console.print(f"[dim]Approx tokens: {len(rendered) // 4}[/]\n")
 
 
-@tools_app.command("audit")
+@tools_app.command(
+    "audit",
+    epilog="[bold]Example:[/bold]  phantom tools audit .",
+)
 def tools_audit(
     directory: Path = typer.Argument(".", help="Directory to audit"),
 ):
@@ -435,7 +498,12 @@ def tools_audit(
 
 
 # API subcommands
-api_app = typer.Typer(help="API server commands")
+api_app = typer.Typer(
+    name="api",
+    help="REST API: /vectors, /api/chat, /metrics, …",
+    rich_markup_mode="rich",
+    rich_help_panel="Server",
+)
 app.add_typer(api_app, name="api")
 
 
@@ -446,7 +514,14 @@ app.add_typer(demo_app, name="demo")
 app.add_typer(doctor_app, name="doctor")
 
 
-@api_app.command("serve")
+@api_app.command(
+    "serve",
+    epilog=(
+        "[bold]Examples:[/bold]\n"
+        "  phantom api serve --port 8000\n"
+        "  phantom api serve --reload   # dev auto-reload"
+    ),
+)
 def api_serve(
     host: str = typer.Option("127.0.0.1", "--host", help="Host to bind"),
     port: int = typer.Option(8000, "--port", help="Port to bind"),
@@ -466,12 +541,105 @@ def api_serve(
     )
 
 
-@app.command()
+@app.command(rich_help_panel="Meta", epilog="[bold]Example:[/bold]  phantom version")
 def version():
     """Show version information."""
     from phantom import __codename__, __version__
 
     console.print(f"[cyan]🔮 Phantom[/] v{__version__} ({__codename__})")
+
+
+@app.command(
+    "resolve",
+    rich_help_panel="Chain of custody",
+    epilog=(
+        "[bold]Examples:[/bold]\n"
+        "  phantom resolve -o ./classified PH-a1b2c3d.pdf\n"
+        "  phantom resolve -o ./out --list\n"
+        "  phantom resolve -o ./out PH-x.pdf --verify"
+    ),
+)
+def resolve_cmd(
+    pseudonym: str | None = typer.Argument(
+        None,
+        help="Pseudonym basename (e.g. PH-abc123-def456.pdf)",
+    ),
+    output_dir: Path = typer.Option(
+        ...,
+        "-o",
+        "--output-dir",
+        help="DAG output directory containing .phantom/pseudonym_map.json",
+    ),
+    map_file: Path | None = typer.Option(
+        None,
+        "--map",
+        help="Explicit path to pseudonym_map.json (overrides default under output-dir)",
+    ),
+    list_all: bool = typer.Option(
+        False,
+        "-l",
+        "--list",
+        help="List all pseudonym → original path mappings",
+    ),
+    verify: bool = typer.Option(
+        False,
+        "--verify",
+        help="Verify processed file hash against SQLite custody metadata",
+    ),
+):
+    """Deanonymize a pseudonym using the persisted map (chain-of-custody / integrity)."""
+    from phantom.pipeline.pseudonym_resolve import (
+        default_map_path,
+        format_resolve_result,
+        load_pseudonym_map,
+    )
+
+    base_dir = output_dir.resolve()
+    map_path = map_file.resolve() if map_file else default_map_path(base_dir)
+
+    if list_all:
+        try:
+            mappings = load_pseudonym_map(map_path)
+        except (OSError, ValueError) as e:
+            console.print(f"[red]{e}[/]")
+            raise typer.Exit(2) from e
+        if not mappings:
+            console.print("[yellow](empty map)[/]")
+            raise typer.Exit(0)
+        table = Table(title=f"Pseudonym map ({map_path})")
+        table.add_column("Pseudonym", style="cyan")
+        table.add_column("Original path", style="white")
+        for ps, orig in sorted(mappings.items()):
+            table.add_row(ps, orig)
+        console.print(table)
+        raise typer.Exit(0)
+
+    if not pseudonym:
+        console.print("[red]Provide PSEUDONYM or use --list[/]")
+        raise typer.Exit(2)
+
+    code, text = format_resolve_result(
+        base_dir,
+        pseudonym,
+        verify=verify,
+        map_path=map_file.resolve() if map_file else None,
+    )
+    if code == 0:
+        console.print(text)
+    elif code == 1:
+        console.print(f"[yellow]{text}[/]")
+    else:
+        console.print(f"[red]{text}[/]")
+    raise typer.Exit(code)
+
+
+@app.command(
+    rich_help_panel="Help",
+    epilog="Same text as [bold]just cheat[/bold] from the repo root.",
+)
+def cheat():
+    """Print a one-page CLI reference (Rich)."""
+    print_cheat()
 
 
 def main():

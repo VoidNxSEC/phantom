@@ -1600,8 +1600,8 @@ Examples:
 """,
     )
 
-    parser.add_argument("-i", "--input", required=True, help="Input directory")
-    parser.add_argument("-o", "--output", required=True, help="Output directory")
+    parser.add_argument("-i", "--input", help="Input directory (required unless using --resolve)")
+    parser.add_argument("-o", "--output", help="Output directory")
     parser.add_argument(
         "-w", "--workers", type=int, default=None, help="Worker threads"
     )
@@ -1615,10 +1615,30 @@ Examples:
         default="strip",
         help="Sanitization policy",
     )
-    parser.add_argument("--resolve", help="Resolve pseudonym to original path")
+    parser.add_argument(
+        "--resolve",
+        metavar="PSEUDONYM",
+        help="Resolve pseudonym to original path (requires -o; does not run pipeline)",
+    )
     parser.add_argument("--version", action="version", version=f"PHANTOM-DAG {VERSION}")
 
     args = parser.parse_args()
+
+    if args.resolve:
+        if not args.output:
+            parser.error("--resolve requires -o/--output (directory containing .phantom/)")
+        from phantom.pipeline.pseudonym_resolve import format_resolve_result
+
+        code, text = format_resolve_result(
+            Path(args.output).resolve(),
+            args.resolve,
+            verify=False,
+        )
+        print(text)
+        raise SystemExit(code)
+
+    if not args.input or not args.output:
+        parser.error("-i/--input and -o/--output are required unless using --resolve")
 
     # Initialize logger
     global logger

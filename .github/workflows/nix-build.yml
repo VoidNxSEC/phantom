@@ -10,13 +10,14 @@ jobs:
   nix-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: NixOS/nix-installer-action@main
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v30
         with:
-          extra-conf: |
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
             extra-substituters = https://cache.numtide.com
             extra-trusted-public-keys = niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g=
-      - name: nix-build
-        run: nix-build
-      - name: nix-shell
-        run: nix-shell --run "echo ok"
+      - name: nix build
+        run: nix build .#default --no-link
+      - name: nix develop
+        run: nix develop --command echo ok

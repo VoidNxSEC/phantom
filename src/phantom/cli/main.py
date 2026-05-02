@@ -19,6 +19,9 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from phantom.cli.demo import app as demo_app
+from phantom.cli.doctor import app as doctor_app
+
 app = typer.Typer(
     name="phantom",
     help="Phantom AI - Document Intelligence & Classification Pipeline",
@@ -29,9 +32,7 @@ console = Console()
 
 @app.command()
 def extract(
-    input_path: Path = typer.Option(
-        ..., "-i", "--input", help="Input directory or file"
-    ),
+    input_path: Path = typer.Option(..., "-i", "--input", help="Input directory or file"),
     output_path: Path = typer.Option(..., "-o", "--output", help="Output file (JSONL)"),
     format: str = typer.Option("jsonl", "-f", "--format", help="Output format"),
     verbose: bool = typer.Option(False, "-v", "--verbose", help="Verbose output"),
@@ -51,7 +52,8 @@ def extract(
         files = [input_path]
     else:
         files = sorted(
-            f for f in input_path.rglob("*")
+            f
+            for f in input_path.rglob("*")
             if f.is_file() and f.suffix in (".md", ".txt", ".rst", ".tex")
         )
 
@@ -84,9 +86,7 @@ def extract(
 @app.command()
 def analyze(
     file: Path = typer.Argument(..., help="File to analyze"),
-    sentiment: bool = typer.Option(
-        True, "--sentiment", help="Include sentiment analysis"
-    ),
+    sentiment: bool = typer.Option(True, "--sentiment", help="Include sentiment analysis"),
     entities: bool = typer.Option(True, "--entities", help="Include entity extraction"),
 ):
     """Perform comprehensive analysis on a document."""
@@ -111,8 +111,7 @@ def analyze(
             engine = SentimentEngine(use_spacy=False)
             sent_result = engine.analyze(content)
             console.print(
-                f"\n[bold]Sentiment:[/] {sent_result.label} "
-                f"(score: {sent_result.score:.3f})"
+                f"\n[bold]Sentiment:[/] {sent_result.label} (score: {sent_result.score:.3f})"
             )
         except Exception as e:
             console.print(f"[yellow]Sentiment analysis unavailable: {e}[/]")
@@ -142,8 +141,8 @@ def classify(
 ):
     """Classify files into categories using the DAG pipeline."""
     from phantom.pipeline.phantom_dag import (
-        PipelineContext,
         PhantomPipeline,
+        PipelineContext,
         SanitizationPolicy,
     )
 
@@ -233,9 +232,7 @@ app.add_typer(rag_app, name="rag")
 @rag_app.command("query")
 def rag_query(
     question: str = typer.Argument(..., help="Question to ask"),
-    collection: str = typer.Option(
-        "default", "-c", "--collection", help="Collection name"
-    ),
+    collection: str = typer.Option("default", "-c", "--collection", help="Collection name"),
     top_k: int = typer.Option(5, "-k", "--top-k", help="Number of results"),
 ):
     """Query the RAG pipeline with semantic search."""
@@ -245,8 +242,7 @@ def rag_query(
     index_path = Path(f"data/index_{collection}.faiss")
     if not index_path.exists():
         console.print(
-            f"[red]No index found for collection '{collection}'. "
-            f"Run 'phantom rag ingest' first.[/]"
+            f"[red]No index found for collection '{collection}'. Run 'phantom rag ingest' first.[/]"
         )
         raise typer.Exit(1)
 
@@ -271,9 +267,7 @@ def rag_query(
 @rag_app.command("ingest")
 def rag_ingest(
     directory: Path = typer.Argument(..., help="Directory to ingest"),
-    collection: str = typer.Option(
-        "default", "-c", "--collection", help="Collection name"
-    ),
+    collection: str = typer.Option("default", "-c", "--collection", help="Collection name"),
 ):
     """Ingest documents into RAG index."""
     from phantom.core.cortex import SemanticChunker
@@ -285,7 +279,8 @@ def rag_ingest(
         raise typer.Exit(1)
 
     files = sorted(
-        f for f in directory.rglob("*")
+        f
+        for f in directory.rglob("*")
         if f.is_file() and f.suffix in (".md", ".txt", ".rst", ".tex", ".py", ".js", ".ts")
     )
 
@@ -309,10 +304,7 @@ def rag_ingest(
 
             texts = [c.text for c in chunks]
             embeddings = embedder.encode(texts)
-            metadata = [
-                {"source": str(filepath), "chunk_id": c.chunk_id}
-                for c in chunks
-            ]
+            metadata = [{"source": str(filepath), "chunk_id": c.chunk_id} for c in chunks]
             store.add(embeddings, texts, metadata)
             total_chunks += len(chunks)
             console.print(f"  [green]{filepath.name}[/] -> {len(chunks)} chunks")
@@ -445,6 +437,13 @@ def tools_audit(
 # API subcommands
 api_app = typer.Typer(help="API server commands")
 app.add_typer(api_app, name="api")
+
+
+# Demo subcommand
+app.add_typer(demo_app, name="demo")
+
+# Doctor subcommand
+app.add_typer(doctor_app, name="doctor")
 
 
 @api_app.command("serve")

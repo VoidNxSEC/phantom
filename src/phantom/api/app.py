@@ -9,8 +9,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request, Response, UploadFile
 from fastapi.responses import StreamingResponse
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from pydantic import BaseModel
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 
 from phantom.logging import configure_logging, get_logger
 
@@ -90,6 +90,9 @@ class ChatRequest(BaseModel):
     history: list[ChatMessage] = []
     context_size: int = 5
     llm_provider: str = "local"
+    model: str | None = None
+    temperature: float | None = None
+    max_tokens: int | None = None
 
 
 class ChatResponse(BaseModel):
@@ -111,6 +114,7 @@ class PromptTestResponse(BaseModel):
 
 class VectorSearchRequest(BaseModel):
     """Body for POST /vectors/search. Query params are still accepted for backward compatibility."""
+
     query: str
     top_k: int = 5
     mode: str = "dense"  # "dense" | "sparse" | "hybrid"
@@ -129,9 +133,10 @@ class BatchIndexResponse(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: connect NATS publisher + start consumer on startup."""
-    from phantom.nats.publisher import connect as nats_connect, drain as nats_drain
     from phantom.nats.consumer import start_consumer, stop_consumer
     from phantom.nats.neoland_scanner import start_scanner, stop_scanner
+    from phantom.nats.publisher import connect as nats_connect
+    from phantom.nats.publisher import drain as nats_drain
 
     await nats_connect()
     consumer_task = asyncio.ensure_future(start_consumer())
@@ -257,7 +262,11 @@ def create_app() -> FastAPI:
             import subprocess
 
             result = subprocess.run(
-                ["nvidia-smi", "--query-gpu=memory.used,memory.total", "--format=csv,noheader,nounits"],
+                [
+                    "nvidia-smi",
+                    "--query-gpu=memory.used,memory.total",
+                    "--format=csv,noheader,nounits",
+                ],
                 capture_output=True,
                 text=True,
                 timeout=2,
@@ -439,7 +448,9 @@ def create_app() -> FastAPI:
         results = []
         for file in files:
             if not file.filename:
-                results.append({"filename": "unknown", "status": "error", "error": "Filename required"})
+                results.append(
+                    {"filename": "unknown", "status": "error", "error": "Filename required"}
+                )
                 continue
 
             content = await file.read()
@@ -451,13 +462,17 @@ def create_app() -> FastAPI:
                     tmp_path = Path(tmp.name)
 
                 try:
-                    processor = CortexProcessor(chunk_size=1024, enable_vectors=False, verbose=False)
+                    processor = CortexProcessor(
+                        chunk_size=1024, enable_vectors=False, verbose=False
+                    )
                     insights = processor.process_document(tmp_path)
-                    results.append({
-                        "filename": file.filename,
-                        "status": "processed",
-                        "insights": insights.model_dump(),
-                    })
+                    results.append(
+                        {
+                            "filename": file.filename,
+                            "status": "processed",
+                            "insights": insights.model_dump(),
+                        }
+                    )
                 finally:
                     if tmp_path.exists():
                         tmp_path.unlink()
@@ -679,15 +694,29 @@ def create_app() -> FastAPI:
 
             full_prompt = f"{system_prompt}\n\n{history_str}\n{context_str}\nuser: {request.message}\nassistant:"
 
-            # Get LLM provider
-            from phantom.providers.llamacpp import LlamaCppProvider
+            # Get LLM provider via the registry
+            from phantom.providers.registry import get_provider
 
-            # Use local llama.cpp for now
-            provider = LlamaCppProvider(base_url="http://localhost:8081")
+            # Map frontend provider names to registry names
+            _PROVIDER_ALIASES = {
+                "tensor_forge": "local",
+                "local": "local",
+                "openai": "openai",
+                "anthropic": "anthropic",
+                "deepseek": "deepseek",
+            }
+            provider_name = _PROVIDER_ALIASES.get(request.llm_provider, "local")
+
+            provider = get_provider(provider_name)
 
             # Generate response
             try:
-                response = provider.generate(full_prompt, max_tokens=512, temperature=0.7)
+                response = provider.generate(
+                    full_prompt,
+                    max_tokens=request.max_tokens,
+                    temperature=request.temperature,
+                    model=request.model,
+                )
                 content = response.text if hasattr(response, "text") else str(response)
             except Exception as e:
                 logger.warning(f"LLM generation failed: {e}, using fallback")
@@ -716,31 +745,12 @@ def create_app() -> FastAPI:
     async def list_models():
         """
         List available LLM models by provider.
-        Returns models organized by provider (local, openai, anthropic).
+        Returns models organized by provider (local, openai, anthropic, deepseek).
+        Cloud providers are only returned when their API key env var is set.
         """
-        # Check if llama.cpp is available
-        local_models = []
-        try:
-            from phantom.providers.llamacpp import LlamaCppProvider
+        from phantom.providers.registry import get_available_providers
 
-            provider = LlamaCppProvider(base_url="http://localhost:8081")
-            status = await provider.health_check() if hasattr(provider, "health_check") else True
-
-            if status:
-                # Default local models (can be expanded based on actual llama.cpp models)
-                local_models = [
-                    {"id": "local-default", "name": "Local LLM (llama.cpp)"},
-                    {"id": "qwen-30b", "name": "Qwen 30B"},
-                    {"id": "llama-3-8b", "name": "Llama 3 8B"},
-                ]
-        except Exception as e:
-            logger.debug(f"Local LLM not available: {e}")
-
-        return {
-            "local": local_models,
-            "openai": [],  # Future: OpenAI integration
-            "anthropic": [],  # Future: Anthropic integration
-        }
+        return get_available_providers()
 
     @app.post("/api/prompt/test", response_model=PromptTestResponse)
     async def test_prompt(request: PromptTestRequest):
@@ -776,9 +786,7 @@ def create_app() -> FastAPI:
 
         except Exception as e:
             logger.error(f"Prompt test failed: {e}")
-            return PromptTestResponse(
-                rendered="", tokens=0, success=False, error=str(e)
-            )
+            return PromptTestResponse(rendered="", tokens=0, success=False, error=str(e))
 
     @app.post("/api/chat/stream")
     async def rag_chat_stream(request: ChatRequest):
@@ -824,13 +832,28 @@ def create_app() -> FastAPI:
                 # Send sources first
                 yield f"data: {json.dumps({'type': 'sources', 'sources': sources})}\n\n"
 
-                # Stream from LLM
-                from phantom.providers.llamacpp import LlamaCppProvider
+                # Stream from LLM via the provider registry
+                from phantom.providers.registry import get_provider
 
-                provider = LlamaCppProvider(base_url="http://localhost:8081")
+                # Map frontend provider names to registry names
+                _PROVIDER_ALIASES = {
+                    "tensor_forge": "local",
+                    "local": "local",
+                    "openai": "openai",
+                    "anthropic": "anthropic",
+                    "deepseek": "deepseek",
+                }
+                provider_name = _PROVIDER_ALIASES.get(request.llm_provider, "local")
+
+                provider = get_provider(provider_name)
 
                 try:
-                    async for chunk in provider.stream(full_prompt, max_tokens=512, temperature=0.7):
+                    async for chunk in provider.stream(
+                        full_prompt,
+                        max_tokens=request.max_tokens,
+                        temperature=request.temperature,
+                        model=request.model,
+                    ):
                         yield f"data: {json.dumps({'type': 'token', 'content': chunk})}\n\n"
                 except Exception as e:
                     logger.warning(f"LLM streaming failed: {e}")
@@ -879,8 +902,8 @@ def create_app() -> FastAPI:
         from pathlib import Path
 
         from phantom.pipeline.phantom_dag import (
-            PipelineContext,
             PhantomPipeline,
+            PipelineContext,
             SanitizationPolicy,
         )
 
@@ -935,9 +958,7 @@ def create_app() -> FastAPI:
 
         report = {
             "classifications": dict(by_classification),
-            "sensitive_files": sum(
-                1 for r in ctx.records.values() if r.sensitive_findings
-            ),
+            "sensitive_files": sum(1 for r in ctx.records.values() if r.sensitive_findings),
             "output_dir": str(output_dir),
         }
 
@@ -976,24 +997,28 @@ def create_app() -> FastAPI:
                 try:
                     classification, mime_type, sensitivity = ClassificationEngine.classify(filepath)
                     findings = ClassificationEngine.scan_sensitive_content(filepath)
-                    results.append({
-                        "path": str(filepath.relative_to(dir_path)),
-                        "classification": classification.value,
-                        "mime_type": mime_type,
-                        "sensitivity": sensitivity.value,
-                        "sensitive_patterns": [
-                            {"name": f.pattern_name, "count": f.count, "risk": f.risk_score}
-                            for f in findings
-                        ],
-                    })
+                    results.append(
+                        {
+                            "path": str(filepath.relative_to(dir_path)),
+                            "classification": classification.value,
+                            "mime_type": mime_type,
+                            "sensitivity": sensitivity.value,
+                            "sensitive_patterns": [
+                                {"name": f.pattern_name, "count": f.count, "risk": f.risk_score}
+                                for f in findings
+                            ],
+                        }
+                    )
                 except Exception:
-                    results.append({
-                        "path": str(filepath.relative_to(dir_path)),
-                        "classification": "error",
-                        "mime_type": "unknown",
-                        "sensitivity": 0,
-                        "sensitive_patterns": [],
-                    })
+                    results.append(
+                        {
+                            "path": str(filepath.relative_to(dir_path)),
+                            "classification": "error",
+                            "mime_type": "unknown",
+                            "sensitivity": 0,
+                            "sensitive_patterns": [],
+                        }
+                    )
             return results, len(list(dir_path.rglob("*")))
 
         results, total_count = await asyncio.to_thread(_scan)
@@ -1044,14 +1069,15 @@ def serve():
     """Entry point for phantom-api script."""
     import argparse
     import os
+
     import uvicorn
 
     parser = argparse.ArgumentParser(description="Phantom API Server")
     parser.add_argument(
         "--port",
         type=int,
-        default=int(os.environ.get("PORT", 8008)),
-        help="Port to listen on (default: 8008)",
+        default=int(os.environ.get("PORT", 8087)),
+        help="Port to listen on (default: 8087)",
     )
     parser.add_argument("--host", default="127.0.0.1", help="Bind host")
     args = parser.parse_args()

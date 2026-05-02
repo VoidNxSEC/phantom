@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 class LlamaCppProvider(AIProvider):
     """Local LlamaCPP server provider."""
 
-    DEFAULT_URL = "http://localhost:8080"
+    DEFAULT_URL = "http://localhost:8081"
 
     def __init__(
         self,
@@ -52,9 +52,7 @@ class LlamaCppProvider(AIProvider):
             response = requests.get(f"{self.config.base_url}/health", timeout=5)
             self._available = response.status_code == 200
             self._status = (
-                ProviderStatus.AVAILABLE
-                if self._available
-                else ProviderStatus.UNAVAILABLE
+                ProviderStatus.AVAILABLE if self._available else ProviderStatus.UNAVAILABLE
             )
         except Exception as e:
             logger.debug(f"LlamaCPP not available: {e}")

@@ -69,6 +69,10 @@ Phantom is a **local-first AI document intelligence framework** that processes u
 | Sentiment Engine    | ✅ Complete | `analysis/sentiment.py` | High          |
 | Embedding Generator | ✅ Complete | `core/embeddings.py`    | Medium        |
 | LlamaCpp Provider   | ✅ Complete | `providers/llamacpp.py` | Medium        |
+| OpenAI Provider     | ✅ Complete | `providers/openai_provider.py` | Low     |
+| Anthropic Provider  | ✅ Complete | `providers/anthropic_provider.py` | Low   |
+| DeepSeek Provider   | ✅ Complete | `providers/deepseek_provider.py` | Low    |
+| Provider Registry   | ✅ Complete | `providers/registry.py` | Low          |
 | FastAPI Server      | ✅ Complete | `api/app.py`            | High          |
 | Prometheus Metrics  | ✅ Complete | `api/app.py`            | High          |
 | Pydantic Schemas    | ✅ Complete | All modules             | High          |
@@ -86,11 +90,9 @@ Phantom is a **local-first AI document intelligence framework** that processes u
 | ------------------- | -------------- | -------------------------------- | -------- |
 | Desktop UI          | 🟡 Framework   | Component polish, e2e tests      | Medium   |
 | tools vram          | 🟡 Partial     | Model-specific VRAM estimates    | Low      |
-| Cloud LLM Providers | 🟡 Stub        | OpenAI, Anthropic, DeepSeek impl | Medium   |
 
 ### ❌ Not Implemented
 
-- Cloud LLM Providers (OpenAI, Anthropic, DeepSeek)
 - Kubernetes/Helm packaging
 - Full desktop app UI (marked for GTK4 migration)
 - Redis semantic cache integration
@@ -156,232 +158,75 @@ Results (JSON + Pydantic validation)
 
 ### API Endpoints (Current)
 
-| Endpoint     | Method | Status         | Returns              |
-| ------------ | ------ | -------------- | -------------------- |
-| `/health`    | GET    | ✅ Complete     | Health status        |
-| `/ready`     | GET    | ✅ Complete     | Readiness checks     |
-| `/metrics`   | GET    | ✅ Complete     | Prometheus metrics   |
-| `/extract`   | POST   | 🟡 TODO        | Document insights    |
-| `/upload`    | POST   | 🟡 Partial     | File upload          |
-| `/rag/query` | GET    | 🟡 TODO        | RAG query            |
-| `/judge`     | POST   | 🟡 Integration | AI-OS-Agent judgment |
-
-### Missing API Endpoints (Needed for Frontend)
-
-| Endpoint           | Method | Purpose                 | Frontend Usage                               |
-| ------------------ | ------ | ----------------------- | -------------------------------------------- |
-| `/process`         | POST   | Document processing     | `cortex-desktop/src/lib/api.ts:24`           |
-| `/vectors/search`  | POST   | Vector semantic search  | `cortex-desktop/src/lib/api.ts:64`           |
-| `/vectors/index`   | POST   | Index document to FAISS | `cortex-desktop/src/lib/api.ts:81`           |
-| `/api/chat`        | POST   | RAG chat interface      | `cortex-desktop/src/routes/+page.svelte:145` |
-| `/api/models`      | GET    | List available models   | `cortex-desktop/src/routes/+page.svelte:127` |
-| `/api/prompt/test` | POST   | Test prompt rendering   | `cortex-desktop/src/routes/+page.svelte:209` |
-| `/api/upload`      | POST   | Multi-file upload       | `cortex-desktop/src/routes/+page.svelte:287` |
+| Endpoint            | Method | Status       | Returns                       |
+| ------------------- | ------ | ------------ | ----------------------------- |
+| `/health`           | GET    | ✅ Complete  | Health status                 |
+| `/ready`            | GET    | ✅ Complete  | Readiness checks              |
+| `/metrics`          | GET    | ✅ Complete  | Prometheus metrics            |
+| `/api/system/metrics`| GET   | ✅ Complete  | System resource metrics       |
+| `/extract`          | POST   | ✅ Complete  | Document insights             |
+| `/process`          | POST   | ✅ Complete  | CORTEX document processing    |
+| `/upload`           | POST   | ✅ Complete  | Single file upload            |
+| `/api/upload`       | POST   | ✅ Complete  | Multi-file upload             |
+| `/vectors/search`   | POST   | ✅ Complete  | Vector search (dense/sparse/hybrid) |
+| `/vectors/index`    | POST   | ✅ Complete  | Vector indexing               |
+| `/vectors/batch-index`| POST | ✅ Complete  | Batch indexing                |
+| `/api/chat`         | POST   | ✅ Complete  | RAG chat interface            |
+| `/api/chat/stream`  | POST   | ✅ Complete  | SSE streaming chat            |
+| `/api/models`       | GET    | ✅ Complete  | List available models         |
+| `/api/prompt/test`  | POST   | ✅ Complete  | Test prompt rendering         |
+| `/api/pipeline`     | POST   | ✅ Complete  | DAG pipeline execution        |
+| `/api/pipeline/scan`| POST   | ✅ Complete  | File classification scan      |
+| `/rag/query`        | GET    | ✅ Complete  | Legacy RAG query              |
+| `/judge`            | POST   | ✅ Complete  | AI-OS-Agent judgment          |
 
 ---
 
 ## 🎯 Development Priorities
 
-### Phase 1: Complete Backend API ✅ **COMPLETED** (2026-02-05)
+### Phase 1: Backend API ✅ **COMPLETED**
 
-**Goal**: Implement missing API endpoints so frontend can use real data instead of stubs.
+**Goal**: Implement all API endpoints for frontend-backend integration.
 
-**Status**: All 7 endpoints implemented and tested. See `PHASE1_IMPLEMENTATION.md` for details.
+**Status**: All endpoints fully implemented with production-quality code.
 
-#### 1.1 Document Processing Endpoint
+**Implementation highlights**:
+- `/process` — CORTEX engine document processing with temporary file handling
+- `/vectors/search` — Semantic search with dense, sparse, and hybrid modes (FAISS + BM25)
+- `/vectors/index` — Document chunking, embedding generation, and FAISS indexing
+- `/vectors/batch-index` — Batch index multiple text documents in one call
+- `/api/chat` — RAG-powered chat with vector context retrieval and LLM generation
+- `/api/chat/stream` — SSE streaming chat for real-time token delivery
+- `/api/models` — Dynamic model listing via provider registry (local, OpenAI, Anthropic, DeepSeek)
+- `/api/prompt/test` — Prompt template rendering with variable substitution and token estimation
+- `/api/upload` — Multi-file upload with CORTEX processing pipeline
+- `/api/system/metrics` — Real-time CPU, memory, disk, and VRAM monitoring
 
-**File**: `src/phantom/api/app.py`
-
-**Current**:
-
-```python
-@app.post("/extract", response_model=ExtractResponse)
-async def extract(request: ExtractRequest):
-    # TODO: Implement using CortexProcessor
-    insights = { "themes": [], "patterns": [], ... }
-```
-
-**Needs**:
-
-```python
-from phantom.core.cortex import CortexProcessor
-
-@app.post("/process")
-async def process(file: UploadFile, chunk_strategy: str = "recursive", chunk_size: int = 1024):
-    """Process document using CORTEX engine."""
-    content = await file.read()
-    processor = CortexProcessor()
-    result = processor.extract_insights(content.decode(), filename=file.filename)
-    return {
-        "filename": file.filename,
-        "insights": result.model_dump(),
-        "processing_time": ...,
-    }
-```
-
-**Frontend expects**: `cortex-desktop/src/lib/api.ts:20-31`
+**Provider architecture**:
+- `providers/base.py` — Abstract `AIProvider` base class with `generate()`, `agenerate()`, `stream()`
+- `providers/registry.py` — Provider factory with `get_provider()`, `get_available_providers()`, `clear_provider_cache()`
+- `providers/llamacpp.py` — Local llama.cpp server (TURBO)
+- `providers/openai_provider.py` — OpenAI GPT-4o, GPT-4, GPT-3.5 (cloud, via OPENAI_API_KEY env var)
+- `providers/anthropic_provider.py` — Anthropic Claude 3.5/3/2 (cloud, via ANTHROPIC_API_KEY env var)
+- `providers/deepseek_provider.py` — DeepSeek Chat & Reasoner (cloud, via DEEPSEEK_API_KEY env var)
 
 ---
 
-#### 1.2 Vector Search Endpoint
-
-**File**: `src/phantom/api/app.py` (new endpoint)
-
-**Needs**:
-
-```python
-from phantom.rag.vectors import FAISSVectorStore
-
-@app.post("/vectors/search")
-async def vector_search(query: str, top_k: int = 5):
-    """Semantic search using FAISS."""
-    store = FAISSVectorStore()  # Or singleton instance
-    results = await store.search(query, top_k=top_k)
-    return {
-        "query": query,
-        "results": [{"text": r.text, "score": r.score} for r in results],
-        "total_results": len(results),
-    }
-```
-
-**Frontend expects**: `cortex-desktop/src/lib/api.ts:63-75`
-
----
-
-#### 1.3 Vector Indexing Endpoint
-
-**File**: `src/phantom/api/app.py` (new endpoint)
-
-**Needs**:
-
-```python
-@app.post("/vectors/index")
-async def vector_index(file: UploadFile):
-    """Index document into FAISS vector store."""
-    content = await file.read()
-    store = FAISSVectorStore()
-    chunks = semantic_chunker.chunk(content.decode())
-    count = await store.add_documents(chunks)
-    return {"status": "indexed", "chunks_indexed": count}
-```
-
-**Frontend expects**: `cortex-desktop/src/lib/api.ts:77-88`
-
----
-
-#### 1.4 RAG Chat Endpoint
-
-**File**: `src/phantom/api/app.py` (replace `/rag/query`)
-
-**Needs**:
-
-```python
-@app.post("/api/chat")
-async def rag_chat(
-    message: str,
-    conversation_id: str,
-    history: list[dict],
-    context_size: int = 5,
-    llm_provider: str = "local"
-):
-    """RAG-powered chat with context."""
-    # 1. Vector search for relevant context
-    store = FAISSVectorStore()
-    context_chunks = await store.search(message, top_k=context_size)
-
-    # 2. Build prompt with context
-    prompt = build_rag_prompt(message, context_chunks, history)
-
-    # 3. Call LLM
-    provider = get_llm_provider(llm_provider)
-    response = await provider.complete(prompt)
-
-    return {
-        "message": {
-            "content": response,
-            "sources": [{"text": c.text, "score": c.score} for c in context_chunks]
-        }
-    }
-```
-
-**Frontend expects**: `cortex-desktop/src/routes/+page.svelte:145-186`
-
----
-
-#### 1.5 Models List Endpoint
-
-**File**: `src/phantom/api/app.py` (new endpoint)
-
-**Needs**:
-
-```python
-@app.get("/api/models")
-async def list_models():
-    """List available LLM models by provider."""
-    return {
-        "local": [
-            {"id": "qwen-30b", "name": "Qwen 30B (Local)"},
-            {"id": "llama-3-8b", "name": "Llama 3 8B (Local)"}
-        ],
-        "openai": [],  # Future: OpenAI models
-        "anthropic": []  # Future: Claude models
-    }
-```
-
-**Frontend expects**: `cortex-desktop/src/routes/+page.svelte:127-129`
-
----
-
-### Phase 2: System Monitoring Integration (MEDIUM PRIORITY) 🟡
+### Phase 2: System Monitoring Integration ✅ **COMPLETED**
 
 **Goal**: Expose real host machine metrics to frontend (CPU, memory, VRAM, temperature).
 
-#### 2.1 Add System Metrics Endpoint
+**Status**: `/api/system/metrics` endpoint implemented at `src/phantom/api/app.py:232`.
 
-**File**: `src/phantom/api/app.py` (new endpoint)
+**Returns**:
+- CPU: percent, count, frequency
+- Memory: total, used, available, percent (bytes and GB)
+- Disk: total, used, free, percent (bytes and GB)
+- Network: bytes sent/recv, packets sent/recv
+- VRAM: GPU memory via nvidia-smi (if available)
+- Timestamp
 
-**Implementation**:
-
-```python
-import psutil
-
-@app.get("/api/system/metrics")
-async def system_metrics():
-    """Get real-time system resource metrics."""
-    cpu_percent = psutil.cpu_percent(interval=1)
-    mem = psutil.virtual_memory()
-    disk = psutil.disk_usage('/')
-
-    # VRAM monitoring (existing code in core/cortex.py:226)
-    from phantom.core.cortex import get_vram_usage
-    vram = get_vram_usage()
-
-    return {
-        "cpu": {
-            "percent": cpu_percent,
-            "count": psutil.cpu_count()
-        },
-        "memory": {
-            "total": mem.total,
-            "used": mem.used,
-            "available": mem.available,
-            "percent": mem.percent
-        },
-        "disk": {
-            "total": disk.total,
-            "used": disk.used,
-            "free": disk.free,
-            "percent": disk.percent
-        },
-        "vram": vram  # If GPU available
-    }
-```
-
-**Frontend Integration**:
-
-- Add system monitor component in `cortex-desktop/`
-- Display real-time metrics in settings or dashboard tab
-- Use for resource warnings before heavy operations
+**Frontend Integration**: Add system monitor component to Cortex Desktop (future work).
 
 ---
 
@@ -389,42 +234,36 @@ async def system_metrics():
 
 **Goal**: Complete the Cortex Desktop UI with functional components.
 
-#### 3.1 Current State
-
 **Framework**: Tauri 2 + SvelteKit + Svelte 5
-**Status**: Infrastructure ready, minimal UI implemented
-**File**: `cortex-desktop/src/routes/+page.svelte` (1,193 lines)
+**Status**: All 6 tabs implemented and connected to live backend endpoints.
+**File**: `cortex-desktop/src/routes/+page.svelte`
 
 **Implemented Tabs**:
 
-- ✅ Chat (RAG conversation)
-- ✅ Process (document processing)
-- ✅ Search (vector search)
-- ✅ Workbench (prompt engineering)
-- ✅ Library (saved prompts)
-- ✅ Settings (API config)
+- ✅ Chat (RAG conversation with sources display)
+- ✅ Process (CORTEX document processing with configurable chunking)
+- ✅ Search (vector semantic search with score display)
+- ✅ Workbench (prompt engineering with variable testing and LLM execution)
+- ✅ Library (saved prompt templates)
+- ✅ Settings (provider selection, model selection, temperature, token config)
 
-**Issues**:
+**Provider options in Settings**:
+- `tensor_forge` → Local Tensor Engine (LlamaCpp)
+- `openai` → OpenAI Managed (GPT-4o, GPT-4, GPT-3.5)
+- `anthropic` → Anthropic API (Claude 3.5 Sonnet, Claude 3, Claude 2)
+- `deepseek` → DeepSeek API (Chat V3, Reasoner R1)
 
-- Backend endpoints missing (Phase 1 priority)
-- No real-time metrics display
-- No error handling UI
-- No processing progress indicators
-
-#### 3.2 Enhancement Tasks
+**Remaining Enhancement Tasks**:
 
 1. **Add System Monitor Tab**
    - Real-time CPU/memory/VRAM charts
-   - Historical metrics (last 24h)
    - Resource alerts
 2. **Improve Error Handling**
    - Toast notifications for API errors
    - Retry logic with exponential backoff
-   - Offline mode detection
 3. **Add Progress Indicators**
    - Document processing progress
    - Indexing progress (chunk by chunk)
-   - Model loading status
 4. **Enhance Chat UI**
    - Markdown rendering for responses
    - Code syntax highlighting
@@ -716,20 +555,15 @@ pre-commit run --all-files
 
 ## 🚨 Known Issues & TODOs
 
-### Critical (Fix Immediately)
+### 🔴 Port Mismatch (Fixed)
 
-1. **Missing API Endpoints** (`src/phantom/api/app.py`)
-   - `/process` - Document processing
-   - `/vectors/search` - Vector search
-   - `/vectors/index` - Document indexing
-   - `/api/chat` - RAG chat
-   - `/api/models` - Model listing
-   - `/api/prompt/test` - Prompt testing
-2. **CLI Not Functional** (`src/phantom/cli/main.py`)
-   - `phantom extract` - Stub only
-   - `phantom analyze` - Stub only
-   - `phantom classify` - Stub only
-   - `phantom scan` - Stub only
+The default port in `serve()` was changed from **8008** to **8087** to match the Vite proxy configuration (`vite.config.js` → `http://localhost:8087`).
+
+| Command | Port |
+|---|---|
+| `just cortex` / `phantom-api` | **8087** (default) |
+| `just serve` | 8008 (explicit `--port`) |
+| `just desktop` (Vite proxy) | 1420 → proxies to :8087 |
 
 ### High Priority
 
@@ -737,7 +571,10 @@ pre-commit run --all-files
    - Set up Vitest for unit tests
    - Set up Playwright for e2e tests
    - Test API client (`api.ts`)
-2. **Documentation Gaps**
+2. **Cloud Provider Tests**
+   - Unit tests for OpenAI, Anthropic, DeepSeek providers
+   - Mock HTTP responses for cloud API calls
+3. **Documentation Gaps**
    - Auto-generate API docs (Sphinx/MkDocs)
    - Add module docstrings to all files
    - Create deployment guide

@@ -169,6 +169,29 @@ cortex:
     @echo "🧠 Starting Cortex API on port 8087..."
     phantom-api
 
+# Run the full pipeline demo
+demo DOC="financial":
+    @echo "🎬 Running Phantom demo (doc: {{DOC}})..."
+    PYTHONPATH=$$PYTHONPATH:src python -m phantom.cli.demo --doc {{DOC}}
+
+# Run full stack diagnostics
+doctor:
+    @echo "🩺 Running Phantom diagnostics..."
+    PYTHONPATH=$$PYTHONPATH:src python -m phantom.cli.doctor
+
+# Start main Phantom API server on port 8000
+api:
+    @echo "🌐 Starting Phantom API on port 8000..."
+    PYTHONPATH=$$PYTHONPATH:src python -m uvicorn phantom.api.app:app --host 127.0.0.1 --port 8000 --reload
+
+# Start both API servers (Cortex + Phantom) in background
+up:
+    @echo "🚀 Starting Phantom stack..."
+    @echo "  ➜ Cortex API → http://127.0.0.1:8087"
+    @echo "  ➜ Phantom API → http://127.0.0.1:8000"
+    @(PYTHONPATH=$$PYTHONPATH:src python -m uvicorn phantom.api.app:app --host 127.0.0.1 --port 8000 --reload &)
+    @phantom-api
+
 # Start desktop app
 desktop:
     @echo "🖥️  Starting Cortex Desktop..."

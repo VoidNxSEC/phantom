@@ -82,11 +82,11 @@ Phantom is a **local-first AI document intelligence framework** that processes u
 
 ### 🟡 Partially Implemented Components
 
-| Component           | Status         | Missing                          | Priority |
-| ------------------- | -------------- | -------------------------------- | -------- |
-| Desktop UI          | 🟡 Framework   | Component polish, e2e tests      | Medium   |
-| tools vram          | 🟡 Partial     | Model-specific VRAM estimates    | Low      |
-| Cloud LLM Providers | 🟡 Stub        | OpenAI, Anthropic, DeepSeek impl | Medium   |
+| Component           | Status       | Missing                          | Priority |
+| ------------------- | ------------ | -------------------------------- | -------- |
+| Desktop UI          | 🟡 Framework | Component polish, e2e tests      | Medium   |
+| tools vram          | 🟡 Partial   | Model-specific VRAM estimates    | Low      |
+| Cloud LLM Providers | 🟡 Stub      | OpenAI, Anthropic, DeepSeek impl | Medium   |
 
 ### ❌ Not Implemented
 
@@ -704,7 +704,7 @@ python -c "from phantom.rag.vectors import FAISSVectorStore; store = FAISSVector
 ### Git Workflow
 
 ```bash
-# Pre-commit hooks installed automatically in Nix shell
+q# Pre-commit hooks installed automatically in Nix shell
 git add .
 git commit -m "feat: implement /process endpoint"  # Hooks run automatically
 

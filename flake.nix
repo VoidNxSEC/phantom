@@ -180,6 +180,18 @@
         ];
 
         # ═══════════════════════════════════════════════════════════════
+        # RUST BUILD CONFIGURATION (IntelAgent)
+        # ═══════════════════════════════════════════════════════════════
+        intelagentSrc = craneLib.cleanCargoSource ./intelagent;
+
+        intelagentArgs = {
+          src = intelagentSrc;
+          strictDeps = true;
+        };
+
+        intelagentArtifacts = craneLib.buildDepsOnly intelagentArgs;
+
+        # ═══════════════════════════════════════════════════════════════
         # RUST BUILD CONFIGURATION (Cortex Desktop)
         # ═══════════════════════════════════════════════════════════════
 
@@ -428,6 +440,40 @@
               ${pythonEnv}/bin/ruff format --check src/ || true
               touch $out
             '';
+
+          # ─── IntelAgent checks ───────────────────────────────────────
+
+          # Cargo tests
+          intelagent-tests = craneLib.cargoTest (
+            intelagentArgs
+            // {
+              cargoArtifacts = intelagentArtifacts;
+              pname = "intelagent-tests";
+            }
+          );
+
+          # Clippy lints
+          intelagent-clippy = craneLib.cargoClippy (
+            intelagentArgs
+            // {
+              cargoArtifacts = intelagentArtifacts;
+              pname = "intelagent-clippy";
+              cargoClippyExtraArgs = "--all-features -- --deny warnings";
+            }
+          );
+
+          # Format check
+          intelagent-fmt = craneLib.cargoFmt {
+            src = intelagentSrc;
+            pname = "intelagent-fmt";
+          };
+
+          # Dependency audit
+          intelagent-audit = craneLib.cargoAudit {
+            src = intelagentSrc;
+            inherit advisory-db;
+            pname = "intelagent-audit";
+          };
         };
 
         # ═══════════════════════════════════════════════════════════════

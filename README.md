@@ -51,7 +51,6 @@ phantom/
 
 ## Roadmap
 
-- **IntelAgent (Rust)** — 8-crate workspace for decentralized agent governance, security, and memory.
 - **Cloud LLM Providers** — Native support for OpenAI, Anthropic, and DeepSeek.
 - **Redis Semantic Cache** — Low-latency response caching for recurring queries.
 - **Kubernetes Helm Charts** — For scalable, self-hosted enterprise deployments.
@@ -63,8 +62,6 @@ Follow voidnxlabs on [social media](https://voidnxlabs.com/links) for updates.
 
 # Support
 For enterprise support, open a [support ticket](https://voidnxlabs.com/support).
-
-# TODO: Add support ticket link on company website 
 
 ---
 
@@ -113,7 +110,7 @@ Document → SemanticChunker → EmbeddingGenerator → LLM Classifier → Pydan
 just run extract --input ./docs --output ./insights.json
 
 # Or hit the API directly
-curl -X POST http://localhost:8000/process \
+curl -X POST http://localhost:8008/process \
   -F "file=@report.pdf" \
   -F "chunk_strategy=recursive" \
   -F "chunk_size=1024"
@@ -134,9 +131,9 @@ Query → BM25Okapi (sparse) ───┘
 - BM25 index rebuilt lazily on each `add()` — no manual sync required
 
 ```bash
-curl -X POST http://localhost:8000/vectors/search \
+curl -X POST http://localhost:8008/vectors/search \
   -H "Content-Type: application/json" \
-  -d '{"query": "compliance requirements", "top_k": 5, "search_type": "hybrid"}'
+  -d '{"query": "compliance requirements", "top_k": 5, "mode": "hybrid"}'
 ```
 
 ### RAG Chat with Streaming
@@ -145,7 +142,7 @@ Context-aware chat over your document base. Supports SSE streaming for real-time
 
 ```bash
 # Streaming chat
-curl -X POST http://localhost:8000/api/chat/stream \
+curl -X POST http://localhost:8008/api/chat/stream \
   -H "Content-Type: application/json" \
   -d '{
     "message": "What are the key risks in the Q3 report?",
@@ -212,7 +209,7 @@ diff <(jq -S . before.json) <(jq -S . after.json)
 
 ## API Reference
 
-The FastAPI server runs at `http://localhost:8000` by default. Prometheus metrics at `/metrics`, OpenAPI docs at `/docs`.
+The FastAPI server runs at `http://localhost:8008` by default. Prometheus metrics at `/metrics`, OpenAPI docs at `/docs`.
 
 | Endpoint               | Method | Purpose                              |
 | ---------------------- | ------ | ------------------------------------ |
@@ -425,8 +422,8 @@ diff <(jq -S . before.json) <(jq -S . after.json)
 
 ```bash
 just serve &
-curl -X POST http://localhost:8000/vectors/index -F "file=@docs.pdf"
-curl -X POST http://localhost:8000/api/chat \
+curl -X POST http://localhost:8008/vectors/index -F "file=@docs.pdf"
+curl -X POST http://localhost:8008/api/chat \
   -d '{"message": "Summarize the main risks", "conversation_id": "s1", "history": []}'
 ```
 
@@ -471,14 +468,13 @@ Pre-commit hooks are installed automatically when you enter `nix develop`. They 
 | ---------------------------------- | ---------------- |
 | CORTEX Engine                      | Production ready |
 | FAISS Vector Store + Hybrid Search | Production ready |
-| FastAPI Server (20 endpoints)      | Production ready |
+| FastAPI Server (19 endpoints)      | Production ready |
 | DAG Pipeline + Sanitization        | Production ready |
 | Prometheus Metrics + Structlog     | Production ready |
-| CI/CD (7 workflows)                | Production ready |
+| CI/CD (8 workflows)                | Production ready |
 | Cortex Desktop (Tauri + SvelteKit) | Beta             |
 | CLI Commands                       | Complete         |
 | SPECTRE Analysis                   | Production ready |
-| IntelAgent (Rust)                  | Planned          |
 
 ---
 

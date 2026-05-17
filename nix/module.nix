@@ -1,6 +1,9 @@
-{ config, lib, pkgs, ... }:
-
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.phantom;
 in {
   options.services.phantom = {
@@ -14,7 +17,7 @@ in {
 
     api = {
       enable = lib.mkEnableOption "Phantom REST API server";
-      
+
       port = lib.mkOption {
         type = lib.types.port;
         default = 8000;
@@ -40,7 +43,7 @@ in {
 
     vectorDb = {
       backend = lib.mkOption {
-        type = lib.types.enum [ "faiss" "chromadb" ];
+        type = lib.types.enum ["faiss" "chromadb"];
         default = "faiss";
         description = "Vector database backend";
       };
@@ -55,7 +58,7 @@ in {
 
   config = lib.mkIf cfg.enable {
     # Add phantom to system packages
-    environment.systemPackages = [ cfg.package ];
+    environment.systemPackages = [cfg.package];
 
     # Create state directory
     systemd.tmpfiles.rules = [
@@ -72,8 +75,8 @@ in {
     # API service (if enabled)
     systemd.services.phantom-api = lib.mkIf cfg.api.enable {
       description = "Phantom AI API Server";
-      after = [ "network.target" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["network.target"];
+      wantedBy = ["multi-user.target"];
 
       environment = {
         LLAMACPP_URL = cfg.providers.llamacpp.url;
@@ -85,7 +88,7 @@ in {
         ExecStart = "${cfg.package}/bin/phantom-api --host ${cfg.api.host} --port ${toString cfg.api.port}";
         Restart = "on-failure";
         RestartSec = 5;
-        
+
         # Security hardening
         DynamicUser = true;
         StateDirectory = "phantom";

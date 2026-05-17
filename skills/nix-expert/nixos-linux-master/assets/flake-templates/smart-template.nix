@@ -7,31 +7,28 @@
     rust-overlay.url = "github:oxalica/rust-overlay";
   };
 
-  outputs =
-    {
-      self,
-      nixpkgs,
-      flake-utils,
-      rust-overlay,
-    }:
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    rust-overlay,
+  }:
     flake-utils.lib.eachDefaultSystem (
-      system:
-      let
-        overlays = [ rust-overlay.overlays.default ];
-        pkgs = import nixpkgs { inherit system overlays; };
+      system: let
+        overlays = [rust-overlay.overlays.default];
+        pkgs = import nixpkgs {inherit system overlays;};
 
         # Intelligent language detection
         projectType =
-          if builtins.pathExists ./Cargo.toml then
-            "rust"
-          else if builtins.pathExists ./package.json then
-            "node"
-          else if builtins.pathExists ./go.mod then
-            "go"
-          else if builtins.pathExists ./pyproject.toml then
-            "python"
-          else
-            "generic";
+          if builtins.pathExists ./Cargo.toml
+          then "rust"
+          else if builtins.pathExists ./package.json
+          then "node"
+          else if builtins.pathExists ./go.mod
+          then "go"
+          else if builtins.pathExists ./pyproject.toml
+          then "python"
+          else "generic";
 
         # Language-specific toolchains
         rustTools = with pkgs; [
@@ -55,11 +52,12 @@
 
         pythonTools = with pkgs; [
           (python311.withPackages (
-            ps: with ps; [
-              pip
-              setuptools
-              wheel
-            ]
+            ps:
+              with ps; [
+                pip
+                setuptools
+                wheel
+              ]
           ))
           ruff
           black
@@ -80,12 +78,12 @@
             node = nodeTools;
             python = pythonTools;
             go = goTools;
-            generic = [ ];
+            generic = [];
           }
-          .${projectType};
-
-      in
-      {
+          .${
+            projectType
+          };
+      in {
         devShells.default = pkgs.mkShell {
           name = "${projectType}-dev-shell";
 
@@ -106,35 +104,35 @@
 
             # Language-specific setup
             ${
-              if projectType == "rust" then
-                ''
-                  export RUST_BACKTRACE=1
-                  rustc --version
-                ''
-              else if projectType == "node" then
-                ''
-                  export NODE_ENV=development
-                  node --version
-                ''
-              else if projectType == "python" then
-                ''
-                  export PYTHONPATH="$PWD:$PYTHONPATH"
-                  python --version
-                ''
-              else if projectType == "go" then
-                ''
-                  export GOPATH="$HOME/go"
-                  go version
-                ''
-              else
-                ""
+              if projectType == "rust"
+              then ''
+                export RUST_BACKTRACE=1
+                rustc --version
+              ''
+              else if projectType == "node"
+              then ''
+                export NODE_ENV=development
+                node --version
+              ''
+              else if projectType == "python"
+              then ''
+                export PYTHONPATH="$PWD:$PYTHONPATH"
+                python --version
+              ''
+              else if projectType == "go"
+              then ''
+                export GOPATH="$HOME/go"
+                go version
+              ''
+              else ""
             }
           '';
         };
 
         # Auto-generated package based on type
         packages.default =
-          if projectType == "rust" then
+          if projectType == "rust"
+          then
             pkgs.rustPlatform.buildRustPackage {
               pname = "rust-app";
               version = "0.1.0";

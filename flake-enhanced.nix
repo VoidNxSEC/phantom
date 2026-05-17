@@ -18,23 +18,30 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, rust-overlay, crane, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    rust-overlay,
+    crane,
+    ...
+  }:
+    flake-utils.lib.eachDefaultSystem (
+      system: let
         VERSION = "2.0.0";
 
         pkgs = import nixpkgs {
           inherit system;
           config.allowUnfree = true;
-          overlays = [ rust-overlay.overlays.default ];
+          overlays = [rust-overlay.overlays.default];
         };
 
         # ═══════════════════════════════════════════════════════════════
         # RUST TOOLCHAIN
         # ═══════════════════════════════════════════════════════════════
         rustToolchain = pkgs.rust-bin.stable.latest.default.override {
-          extensions = [ "rust-analyzer" "rust-src" ];
-          targets = [ "x86_64-unknown-linux-gnu" ];
+          extensions = ["rust-analyzer" "rust-src"];
+          targets = ["x86_64-unknown-linux-gnu"];
         };
 
         # Crane library with our custom toolchain
@@ -43,72 +50,118 @@
         # ═══════════════════════════════════════════════════════════════
         # PYTHON ENVIRONMENT
         # ═══════════════════════════════════════════════════════════════
-        pythonEnv = pkgs.python313.withPackages (ps: with ps; [
-          # Core Data Processing
-          pandas numpy pyarrow polars
+        pythonEnv = pkgs.python313.withPackages (ps:
+          with ps; [
+            # Core Data Processing
+            pandas
+            numpy
+            pyarrow
+            polars
 
-          # File Analysis
-          python-magic chardet filetype
+            # File Analysis
+            python-magic
+            chardet
+            filetype
 
-          # Hashing & Cryptography
-          cryptography pynacl
+            # Hashing & Cryptography
+            cryptography
+            pynacl
 
-          # NLP & Classification
-          nltk scikit-learn
+            # NLP & Classification
+            nltk
+            scikit-learn
 
-          # Metadata & Forensics
-          exifread pdfminer-six python-docx openpyxl
+            # Metadata & Forensics
+            exifread
+            pdfminer-six
+            python-docx
+            openpyxl
 
-          # Serialization & Reporting
-          pyyaml toml jinja2 rich tqdm
+            # Serialization & Reporting
+            pyyaml
+            toml
+            jinja2
+            rich
+            tqdm
 
-          # HTTP & Networking
-          requests
+            # HTTP & Networking
+            requests
 
-          # System Monitoring
-          psutil
+            # System Monitoring
+            psutil
 
-          # Async & Parallelism
-          aiofiles multiprocess
+            # Async & Parallelism
+            aiofiles
+            multiprocess
 
-          # Validation
-          jsonschema pydantic
+            # Validation
+            jsonschema
+            pydantic
 
-          # CORTEX v2.0: Embeddings & Chunking
-          sentence-transformers transformers torch tiktoken
-          langchain chromadb
+            # CORTEX v2.0: Embeddings & Chunking
+            sentence-transformers
+            transformers
+            torch
+            tiktoken
+            langchain
+            chromadb
 
-          # API & Web Server
-          fastapi uvicorn python-multipart pytest
+            # API & Web Server
+            fastapi
+            uvicorn
+            python-multipart
+            pytest
 
-          # Dev tools
-          pytest pytest-cov pytest-asyncio ruff mypy
-        ]);
+            # Dev tools
+            pytest
+            pytest-cov
+            pytest-asyncio
+            ruff
+            mypy
+          ]);
 
         # ═══════════════════════════════════════════════════════════════
         # SYSTEM TOOLS
         # ═══════════════════════════════════════════════════════════════
         systemTools = with pkgs; [
           # Data Manipulation
-          jq yq-go miller gron htmlq
+          jq
+          yq-go
+          miller
+          gron
+          htmlq
 
           # File Analysis
-          file exiftool binwalk hexyl
+          file
+          exiftool
+          binwalk
+          hexyl
 
           # Hashing & Integrity
-          b3sum xxHash rhash
+          b3sum
+          xxHash
+          rhash
 
           # Search & Discovery
-          ripgrep fd fzf tree
+          ripgrep
+          fd
+          fzf
+          tree
 
           # Compression & Archive
-          p7zip unzip gzip xz zstd
+          p7zip
+          unzip
+          gzip
+          xz
+          zstd
 
           # Security & Forensics
-          foremost sleuthkit
+          foremost
+          sleuthkit
 
           # Monitoring
-          pv parallel
+          pv
+          parallel
         ];
 
         # ═══════════════════════════════════════════════════════════════
@@ -207,9 +260,7 @@
 
           echo -e "\n\033[0;32m✓ Scan complete\033[0m"
         '';
-
-      in
-      {
+      in {
         # ═══════════════════════════════════════════════════════════════
         # PACKAGES
         # ═══════════════════════════════════════════════════════════════
@@ -226,32 +277,35 @@
         # ═══════════════════════════════════════════════════════════════
         checks = {
           # Python tests
-          python-tests = pkgs.runCommand "python-tests" {
-            buildInputs = [ pythonEnv ];
-          } ''
-            cd ${./.}
-            export PYTHONPATH="${./.}/src:$PYTHONPATH"
-            ${pythonEnv}/bin/pytest tests/ -v || true
-            touch $out
-          '';
+          python-tests =
+            pkgs.runCommand "python-tests" {
+              buildInputs = [pythonEnv];
+            } ''
+              cd ${./.}
+              export PYTHONPATH="${./.}/src:$PYTHONPATH"
+              ${pythonEnv}/bin/pytest tests/ -v || true
+              touch $out
+            '';
 
           # Python linting
-          python-lint = pkgs.runCommand "python-lint" {
-            buildInputs = [ pythonEnv ];
-          } ''
-            cd ${./.}
-            ${pythonEnv}/bin/ruff check src/ || true
-            touch $out
-          '';
+          python-lint =
+            pkgs.runCommand "python-lint" {
+              buildInputs = [pythonEnv];
+            } ''
+              cd ${./.}
+              ${pythonEnv}/bin/ruff check src/ || true
+              touch $out
+            '';
 
           # Python formatting
-          python-fmt = pkgs.runCommand "python-fmt" {
-            buildInputs = [ pythonEnv ];
-          } ''
-            cd ${./.}
-            ${pythonEnv}/bin/ruff format --check src/ || true
-            touch $out
-          '';
+          python-fmt =
+            pkgs.runCommand "python-fmt" {
+              buildInputs = [pythonEnv];
+            } ''
+              cd ${./.}
+              ${pythonEnv}/bin/ruff format --check src/ || true
+              touch $out
+            '';
         };
 
         # ═══════════════════════════════════════════════════════════════
@@ -260,29 +314,31 @@
         devShells.default = pkgs.mkShell {
           name = "phantom-dev";
 
-          buildInputs = [
-            # Tauri Desktop App Dependencies
-            pkgs.gtk3
-            pkgs.webkitgtk_4_1
-            pkgs.openssl
-            pkgs.pkg-config
+          buildInputs =
+            [
+              # Tauri Desktop App Dependencies
+              pkgs.gtk3
+              pkgs.webkitgtk_4_1
+              pkgs.openssl
+              pkgs.pkg-config
 
-            # Rust Toolchain
-            rustToolchain
-            pkgs.cargo-watch
-            pkgs.cargo-nextest
-            pkgs.cargo-audit
-            pkgs.cargo-outdated
+              # Rust Toolchain
+              rustToolchain
+              pkgs.cargo-watch
+              pkgs.cargo-nextest
+              pkgs.cargo-audit
+              pkgs.cargo-outdated
 
-            # Python environment
-            pythonEnv
+              # Python environment
+              pythonEnv
 
-            # Phantom scripts
-            phantomCore
-            phantomVerify
-            phantomHash
-            phantomScan
-          ] ++ systemTools;
+              # Phantom scripts
+              phantomCore
+              phantomVerify
+              phantomHash
+              phantomScan
+            ]
+            ++ systemTools;
 
           shellHook = ''
             export PHANTOM_VERSION="${VERSION}"
@@ -346,7 +402,8 @@
           };
         };
       }
-    ) // {
+    )
+    // {
       # ═══════════════════════════════════════════════════════════════
       # NIXOS MODULES (system-wide)
       # ═══════════════════════════════════════════════════════════════

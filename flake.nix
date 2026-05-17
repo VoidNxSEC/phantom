@@ -22,25 +22,23 @@
     };
   };
 
-  outputs =
-    {
-      self,
-      nixpkgs,
-      flake-utils,
-      rust-overlay,
-      crane,
-      advisory-db,
-      ...
-    }:
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    rust-overlay,
+    crane,
+    advisory-db,
+    ...
+  }:
     flake-utils.lib.eachDefaultSystem (
-      system:
-      let
+      system: let
         VERSION = "0.1.0";
 
         pkgs = import nixpkgs {
           inherit system;
           config.allowUnfree = true;
-          overlays = [ rust-overlay.overlays.default ];
+          overlays = [rust-overlay.overlays.default];
         };
 
         # ═══════════════════════════════════════════════════════════════
@@ -51,7 +49,7 @@
             "rust-analyzer"
             "rust-src"
           ];
-          targets = [ "x86_64-unknown-linux-gnu" ];
+          targets = ["x86_64-unknown-linux-gnu"];
         };
 
         # Crane library with our custom toolchain
@@ -61,78 +59,79 @@
         # PYTHON ENVIRONMENT
         # ═══════════════════════════════════════════════════════════════
         pythonEnv = pkgs.python313.withPackages (
-          ps: with ps; [
-            # Core Data Processing
-            numpy
-            pyarrow
+          ps:
+            with ps; [
+              # Core Data Processing
+              numpy
+              pyarrow
 
-            # File Analysis
-            python-magic
-            chardet
-            filetype
+              # File Analysis
+              python-magic
+              chardet
+              filetype
 
-            # Hashing & Cryptography
-            cryptography
-            pynacl
+              # Hashing & Cryptography
+              cryptography
+              pynacl
 
-            # NLP & Classification
-            nltk
-            scikit-learn
+              # NLP & Classification
+              nltk
+              scikit-learn
 
-            # Metadata & Forensics
-            exifread
-            pdfminer-six
-            python-docx
-            openpyxl
+              # Metadata & Forensics
+              exifread
+              pdfminer-six
+              python-docx
+              openpyxl
 
-            # Serialization & Reporting
-            pyyaml
-            toml
-            jinja2
-            rich
-            tqdm
+              # Serialization & Reporting
+              pyyaml
+              toml
+              jinja2
+              rich
+              tqdm
 
-            # HTTP & Networking
-            requests
+              # HTTP & Networking
+              requests
 
-            # System Monitoring
-            psutil
+              # System Monitoring
+              psutil
 
-            # Async & Parallelism
-            aiofiles
-            multiprocess
+              # Async & Parallelism
+              aiofiles
+              multiprocess
 
-            # Validation
-            jsonschema
-            pydantic
+              # Validation
+              jsonschema
+              pydantic
 
-            # CORTEX v2.0: Embeddings & Chunking
-            sentence-transformers
-            transformers
-            torch
-            tiktoken
-            faiss
+              # CORTEX v2.0: Embeddings & Chunking
+              sentence-transformers
+              transformers
+              torch
+              tiktoken
+              faiss
 
-            # API & Web Server
-            fastapi
-            uvicorn
-            python-multipart
-            httpx
+              # API & Web Server
+              fastapi
+              uvicorn
+              python-multipart
+              httpx
 
-            # Observability & Logging
-            prometheus-client
-            structlog
+              # Observability & Logging
+              prometheus-client
+              structlog
 
-            # CLI
-            typer
+              # CLI
+              typer
 
-            # Dev tools
-            pytest
-            pytest-cov
-            pytest-asyncio
-            ruff
-            mypy
-          ]
+              # Dev tools
+              pytest
+              pytest-cov
+              pytest-asyncio
+              ruff
+              mypy
+            ]
         );
 
         # ═══════════════════════════════════════════════════════════════
@@ -188,11 +187,9 @@
         src = pkgs.lib.cleanSourceWith {
           src = ./cortex-desktop/src-tauri;
           name = "cortex-desktop-source";
-          filter =
-            path: type:
-            let
-              baseName = baseNameOf path;
-            in
+          filter = path: type: let
+            baseName = baseNameOf path;
+          in
             # Include all Cargo standard files
             (craneLib.filterCargoSources path type)
             # Include all JSON files (tauri.conf.json, capabilities/*.json)
@@ -343,9 +340,7 @@
           export PYTHONPATH=$PYTHONPATH:${./.}/src
           exec ${pythonEnv}/bin/python3 ${./.}/src/phantom/api/cortex_api.py "$@"
         '';
-
-      in
-      {
+      in {
         # ═══════════════════════════════════════════════════════════════
         # PACKAGES
         # ═══════════════════════════════════════════════════════════════
@@ -400,39 +395,39 @@
           # Python tests
           python-tests =
             pkgs.runCommand "python-tests"
-              {
-                buildInputs = [ pythonEnv ];
-              }
-              ''
-                cd ${./.}
-                export PYTHONPATH="${./.}/src:$PYTHONPATH"
-                ${pythonEnv}/bin/pytest tests/ -v || true
-                touch $out
-              '';
+            {
+              buildInputs = [pythonEnv];
+            }
+            ''
+              cd ${./.}
+              export PYTHONPATH="${./.}/src:$PYTHONPATH"
+              ${pythonEnv}/bin/pytest tests/ -v || true
+              touch $out
+            '';
 
           # Python linting
           python-lint =
             pkgs.runCommand "python-lint"
-              {
-                buildInputs = [ pythonEnv ];
-              }
-              ''
-                cd ${./.}
-                ${pythonEnv}/bin/ruff check src/ || true
-                touch $out
-              '';
+            {
+              buildInputs = [pythonEnv];
+            }
+            ''
+              cd ${./.}
+              ${pythonEnv}/bin/ruff check src/ || true
+              touch $out
+            '';
 
           # Python formatting
           python-fmt =
             pkgs.runCommand "python-fmt"
-              {
-                buildInputs = [ pythonEnv ];
-              }
-              ''
-                cd ${./.}
-                ${pythonEnv}/bin/ruff format --check src/ || true
-                touch $out
-              '';
+            {
+              buildInputs = [pythonEnv];
+            }
+            ''
+              cd ${./.}
+              ${pythonEnv}/bin/ruff format --check src/ || true
+              touch $out
+            '';
         };
 
         # ═══════════════════════════════════════════════════════════════
@@ -441,35 +436,36 @@
         devShells.default = pkgs.mkShell {
           name = "phantom-dev";
 
-          buildInputs = [
-            # Tauri Desktop App Dependencies
-            pkgs.gtk3
-            pkgs.webkitgtk_4_1
-            pkgs.openssl
-            pkgs.pkg-config
+          buildInputs =
+            [
+              # Tauri Desktop App Dependencies
+              pkgs.gtk3
+              pkgs.webkitgtk_4_1
+              pkgs.openssl
+              pkgs.pkg-config
 
-            # GTK4 for IntelAgent SOC
-            pkgs.gtk4
-            pkgs.libadwaita
+              # GTK4 for IntelAgent SOC
+              pkgs.gtk4
+              pkgs.libadwaita
 
-            # Rust Toolchain
-            rustToolchain
-            pkgs.cargo-watch
-            pkgs.cargo-nextest
-            pkgs.cargo-audit
-            pkgs.cargo-outdated
+              # Rust Toolchain
+              rustToolchain
+              pkgs.cargo-watch
+              pkgs.cargo-nextest
+              pkgs.cargo-audit
+              pkgs.cargo-outdated
 
-            # Python environment
-            pythonEnv
+              # Python environment
+              pythonEnv
 
-            # Phantom scripts
-            phantomCore
-            phantomVerify
-            phantomHash
-            phantomScan
-            phantomApi
-          ]
-          ++ systemTools;
+              # Phantom scripts
+              phantomCore
+              phantomVerify
+              phantomHash
+              phantomScan
+              phantomApi
+            ]
+            ++ systemTools;
 
           shellHook = ''
             export PHANTOM_VERSION="${VERSION}"

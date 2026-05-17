@@ -7,7 +7,6 @@
   wrapGAppsHook4,
   gobject-introspection,
 }:
-
 python313Packages.buildPythonApplication rec {
   pname = "phantom-desktop";
   version = "0.1.0";
@@ -66,7 +65,7 @@ python313Packages.buildPythonApplication rec {
     description = "Phantom Desktop - Native GTK4 Document Intelligence";
     homepage = "https://github.com/VoidNxSEC/phantom";
     license = licenses.ALv2;
-    maintainers = [ VoidNxSEC ];
+    maintainers = [VoidNxSEC];
     mainProgram = "phantom-desktop";
     platforms = platforms.linux;
   };

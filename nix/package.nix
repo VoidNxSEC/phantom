@@ -3,7 +3,6 @@
   python313Packages,
   fetchFromGitHub,
 }:
-
 python313Packages.buildPythonApplication rec {
   pname = "phantom";
   version = "2.0.0";
@@ -50,13 +49,13 @@ python313Packages.buildPythonApplication rec {
     aiofiles
   ];
 
-  pythonImportsCheck = [ "phantom" ];
+  pythonImportsCheck = ["phantom"];
 
   meta = with lib; {
     description = "AI-Powered Document Intelligence & Classification Pipeline";
     homepage = "https://github.com/VoidNxSEC/phantom";
     license = licenses.asl20;
-    maintainers = [ ];
+    maintainers = [];
     mainProgram = "phantom";
   };
 }

@@ -90,7 +90,7 @@ dev = [
 ]
 gpu = [
     "torch>=2.0",
-    "faiss-gpu>=1.7",
+    "faiss-gpu>=1.7.2",
 ]
 all = [
     "phantom[dev]",

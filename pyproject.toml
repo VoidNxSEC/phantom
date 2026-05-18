@@ -68,7 +68,7 @@ dependencies = [
     "aiofiles>=23.0,<24.0",
 
     # Event bus
-    "nats-py>=2.7,<3.0",
+    "nats-py>=2.14.0,<3.0",
     "nkeys>=0.2.1,<1.0",
 ]
 

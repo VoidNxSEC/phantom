@@ -1,170 +1,107 @@
-====================================
-Phantom API Documentation
-====================================
+=====================
+Phantom Documentation
+=====================
 
-.. image:: https://img.shields.io/badge/Python-3.11+-blue
-.. image:: https://img.shields.io/badge/License-Apache2.0-green
-.. image:: https://img.shields.io/badge/Status-Pre--Alpha-orange
+Phantom is a local-first document intelligence framework with a Python runtime,
+a FastAPI service, a Tauri/Svelte desktop client, Rust agent primitives, and
+reproducible Nix packaging.
 
-AI-powered document intelligence framework with RAG pipeline and semantic search.
-
-Quick Links
-===========
-
-- **GitHub**: https://github.com/kernelcore/phantom
-- **PyPI**: https://pypi.org/project/phantom
-- **Issues**: https://github.com/kernelcore/phantom/issues
+Start with the project topology when orienting new contributors or planning
+repo cleanup. It separates live runtime code from generated reports, archives,
+fixtures, and companion components.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Getting Started
+   :caption: Architecture
 
-   guides/quickstart
-   guides/installation
+   architecture/project_topology
 
-.. toctree::
-   :maxdepth: 2
-   :caption: API Reference
+Live Surfaces
+=============
 
-   api/health
-   api/documents
-   api/vectors
-   api/chat
-   api/pipeline
-   api/models
+.. list-table::
+   :header-rows: 1
+   :widths: 22 48 30
 
-.. toctree::
-   :maxdepth: 2
-   :caption: User Guide
+   * - Surface
+     - Purpose
+     - Entry Point
+   * - CLI
+     - Extract, analyze, classify, scan, query RAG, run tools, and start the
+       local API.
+     - ``phantom``
+   * - API
+     - Health, metrics, document processing, upload, vector search, RAG chat,
+       pipeline execution, and judge endpoints.
+     - ``phantom-api`` / ``src/phantom/api/app.py``
+   * - Desktop
+     - Local GUI for the Phantom API and document workflows.
+     - ``cortex-desktop/``
+   * - Agent Core
+     - Rust abstractions for agents, tasks, contexts, proofs, and quality gates.
+     - ``intelagent/``
+   * - Delivery
+     - Nix shell, packages, checks, and OCI fallback.
+     - ``flake.nix`` / ``Dockerfile``
 
-   guides/document-processing
-   guides/vector-search
-   guides/rag-pipeline
-   guides/cli-commands
+Reference Files
+===============
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Development
+The current documentation corpus is mostly Markdown. These files are useful
+while the Sphinx/MyST setup is consolidated:
 
-   development/architecture
-   development/testing
-   development/contributing
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Deployment
-
-   deployment/docker
-   deployment/systemd
-   deployment/cloud
-   deployment/monitoring
+* ``docs/guides/ROADMAP.md`` - current roadmap snapshot.
+* ``docs/architecture/CORTEX_V2_ARCHITECTURE.md`` - CORTEX chunking,
+  embeddings, vector storage, and retrieval design.
+* ``docs/DEPLOYMENT.md`` - deployment notes.
+* ``docs/development/NIX_PYTHON_GUIDELINES.md`` - development conventions.
+* ``docs/history/`` - completed migrations and historical implementation notes.
+* ``arch/`` - generated architecture reports and machine-readable snapshots.
 
 API Endpoints
 =============
 
-Health & Monitoring
--------------------
+Health and monitoring:
 
-.. autosummary::
+.. code-block:: text
 
-   GET /health
-   GET /ready
-   GET /metrics
-   GET /api/system/metrics
+   GET  /health
+   GET  /ready
+   GET  /metrics
+   GET  /api/system/metrics
 
-Document Processing
--------------------
+Document processing and upload:
 
-.. autosummary::
+.. code-block:: text
 
    POST /extract
    POST /process
    POST /upload
    POST /api/upload
 
-Vector Store
-------------
+Vector search and RAG:
 
-.. autosummary::
+.. code-block:: text
 
    POST /vectors/search
    POST /vectors/index
    POST /vectors/batch-index
-
-RAG & Chat
-----------
-
-.. autosummary::
-
    POST /api/chat
    POST /api/chat/stream
-   GET /api/models
+   GET  /api/models
    POST /api/prompt/test
 
-Pipeline & Classification
---------------------------
+Pipeline and integrations:
 
-.. autosummary::
+.. code-block:: text
 
    POST /api/pipeline
    POST /api/pipeline/scan
-
-Module Reference
-================
-
-Core Engine
------------
-
-.. autosummary::
-   :toctree: _autosummary
-
-   phantom.core.cortex
-   phantom.core.embeddings
-   phantom.core.chunking
-
-RAG Pipeline
-------------
-
-.. autosummary::
-   :toctree: _autosummary
-
-   phantom.rag.vectors
-   phantom.rag.search
-   phantom.cerebro
-
-Analysis
---------
-
-.. autosummary::
-   :toctree: _autosummary
-
-   phantom.analysis.sentiment_analysis
-   phantom.analysis.spectre
-   phantom.analysis.viability
-
-Pipeline & Classification
--------------------------
-
-.. autosummary::
-   :toctree: _autosummary
-
-   phantom.pipeline.phantom_dag
-   phantom.pipeline.classifier
-
-Providers
----------
-
-.. autosummary::
-   :toctree: _autosummary
-
-   phantom.providers.base
-   phantom.providers.llamacpp
+   GET  /rag/query
+   POST /judge
 
 CLI Reference
 =============
-
-Document Commands
-------------------
 
 .. code-block:: bash
 
@@ -172,147 +109,21 @@ Document Commands
    phantom analyze <file>
    phantom classify <directory>
    phantom scan <directory>
-
-RAG Commands
--------------
-
-.. code-block:: bash
-
-   phantom rag query <question>
    phantom rag ingest <directory>
-
-Tools
------
-
-.. code-block:: bash
-
+   phantom rag query <question>
    phantom tools vram
    phantom tools prompt
    phantom tools audit <directory>
-
-API Server
-----------
-
-.. code-block:: bash
-
-   phantom api serve [--host HOST] [--port PORT]
+   phantom api serve --host 127.0.0.1 --port 8000
+   phantom version
 
 Configuration
 =============
 
-Environment Variables
----------------------
-
 .. code-block:: bash
 
-   # API Configuration
-   PORT=8000
-   HOST=0.0.0.0
-   
-   # LLM Provider
    LLAMACPP_BASE_URL=http://localhost:8081
-   
-   # Logging
+   SECURELLM_BRIDGE_URL=http://localhost:8081
    PYTHON_LOG_LEVEL=INFO
-   
-   # Resources
    VRAM_WARNING_MB=512
    VRAM_CRITICAL_MB=256
-
-Examples
-========
-
-Extract Insights from Document
--------------------------------
-
-.. code-block:: python
-
-   from phantom.core.cortex import CortexProcessor
-   from pathlib import Path
-   
-   processor = CortexProcessor(enable_vectors=True)
-   insights = processor.process_document(Path("document.md"))
-   
-   print(f"Themes: {len(insights.themes)}")
-   print(f"Patterns: {len(insights.patterns)}")
-   print(f"Recommendations: {len(insights.recommendations)}")
-
-Semantic Search with RAG
--------------------------
-
-.. code-block:: python
-
-   from phantom.core.embeddings import EmbeddingGenerator
-   from phantom.rag.vectors import FAISSVectorStore
-   
-   embedder = EmbeddingGenerator()
-   store = FAISSVectorStore(embedding_dim=384)
-   
-   # Add documents
-   texts = ["First document", "Second document"]
-   embeddings = embedder.encode(texts)
-   store.add(embeddings, texts)
-   
-   # Search
-   query_embedding = embedder.encode(["search query"])[0]
-   results = store.search(query_embedding, top_k=5)
-
-FAQ
-===
-
-What is Phantom?
-----------------
-
-Phantom is a local-first AI document intelligence framework that processes
-unstructured documents into actionable intelligence using semantic chunking,
-LLM classification, and semantic search.
-
-Do I need GPU?
---------------
-
-No, Phantom works with CPU. GPU acceleration is optional for faster processing.
-
-How do I deploy Phantom?
-------------------------
-
-See the :doc:`Deployment <deployment/docker>` guide for Docker, systemd, and
-cloud platform instructions.
-
-Can I use it offline?
----------------------
-
-Yes! Phantom is designed for local-first processing. You can run everything
-locally with llama.cpp.
-
-Glossary
-========
-
-.. glossary::
-
-   CORTEX
-      Core intelligence engine for document processing and insight extraction
-
-   FAISS
-      Facebook AI Similarity Search - vector database for semantic search
-
-   RAG
-      Retrieval-Augmented Generation - combining search with LLM generation
-
-   Embeddings
-      Vector representations of text for similarity search
-
-   Semantic Chunking
-      Intelligent text splitting that preserves document structure
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
-.. toctree::
-   :hidden:
-
-   changelog
-   license

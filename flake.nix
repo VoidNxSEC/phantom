@@ -18,7 +18,7 @@
 
     advisory-db = {
       url = "github:rustsec/advisory-db";
-      flake = false;
+      #flake = true;
     };
   };
 

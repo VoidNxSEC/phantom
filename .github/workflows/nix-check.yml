@@ -1,23 +1,18 @@
-name: Nix Evaluation
+name: Nix CI
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [main, dev]
   pull_request:
-    branches: [ main, dev ]
+    branches: [main, dev]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  flake-check:
-    name: Check Nix Flake Evaluation
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install Nix
-        uses: cachix/install-nix-action@v30
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
-
-      - name: Run Nix Flake Check
-        run: nix flake check --no-build
+  nix-ci:
+    uses: VoidNxSEC/voidnxlabs-workflows/.github/workflows/reusable-nix-ci.yml@main
+    secrets: inherit
+    with:
+      cachix-name: "phantom"
